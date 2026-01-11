@@ -1,11 +1,45 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import type { StockDetailResponse, SearchResponse } from '@recon/shared';
 
-export async function fetchApi<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+export class ApiError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public status?: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function fetchApi<T>(endpoint: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`);
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch {
+      throw new ApiError('UNKNOWN_ERROR', `Request failed: ${response.statusText}`, response.status);
+    }
+    throw new ApiError(
+      errorData.code || 'API_ERROR',
+      errorData.message || 'An error occurred',
+      response.status
+    );
   }
 
   return response.json();
+}
+
+export async function fetchStock(ticker: string): Promise<StockDetailResponse> {
+  return fetchApi<StockDetailResponse>(`/api/stock/${ticker.toUpperCase()}`);
+}
+
+export async function searchTickers(query: string): Promise<SearchResponse> {
+  if (!query || query.length < 1) {
+    return { results: [], query: '' };
+  }
+  return fetchApi<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}`);
 }
