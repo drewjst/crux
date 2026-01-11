@@ -3,10 +3,10 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Install build dependencies
 RUN apk add --no-cache git
 
-# Copy go mod files
+# Copy go mod files first for layer caching
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -14,22 +14,28 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /bin/api ./cmd/api
 
 # Production stage
-FROM alpine:3.19
+FROM alpine:3.20
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS requests
+# Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata
 
-# Copy binary from builder
-COPY --from=builder /bin/server /app/server
+# Create non-root user
+RUN addgroup -S recon && adduser -S recon -G recon
 
-# Copy migrations if needed
+# Copy binary from builder
+COPY --from=builder /bin/api /app/api
+
+# Copy migrations
 COPY --from=builder /app/migrations ./migrations
+
+# Switch to non-root user
+USER recon
 
 EXPOSE 8080
 
-CMD ["/app/server"]
+ENTRYPOINT ["/app/api"]

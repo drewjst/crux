@@ -1,0 +1,70 @@
+package handlers
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+	"regexp"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/drewjst/recon/apps/api/internal/api/middleware"
+	"github.com/drewjst/recon/apps/api/internal/domain/stock"
+)
+
+// StockHandler handles stock-related HTTP requests.
+type StockHandler struct {
+	service *stock.Service
+}
+
+// NewStockHandler creates a new stock handler with the given service.
+func NewStockHandler(service *stock.Service) *StockHandler {
+	return &StockHandler{service: service}
+}
+
+// tickerPattern validates ticker symbols (1-5 uppercase letters).
+var tickerPattern = regexp.MustCompile(`^[A-Z]{1,5}$`)
+
+// GetStock handles GET /api/stock/{ticker} requests.
+// Returns comprehensive stock data including scores, signals, and financials.
+func (h *StockHandler) GetStock(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := middleware.GetRequestID(ctx)
+
+	ticker := strings.ToUpper(chi.URLParam(r, "ticker"))
+
+	if !isValidTicker(ticker) {
+		writeErrorWithDetails(w, http.StatusBadRequest, ErrCodeInvalidTicker,
+			"Invalid ticker format",
+			map[string]string{"ticker": ticker},
+		)
+		return
+	}
+
+	result, err := h.service.GetStockDetail(ctx, ticker)
+	if err != nil {
+		if errors.Is(err, stock.ErrTickerNotFound) {
+			writeErrorWithDetails(w, http.StatusNotFound, ErrCodeTickerNotFound,
+				"Stock not found",
+				map[string]string{"ticker": ticker},
+			)
+			return
+		}
+
+		slog.Error("failed to get stock detail",
+			"error", err,
+			"ticker", ticker,
+			"request_id", requestID,
+		)
+		writeError(w, http.StatusInternalServerError, ErrCodeInternalError, "Failed to retrieve stock data")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// isValidTicker checks if a ticker symbol matches expected format.
+func isValidTicker(ticker string) bool {
+	return tickerPattern.MatchString(ticker)
+}
