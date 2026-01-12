@@ -4,7 +4,6 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useStock } from '@/hooks/use-stock';
 import {
   HeaderSection,
-  PerformanceSection,
   ConvictionScoresSection,
   SignalsSection,
   GrowthSection,
@@ -45,9 +44,6 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <HeaderSection data={data} />
-
-      <DashboardDivider />
-      <PerformanceSection data={data} />
 
       <DashboardDivider />
       <ConvictionScoresSection data={data} />

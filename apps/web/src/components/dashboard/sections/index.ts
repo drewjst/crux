@@ -1,6 +1,6 @@
 export { SectionCard, DashboardDivider } from './section-card';
 export { HeaderSection } from './header-section';
-export { PerformanceSection } from './performance-section';
+export { MiniChart } from './mini-chart';
 export { ConvictionScoresSection } from './conviction-scores-section';
 export { SignalsSection } from './signals-section';
 export { GrowthSection } from './growth-section';
