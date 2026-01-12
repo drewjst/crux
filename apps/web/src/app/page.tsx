@@ -1,9 +1,24 @@
+'use client';
+
+import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, TrendingUp, Calculator, Users, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function Home() {
+  const router = useRouter();
+  const [ticker, setTicker] = useState('');
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const normalizedTicker = ticker.trim().toUpperCase();
+    if (normalizedTicker) {
+      router.push(`/stock/${normalizedTicker}`);
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -18,19 +33,21 @@ export default function Home() {
           </p>
 
           {/* Search Box */}
-          <div className="flex w-full max-w-lg mx-auto gap-2">
+          <form onSubmit={handleSubmit} className="flex w-full max-w-lg mx-auto gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Enter ticker symbol (e.g., AAPL)"
                 className="pl-10 h-12 text-base"
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
               />
             </div>
-            <Button size="lg" className="h-12 px-8" asChild>
-              <Link href="/stock/AAPL">Distill</Link>
+            <Button type="submit" size="lg" className="h-12 px-8">
+              Distill
             </Button>
-          </div>
+          </form>
 
           <p className="text-sm text-muted-foreground">
             Try:{' '}

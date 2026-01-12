@@ -2,43 +2,47 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 // Config holds all configuration values for the application.
-// All fields are populated from environment variables.
 type Config struct {
-	// Server settings
-	Port string
-	Env  string // "development", "staging", "production"
-
-	// External APIs
-	FMPAPIKey string // Financial Modeling Prep API key
+	Port      string
+	Env       string
+	FMPAPIKey string
 }
 
-// Load reads configuration from environment variables and validates required fields.
-// Returns an error if any required configuration is missing.
+// Load reads configuration from environment variables.
+// Falls back to AWS Secrets Manager for FMP_API_KEY in production.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:      getEnv("PORT", "8080"),
-		Env:       getEnv("ENV", "development"),
-		FMPAPIKey: os.Getenv("FMP_API_KEY"),
+		Port: getEnv("PORT", "8080"),
+		Env:  getEnv("ENV", "development"),
 	}
 
-	if err := cfg.validate(); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+	// Try env var first (local dev), then AWS Secrets Manager (production)
+	if apiKey := os.Getenv("FMP_API_KEY"); apiKey != "" {
+		cfg.FMPAPIKey = apiKey
+	} else {
+		slog.Info("FMP_API_KEY not in env, trying AWS Secrets Manager")
+		secret, err := getAWSSecret("recon/fmp-api-key")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get FMP API key: %w", err)
+		}
+		cfg.FMPAPIKey = secret
+	}
+
+	if cfg.FMPAPIKey == "" {
+		return nil, fmt.Errorf("FMP_API_KEY is required")
 	}
 
 	return cfg, nil
-}
-
-// validate checks that all required configuration is present.
-func (c *Config) validate() error {
-	if c.FMPAPIKey == "" {
-		return fmt.Errorf("FMP_API_KEY is required")
-	}
-	return nil
 }
 
 // IsDevelopment returns true if running in development mode.
@@ -57,4 +61,27 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// getAWSSecret retrieves a secret from AWS Secrets Manager.
+func getAWSSecret(secretName string) (string, error) {
+	ctx := context.Background()
+	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-west-2"))
+	if err != nil {
+		return "", fmt.Errorf("loading AWS config: %w", err)
+	}
+
+	client := secretsmanager.NewFromConfig(awsCfg)
+	result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+		SecretId: &secretName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("getting secret %s: %w", secretName, err)
+	}
+
+	if result.SecretString == nil {
+		return "", fmt.Errorf("secret %s has no string value", secretName)
+	}
+
+	return *result.SecretString, nil
 }

@@ -1,3 +1,7 @@
+'use client';
+
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowUp,
   ArrowDown,
@@ -9,6 +13,7 @@ import {
   Calculator,
   Shield,
   Award,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,64 +32,76 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { AreaChart } from '@tremor/react';
+import { useStock } from '@/hooks/use-stock';
+import type { StockDetailResponse, Signal as APISignal } from '@recon/shared';
 
-// Mock data for AAPL
-const mockData = {
-  company: {
-    ticker: 'AAPL',
-    name: 'Apple Inc.',
-    sector: 'Technology',
-    industry: 'Consumer Electronics',
-  },
-  quote: {
-    price: 185.92,
-    change: 2.34,
-    changePercent: 1.27,
-    marketCap: 2890000000000,
-    fiftyTwoWeekHigh: 199.62,
-    fiftyTwoWeekLow: 164.08,
-  },
-  scores: {
-    piotroski: { score: 8, label: 'Strong' },
-    ruleOf40: { score: 52, passed: true },
-    altmanZ: { score: 8.42, zone: 'safe' },
-    overall: 'A',
-  },
-  signals: [
-    { type: 'bullish', message: 'Strong Piotroski F-Score of 8 indicates solid fundamentals', category: 'Fundamental' },
-    { type: 'bullish', message: 'Institutional ownership increased 3 consecutive quarters', category: 'Ownership' },
-    { type: 'bullish', message: 'Altman Z-Score of 8.42 indicates excellent financial health', category: 'Fundamental' },
-    { type: 'warning', message: 'P/E ratio 15% above sector median', category: 'Valuation' },
-    { type: 'bearish', message: 'Revenue growth slowing vs prior year', category: 'Growth' },
-  ],
-  valuation: [
-    { metric: 'P/E Ratio', current: 29.4, sectorMedian: 25.6 },
-    { metric: 'Forward P/E', current: 27.8, sectorMedian: 23.2 },
-    { metric: 'PEG Ratio', current: 2.1, sectorMedian: 1.8 },
-    { metric: 'EV/EBITDA', current: 22.3, sectorMedian: 18.9 },
-    { metric: 'P/FCF', current: 26.8, sectorMedian: 22.1 },
-    { metric: 'P/B Ratio', current: 47.2, sectorMedian: 8.4 },
-  ],
-  holdings: [
-    { name: 'Vanguard Group', shares: 1340000000, value: 249100000000, change: 2.3 },
-    { name: 'BlackRock Inc.', shares: 1020000000, value: 189700000000, change: 1.1 },
-    { name: 'Berkshire Hathaway', shares: 915000000, value: 170100000000, change: 0.0 },
-    { name: 'State Street Corp', shares: 623000000, value: 115800000000, change: -0.8 },
-    { name: 'FMR LLC (Fidelity)', shares: 412000000, value: 76600000000, change: 3.2 },
-  ],
-  revenueHistory: [
-    { quarter: 'Q1 2024', Revenue: 119600 },
-    { quarter: 'Q2 2024', Revenue: 94930 },
-    { quarter: 'Q3 2024', Revenue: 85780 },
-    { quarter: 'Q4 2024', Revenue: 89500 },
-    { quarter: 'Q1 2025', Revenue: 124300 },
-  ],
-};
+function getPiotroskiLabel(score: number): string {
+  if (score >= 7) return 'Strong';
+  if (score >= 4) return 'Moderate';
+  return 'Weak';
+}
+
+function getOverallLabel(grade: string): string {
+  const labels: Record<string, string> = {
+    'A': 'Excellent',
+    'B+': 'Very Good',
+    'B': 'Good',
+    'C': 'Average',
+    'D': 'Below Average',
+    'F': 'Poor',
+  };
+  return labels[grade] || grade;
+}
+
+function getOverallVariant(grade: string): 'success' | 'warning' | 'destructive' | 'secondary' {
+  if (grade === 'A' || grade === 'B+') return 'success';
+  if (grade === 'B' || grade === 'C') return 'warning';
+  return 'destructive';
+}
+
+function formatValuationRows(valuation: StockDetailResponse['valuation']) {
+  return [
+    { metric: 'P/E Ratio', current: valuation.pe.value, sectorMedian: valuation.pe.sectorMedian },
+    { metric: 'Forward P/E', current: valuation.forwardPe.value, sectorMedian: valuation.forwardPe.sectorMedian },
+    { metric: 'PEG Ratio', current: valuation.peg.value, sectorMedian: valuation.peg.sectorMedian },
+    { metric: 'EV/EBITDA', current: valuation.evToEbitda.value, sectorMedian: valuation.evToEbitda.sectorMedian },
+    { metric: 'P/FCF', current: valuation.priceToFcf.value, sectorMedian: valuation.priceToFcf.sectorMedian },
+    { metric: 'P/B Ratio', current: valuation.priceToBook.value, sectorMedian: valuation.priceToBook.sectorMedian },
+  ];
+}
 
 export default function StockDashboard() {
-  const { company, quote, scores, signals, valuation, holdings, revenueHistory } = mockData;
+  const params = useParams();
+  const ticker = typeof params.ticker === 'string' ? params.ticker : params.ticker?.[0] || '';
+  const { data, isLoading, error } = useStock(ticker);
+
+  if (isLoading) {
+    return (
+      <div className="container py-24 flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading stock data...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="container py-24 flex flex-col items-center justify-center">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="mt-4 text-xl font-semibold">Failed to load stock data</h2>
+        <p className="mt-2 text-muted-foreground">
+          {error instanceof Error ? error.message : 'Unable to fetch data for this ticker'}
+        </p>
+        <Button className="mt-6" asChild>
+          <Link href="/">Back to Home</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const { company, quote, scores, signals, valuation, holdings } = data;
   const isPositive = quote.changePercent >= 0;
+  const valuationRows = formatValuationRows(valuation);
 
   return (
     <div className="container py-8 space-y-8">
@@ -132,14 +149,14 @@ export default function StockDashboard() {
             icon={<Calculator className="h-4 w-4" />}
             title="Piotroski F-Score"
             value={`${scores.piotroski.score}/9`}
-            badge={scores.piotroski.label}
-            badgeVariant="success"
+            badge={getPiotroskiLabel(scores.piotroski.score)}
+            badgeVariant={scores.piotroski.score >= 7 ? 'success' : scores.piotroski.score >= 4 ? 'warning' : 'destructive'}
             tooltip="9-point fundamental strength score. 7+ is strong, 4-6 is moderate, below 4 is weak."
           />
           <ScoreCard
             icon={<TrendingUp className="h-4 w-4" />}
             title="Rule of 40"
-            value={`${scores.ruleOf40.score}%`}
+            value={`${scores.ruleOf40.score.toFixed(0)}%`}
             badge={scores.ruleOf40.passed ? 'Passed' : 'Failed'}
             badgeVariant={scores.ruleOf40.passed ? 'success' : 'destructive'}
             tooltip="Revenue growth + profit margin should exceed 40%."
@@ -155,9 +172,9 @@ export default function StockDashboard() {
           <ScoreCard
             icon={<Award className="h-4 w-4" />}
             title="Overall Grade"
-            value={scores.overall}
-            badge="Excellent"
-            badgeVariant="success"
+            value={scores.overallGrade}
+            badge={getOverallLabel(scores.overallGrade)}
+            badgeVariant={getOverallVariant(scores.overallGrade)}
             tooltip="Combined assessment of all fundamental metrics."
             highlighted
           />
@@ -213,7 +230,23 @@ export default function StockDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {valuation.map((row) => {
+                  {valuationRows.map((row) => {
+                    if (row.current === null || row.sectorMedian === null) {
+                      return (
+                        <TableRow key={row.metric}>
+                          <TableCell className="font-medium">{row.metric}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {row.current !== null ? row.current.toFixed(1) : 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {row.sectorMedian !== null ? row.sectorMedian.toFixed(1) : 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="secondary" className="font-normal">N/A</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
                     const diff = ((row.current - row.sectorMedian) / row.sectorMedian) * 100;
                     return (
                       <TableRow key={row.metric}>
@@ -243,7 +276,9 @@ export default function StockDashboard() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Institutional Holdings</CardTitle>
-                <Badge variant="outline" className="font-normal">73% institutional</Badge>
+                <Badge variant="outline" className="font-normal">
+                  {(holdings.totalInstitutionalOwnership * 100).toFixed(0)}% institutional
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -256,15 +291,15 @@ export default function StockDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {holdings.map((holder) => (
-                    <TableRow key={holder.name}>
-                      <TableCell className="font-medium">{holder.name}</TableCell>
+                  {holdings.topInstitutional.slice(0, 5).map((holder) => (
+                    <TableRow key={holder.fundCik}>
+                      <TableCell className="font-medium">{holder.fundName}</TableCell>
                       <TableCell className="text-right">
                         ${(holder.value / 1e9).toFixed(1)}B
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={holder.change >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {holder.change >= 0 ? '+' : ''}{holder.change.toFixed(1)}%
+                        <span className={holder.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {holder.changePercent >= 0 ? '+' : ''}{holder.changePercent.toFixed(1)}%
                         </span>
                       </TableCell>
                     </TableRow>
@@ -275,31 +310,12 @@ export default function StockDashboard() {
           </Card>
         </div>
 
-        {/* Revenue Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AreaChart
-              className="h-72"
-              data={revenueHistory}
-              index="quarter"
-              categories={['Revenue']}
-              colors={['orange']}
-              valueFormatter={(value: number) => `$${(value / 1000).toFixed(1)}B`}
-              showAnimation
-              showLegend={false}
-            />
-          </CardContent>
-        </Card>
-
         {/* Footer */}
         <footer className="pt-4 border-t text-sm text-muted-foreground">
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <span>Quote: Real-time</span>
-            <span>Financials: Q1 2025</span>
-            <span>Holdings: Q4 2024</span>
+            <span>Quote: {new Date(data.meta.priceAsOf).toLocaleDateString()}</span>
+            <span>Financials: {data.meta.fundamentalsAsOf}</span>
+            <span>Holdings: {data.meta.holdingsAsOf}</span>
           </div>
         </footer>
     </div>
@@ -343,15 +359,9 @@ function ScoreCard({ icon, title, value, badge, badgeVariant, tooltip, highlight
   );
 }
 
-interface Signal {
-  type: string;
-  message: string;
-  category: string;
-}
-
 interface SignalGroupProps {
   title: string;
-  signals: Signal[];
+  signals: APISignal[];
   icon: React.ReactNode;
   colorClass: string;
 }
