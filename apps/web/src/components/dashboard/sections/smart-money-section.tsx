@@ -9,19 +9,16 @@ interface SmartMoneySectionProps {
 }
 
 export function SmartMoneySection({ data }: SmartMoneySectionProps) {
-  const { holdings, insiderTrades } = data;
-
-  // Calculate summary stats from insider trades
-  const recentBuys = insiderTrades.filter((t) => t.tradeType === 'buy');
-  const recentSells = insiderTrades.filter((t) => t.tradeType === 'sell');
-  const totalBuyValue = recentBuys.reduce((sum, t) => sum + t.value, 0);
-  const totalSellValue = recentSells.reduce((sum, t) => sum + t.value, 0);
+  const { holdings, insiderActivity } = data;
 
   const formatValue = (val: number) => {
-    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
-    if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
+    const absVal = Math.abs(val);
+    if (absVal >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (absVal >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
     return `$${val.toFixed(0)}`;
   };
+
+  const hasInsiderActivity = insiderActivity.buyCount90d > 0 || insiderActivity.sellCount90d > 0;
 
   return (
     <SectionCard title="Smart Money">
@@ -29,14 +26,22 @@ export function SmartMoneySection({ data }: SmartMoneySectionProps) {
         <div>
           <div className="text-sm text-muted-foreground mb-1">Institutional Ownership</div>
           <div className="text-2xl font-bold">
-            {(holdings.totalInstitutionalOwnership * 100).toFixed(1)}%
+            {holdings.totalInstitutionalOwnership > 0
+              ? `${(holdings.totalInstitutionalOwnership * 100).toFixed(1)}%`
+              : 'N/A'}
           </div>
         </div>
         <div>
           <div className="text-sm text-muted-foreground mb-1">Net Change (Qtrs)</div>
           <div className={`text-2xl font-bold ${holdings.netChangeShares >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {holdings.netChangeShares >= 0 ? '+' : ''}
-            {(holdings.netChangeShares / 1e6).toFixed(1)}M shares
+            {holdings.netChangeShares !== 0 ? (
+              <>
+                {holdings.netChangeShares >= 0 ? '+' : ''}
+                {(holdings.netChangeShares / 1e6).toFixed(1)}M shares
+              </>
+            ) : (
+              'N/A'
+            )}
           </div>
         </div>
       </div>
@@ -68,20 +73,43 @@ export function SmartMoneySection({ data }: SmartMoneySectionProps) {
 
       <div className="border-t border-dashed pt-4">
         <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Insider Activity (90d)</div>
-        <div className="flex gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-green-500" />
-            <span className="text-sm">
-              {recentBuys.length} buys ({formatValue(totalBuyValue)})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-sm">
-              {recentSells.length} sells ({formatValue(totalSellValue)})
-            </span>
-          </div>
-        </div>
+        {hasInsiderActivity ? (
+          <>
+            <div className="flex flex-wrap gap-4 md:gap-6 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <span className="text-sm">
+                  {insiderActivity.buyCount90d} buys
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-red-500" />
+                <span className="text-sm">
+                  {insiderActivity.sellCount90d} sells
+                </span>
+              </div>
+              <div className="ml-auto">
+                <span className={`text-sm font-medium ${insiderActivity.netValue90d >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  Net: {insiderActivity.netValue90d >= 0 ? '+' : ''}{formatValue(insiderActivity.netValue90d)}
+                </span>
+              </div>
+            </div>
+            {insiderActivity.trades.length > 0 && (
+              <div className="space-y-2">
+                {insiderActivity.trades.slice(0, 5).map((trade, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm py-1 border-t border-muted/50 first:border-t-0">
+                    <span className="truncate max-w-[150px] md:max-w-[200px]">{trade.insiderName}</span>
+                    <span className={trade.tradeType === 'buy' ? 'text-green-600' : 'text-red-600'}>
+                      {trade.tradeType === 'buy' ? 'Buy' : 'Sell'} {formatValue(trade.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-sm text-muted-foreground">No insider activity in last 90 days</div>
+        )}
       </div>
     </SectionCard>
   );

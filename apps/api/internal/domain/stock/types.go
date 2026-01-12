@@ -86,6 +86,24 @@ type Financials struct {
 	InterestCoverage *float64 `json:"interestCoverage" db:"interest_coverage"`
 }
 
+// Performance contains price performance metrics over various time periods.
+type Performance struct {
+	Day1Change      float64 `json:"day1Change"`
+	Week1Change     float64 `json:"week1Change"`
+	Month1Change    float64 `json:"month1Change"`
+	YTDChange       float64 `json:"ytdChange"`
+	Year1Change     float64 `json:"year1Change"`
+	PercentOf52High float64 `json:"percentOf52WeekHigh"`
+}
+
+// InsiderActivity contains aggregated insider trading data.
+type InsiderActivity struct {
+	Trades       []InsiderTrade `json:"trades"`
+	BuyCount90d  int            `json:"buyCount90d"`
+	SellCount90d int            `json:"sellCount90d"`
+	NetValue90d  float64        `json:"netValue90d"`
+}
+
 // DataMeta contains data freshness timestamps.
 type DataMeta struct {
 	FundamentalsAsOf string    `json:"fundamentalsAsOf"`

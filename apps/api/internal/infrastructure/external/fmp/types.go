@@ -159,3 +159,54 @@ type Ratios struct {
 	DividendYield          float64 `json:"dividendYield"`
 	DividendPerShare       float64 `json:"dividendPerShare"`
 }
+
+// KeyMetrics represents the FMP key metrics response (stable API).
+type KeyMetrics struct {
+	Date                     string  `json:"date"`
+	Symbol                   string  `json:"symbol"`
+	FiscalYear               string  `json:"fiscalYear"`
+	Period                   string  `json:"period"`
+	MarketCap                float64 `json:"marketCap"`
+	EnterpriseValue          float64 `json:"enterpriseValue"`
+	EVToSales                float64 `json:"evToSales"`
+	EVToOperatingCashFlow    float64 `json:"evToOperatingCashFlow"`
+	EVToFreeCashFlow         float64 `json:"evToFreeCashFlow"`
+	EVToEBITDA               float64 `json:"evToEBITDA"`
+	CurrentRatio             float64 `json:"currentRatio"`
+	ReturnOnAssets           float64 `json:"returnOnAssets"`
+	ReturnOnEquity           float64 `json:"returnOnEquity"`
+	ReturnOnInvestedCapital  float64 `json:"returnOnInvestedCapital"`
+	ReturnOnCapitalEmployed  float64 `json:"returnOnCapitalEmployed"`
+	EarningsYield            float64 `json:"earningsYield"`
+	FreeCashFlowYield        float64 `json:"freeCashFlowYield"`
+	CapexToRevenue           float64 `json:"capexToRevenue"`
+	WorkingCapital           float64 `json:"workingCapital"`
+	TangibleAssetValue       float64 `json:"tangibleAssetValue"`
+}
+
+// HistoricalPrice represents a single day's price data.
+type HistoricalPrice struct {
+	Symbol        string  `json:"symbol"`
+	Date          string  `json:"date"`
+	Open          float64 `json:"open"`
+	High          float64 `json:"high"`
+	Low           float64 `json:"low"`
+	Close         float64 `json:"close"`
+	Volume        int64   `json:"volume"`
+	Change        float64 `json:"change"`
+	ChangePercent float64 `json:"changePercent"`
+}
+
+// InsiderTrade represents an insider trading transaction.
+type InsiderTrade struct {
+	Symbol          string  `json:"symbol"`
+	FilingDate      string  `json:"filingDate"`
+	TransactionDate string  `json:"transactionDate"`
+	ReportingName   string  `json:"reportingName"`
+	TypeOfOwner     string  `json:"typeOfOwner"`
+	TransactionType string  `json:"acquistionOrDisposition"`
+	SecuritiesOwned int64   `json:"securitiesOwned"`
+	SecuritiesTransacted int64 `json:"securitiesTransacted"`
+	Price           float64 `json:"price"`
+	Value           float64 `json:"value"`
+}

@@ -136,6 +136,42 @@ func (c *Client) GetRatios(ctx context.Context, ticker string, limit int) ([]Rat
 	return ratios, nil
 }
 
+// GetKeyMetrics retrieves key financial metrics data.
+func (c *Client) GetKeyMetrics(ctx context.Context, ticker string, limit int) ([]KeyMetrics, error) {
+	url := fmt.Sprintf("%s/key-metrics?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+
+	var metrics []KeyMetrics
+	if err := c.get(ctx, url, &metrics); err != nil {
+		return nil, fmt.Errorf("fetching key metrics: %w", err)
+	}
+
+	return metrics, nil
+}
+
+// GetHistoricalPrices retrieves historical EOD price data.
+func (c *Client) GetHistoricalPrices(ctx context.Context, ticker string, fromDate string) ([]HistoricalPrice, error) {
+	url := fmt.Sprintf("%s/historical-price-eod/full?symbol=%s&from=%s&apikey=%s", c.baseURL, ticker, fromDate, c.apiKey)
+
+	var prices []HistoricalPrice
+	if err := c.get(ctx, url, &prices); err != nil {
+		return nil, fmt.Errorf("fetching historical prices: %w", err)
+	}
+
+	return prices, nil
+}
+
+// GetInsiderTrades retrieves insider trading data.
+func (c *Client) GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]InsiderTrade, error) {
+	url := fmt.Sprintf("%s/insider-trading?symbol=%s&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+
+	var trades []InsiderTrade
+	if err := c.get(ctx, url, &trades); err != nil {
+		return nil, fmt.Errorf("fetching insider trades: %w", err)
+	}
+
+	return trades, nil
+}
+
 // get makes an HTTP GET request and unmarshals the response.
 func (c *Client) get(ctx context.Context, url string, dest any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

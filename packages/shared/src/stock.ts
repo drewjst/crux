@@ -293,6 +293,28 @@ export interface Holdings {
 }
 
 // =============================================================================
+// Performance Metrics
+// =============================================================================
+
+/**
+ * Price performance over various time periods.
+ */
+export interface Performance {
+  /** 1-day price change percentage */
+  day1Change: number;
+  /** 1-week price change percentage */
+  week1Change: number;
+  /** 1-month price change percentage */
+  month1Change: number;
+  /** Year-to-date price change percentage */
+  ytdChange: number;
+  /** 1-year price change percentage */
+  year1Change: number;
+  /** Current price as percentage of 52-week high */
+  percentOf52WeekHigh: number;
+}
+
+// =============================================================================
 // Insider Transactions
 // =============================================================================
 
@@ -318,6 +340,20 @@ export interface InsiderTrade {
   value: number;
   /** Date of transaction (ISO 8601) */
   tradeDate: string;
+}
+
+/**
+ * Aggregated insider trading activity over 90 days.
+ */
+export interface InsiderActivity {
+  /** Recent insider trades */
+  trades: InsiderTrade[];
+  /** Number of buy transactions in last 90 days */
+  buyCount90d: number;
+  /** Number of sell transactions in last 90 days */
+  sellCount90d: number;
+  /** Net dollar value (positive = net buying) */
+  netValue90d: number;
 }
 
 // =============================================================================
@@ -391,6 +427,8 @@ export interface StockDetailResponse {
   company: Company;
   /** Real-time market quote */
   quote: Quote;
+  /** Price performance over time periods */
+  performance: Performance;
   /** Aggregated scoring (Piotroski, Rule of 40, Altman Z) */
   scores: Scores;
   /** Actionable signals and flags */
@@ -401,6 +439,8 @@ export interface StockDetailResponse {
   holdings: Holdings;
   /** Recent insider transactions */
   insiderTrades: InsiderTrade[];
+  /** Aggregated insider activity (90 days) */
+  insiderActivity: InsiderActivity;
   /** Key financial metrics */
   financials: Financials;
   /** Data freshness timestamps */

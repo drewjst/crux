@@ -253,8 +253,130 @@ func (r *Repository) GetHoldings(ctx context.Context, ticker string) (*stock.Hol
 
 // GetInsiderTrades retrieves insider trading data.
 func (r *Repository) GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]stock.InsiderTrade, error) {
-	// For MVP, return empty - would need FMP premium for this
-	return []stock.InsiderTrade{}, nil
+	trades, err := r.client.GetInsiderTrades(ctx, ticker, limit)
+	if err != nil {
+		return nil, fmt.Errorf("fetching insider trades: %w", err)
+	}
+
+	var result []stock.InsiderTrade
+	for _, t := range trades {
+		tradeType := "sell"
+		if t.TransactionType == "A" {
+			tradeType = "buy"
+		}
+		result = append(result, stock.InsiderTrade{
+			InsiderName: t.ReportingName,
+			Title:       t.TypeOfOwner,
+			TradeType:   tradeType,
+			Shares:      t.SecuritiesTransacted,
+			Price:       t.Price,
+			Value:       int64(t.Value),
+			TradeDate:   t.TransactionDate,
+		})
+	}
+
+	return result, nil
+}
+
+// GetPerformance calculates performance metrics from historical prices.
+func (r *Repository) GetPerformance(ctx context.Context, ticker string, currentPrice, yearHigh float64) (*stock.Performance, error) {
+	// Get historical prices from 1 year ago
+	fromDate := time.Now().AddDate(-1, 0, 0).Format("2006-01-02")
+	prices, err := r.client.GetHistoricalPrices(ctx, ticker, fromDate)
+	if err != nil {
+		return nil, fmt.Errorf("fetching historical prices: %w", err)
+	}
+
+	perf := &stock.Performance{}
+
+	if yearHigh > 0 {
+		perf.PercentOf52High = (currentPrice / yearHigh) * 100
+	}
+
+	if len(prices) == 0 {
+		return perf, nil
+	}
+
+	// Helper to find price N trading days ago
+	getPriceChange := func(daysAgo int) float64 {
+		if len(prices) <= daysAgo {
+			return 0
+		}
+		oldPrice := prices[daysAgo].Close
+		if oldPrice == 0 {
+			return 0
+		}
+		return ((currentPrice - oldPrice) / oldPrice) * 100
+	}
+
+	// 1 day = index 1 (today is index 0)
+	perf.Day1Change = getPriceChange(1)
+	// 1 week ~ 5 trading days
+	perf.Week1Change = getPriceChange(5)
+	// 1 month ~ 21 trading days
+	perf.Month1Change = getPriceChange(21)
+	// 1 year ~ 252 trading days
+	if len(prices) > 250 {
+		perf.Year1Change = getPriceChange(252)
+	}
+
+	// YTD - find first trading day of current year
+	currentYear := time.Now().Year()
+	yearPrefix := fmt.Sprintf("%d-01-", currentYear)
+	for i := len(prices) - 1; i >= 0; i-- {
+		if strings.HasPrefix(prices[i].Date, yearPrefix) {
+			oldPrice := prices[i].Close
+			if oldPrice > 0 {
+				perf.YTDChange = ((currentPrice - oldPrice) / oldPrice) * 100
+			}
+			break
+		}
+	}
+
+	return perf, nil
+}
+
+// GetInsiderActivity aggregates insider trading activity.
+func (r *Repository) GetInsiderActivity(ctx context.Context, ticker string) (*stock.InsiderActivity, error) {
+	trades, err := r.client.GetInsiderTrades(ctx, ticker, 50)
+	if err != nil {
+		return nil, fmt.Errorf("fetching insider trades: %w", err)
+	}
+
+	activity := &stock.InsiderActivity{
+		Trades: []stock.InsiderTrade{},
+	}
+
+	// Filter to last 90 days
+	cutoffDate := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
+
+	for _, t := range trades {
+		if t.TransactionDate < cutoffDate {
+			continue
+		}
+
+		tradeType := "sell"
+		if t.TransactionType == "A" {
+			tradeType = "buy"
+			activity.BuyCount90d++
+			activity.NetValue90d += t.Value
+		} else {
+			activity.SellCount90d++
+			activity.NetValue90d -= t.Value
+		}
+
+		activity.Trades = append(activity.Trades, stock.InsiderTrade{
+			InsiderName: t.ReportingName,
+			Title:       t.TypeOfOwner,
+			TradeType:   tradeType,
+			Shares:      t.SecuritiesTransacted,
+			Price:       t.Price,
+			Value:       int64(t.Value),
+			TradeDate:   t.TransactionDate,
+		})
+	}
+
+	return activity, nil
 }
 
 // Search finds tickers matching the query.

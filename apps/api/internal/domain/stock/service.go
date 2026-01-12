@@ -22,6 +22,8 @@ type Repository interface {
 	GetValuation(ctx context.Context, ticker string) (*Valuation, error)
 	GetHoldings(ctx context.Context, ticker string) (*Holdings, error)
 	GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]InsiderTrade, error)
+	GetPerformance(ctx context.Context, ticker string, currentPrice, yearHigh float64) (*Performance, error)
+	GetInsiderActivity(ctx context.Context, ticker string) (*InsiderActivity, error)
 	Search(ctx context.Context, query string, limit int) ([]SearchResult, error)
 }
 
@@ -48,15 +50,17 @@ func NewService(repo Repository, cache Cache) *Service {
 
 // StockDetailResponse is the complete response for GET /api/stock/{ticker}.
 type StockDetailResponse struct {
-	Company       Company          `json:"company"`
-	Quote         Quote            `json:"quote"`
-	Scores        Scores           `json:"scores"`
-	Signals       []signals.Signal `json:"signals"`
-	Valuation     Valuation        `json:"valuation"`
-	Holdings      Holdings         `json:"holdings"`
-	InsiderTrades []InsiderTrade   `json:"insiderTrades"`
-	Financials    Financials       `json:"financials"`
-	Meta          DataMeta         `json:"meta"`
+	Company         Company          `json:"company"`
+	Quote           Quote            `json:"quote"`
+	Performance     Performance      `json:"performance"`
+	Scores          Scores           `json:"scores"`
+	Signals         []signals.Signal `json:"signals"`
+	Valuation       Valuation        `json:"valuation"`
+	Holdings        Holdings         `json:"holdings"`
+	InsiderTrades   []InsiderTrade   `json:"insiderTrades"`
+	InsiderActivity InsiderActivity  `json:"insiderActivity"`
+	Financials      Financials       `json:"financials"`
+	Meta            DataMeta         `json:"meta"`
 }
 
 // Scores contains all computed scores.
@@ -102,6 +106,18 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 		return nil, fmt.Errorf("fetching insider trades for %s: %w", ticker, err)
 	}
 
+	// Get performance metrics from historical prices
+	performance, err := s.repo.GetPerformance(ctx, ticker, quote.Price, quote.FiftyTwoWeekHigh)
+	if err != nil {
+		return nil, fmt.Errorf("fetching performance for %s: %w", ticker, err)
+	}
+
+	// Get aggregated insider activity
+	insiderActivity, err := s.repo.GetInsiderActivity(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching insider activity for %s: %w", ticker, err)
+	}
+
 	// Get financial data for score calculations (current + previous year)
 	financialData, err := s.repo.GetFinancialData(ctx, ticker, 2)
 	if err != nil {
@@ -114,18 +130,26 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 	// Generate signals
 	signalList := s.generateSignals(company, quote, financials, holdings, insiderTrades, stockScores)
 
+	// Determine fundamentals date from financial data
+	fundamentalsDate := "N/A"
+	if len(financialData) > 0 && financialData[0].FiscalYear > 0 {
+		fundamentalsDate = fmt.Sprintf("%d", financialData[0].FiscalYear)
+	}
+
 	return &StockDetailResponse{
-		Company:       *company,
-		Quote:         *quote,
-		Scores:        stockScores,
-		Signals:       signalList,
-		Valuation:     *valuation,
-		Holdings:      *holdings,
-		InsiderTrades: insiderTrades,
-		Financials:    *financials,
+		Company:         *company,
+		Quote:           *quote,
+		Performance:     *performance,
+		Scores:          stockScores,
+		Signals:         signalList,
+		Valuation:       *valuation,
+		Holdings:        *holdings,
+		InsiderTrades:   insiderTrades,
+		InsiderActivity: *insiderActivity,
+		Financials:      *financials,
 		Meta: DataMeta{
-			FundamentalsAsOf: "2024-09-30", // TODO: get from actual data
-			HoldingsAsOf:     "2024-09-30",
+			FundamentalsAsOf: fundamentalsDate,
+			HoldingsAsOf:     "N/A",
 			PriceAsOf:        quote.AsOf.Format(time.RFC3339),
 			GeneratedAt:      time.Now().UTC(),
 		},
