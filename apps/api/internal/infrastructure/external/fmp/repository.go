@@ -204,22 +204,40 @@ func (r *Repository) GetFinancialData(ctx context.Context, ticker string, period
 
 // GetValuation retrieves valuation metrics.
 func (r *Repository) GetValuation(ctx context.Context, ticker string) (*stock.Valuation, error) {
-	quote, err := r.client.GetQuote(ctx, ticker)
+	ratios, err := r.client.GetRatios(ctx, ticker, 1)
 	if err != nil {
-		return nil, fmt.Errorf("fetching quote: %w", err)
+		return nil, fmt.Errorf("fetching ratios: %w", err)
 	}
 
-	incomeStmts, err := r.client.GetIncomeStatement(ctx, ticker, 1)
-	if err != nil {
-		return nil, fmt.Errorf("fetching income statement: %w", err)
-	}
-
-	// Calculate PE from price and EPS
 	valuation := &stock.Valuation{}
 
-	if quote != nil && len(incomeStmts) > 0 && incomeStmts[0].EPSDiluted > 0 {
-		pe := quote.Price / incomeStmts[0].EPSDiluted
-		valuation.PE = stock.ValuationMetric{Value: &pe}
+	if len(ratios) > 0 {
+		ratio := ratios[0]
+
+		if ratio.PriceEarningsRatio != 0 {
+			pe := ratio.PriceEarningsRatio
+			valuation.PE = stock.ValuationMetric{Value: &pe}
+		}
+
+		if ratio.PriceEarningsToGrowthRatio != 0 {
+			peg := ratio.PriceEarningsToGrowthRatio
+			valuation.PEG = stock.ValuationMetric{Value: &peg}
+		}
+
+		if ratio.EnterpriseValueMultiple != 0 {
+			evEbitda := ratio.EnterpriseValueMultiple
+			valuation.EVToEBITDA = stock.ValuationMetric{Value: &evEbitda}
+		}
+
+		if ratio.PriceToFreeCashFlowsRatio != 0 {
+			priceFcf := ratio.PriceToFreeCashFlowsRatio
+			valuation.PriceToFCF = stock.ValuationMetric{Value: &priceFcf}
+		}
+
+		if ratio.PriceToBookRatio != 0 {
+			priceBook := ratio.PriceToBookRatio
+			valuation.PriceToBook = stock.ValuationMetric{Value: &priceBook}
+		}
 	}
 
 	return valuation, nil

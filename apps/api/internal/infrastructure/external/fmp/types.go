@@ -123,3 +123,48 @@ type SearchResult struct {
 	StockExchange string `json:"stockExchange"`
 	ExchangeShort string `json:"exchangeShortName"`
 }
+
+// Ratios represents the FMP ratios response (stable API).
+type Ratios struct {
+	Date                  string  `json:"date"`
+	Symbol                string  `json:"symbol"`
+	Period                string  `json:"period"`
+	CurrentRatio          float64 `json:"currentRatio"`
+	QuickRatio            float64 `json:"quickRatio"`
+	CashRatio             float64 `json:"cashRatio"`
+	DaysOfSalesOutstanding float64 `json:"daysOfSalesOutstanding"`
+	DaysOfInventoryOutstanding float64 `json:"daysOfInventoryOutstanding"`
+	DaysOfPayablesOutstanding float64 `json:"daysOfPayablesOutstanding"`
+	OperatingCycle        float64 `json:"operatingCycle"`
+	CashConversionCycle   float64 `json:"cashConversionCycle"`
+	GrossProfitMargin     float64 `json:"grossProfitMargin"`
+	OperatingProfitMargin float64 `json:"operatingProfitMargin"`
+	PretaxProfitMargin    float64 `json:"pretaxProfitMargin"`
+	NetProfitMargin       float64 `json:"netProfitMargin"`
+	EffectiveTaxRate      float64 `json:"effectiveTaxRate"`
+	ReturnOnAssets        float64 `json:"returnOnAssets"`
+	ReturnOnEquity        float64 `json:"returnOnEquity"`
+	ReturnOnCapitalEmployed float64 `json:"returnOnCapitalEmployed"`
+	DebtRatio             float64 `json:"debtRatio"`
+	DebtEquityRatio       float64 `json:"debtEquityRatio"`
+	LongTermDebtToCapitalization float64 `json:"longTermDebtToCapitalization"`
+	TotalDebtToCapitalization float64 `json:"totalDebtToCapitalization"`
+	InterestCoverage      float64 `json:"interestCoverage"`
+	CashFlowToDebtRatio   float64 `json:"cashFlowToDebtRatio"`
+	AssetTurnover         float64 `json:"assetTurnover"`
+	FixedAssetTurnover    float64 `json:"fixedAssetTurnover"`
+	InventoryTurnover     float64 `json:"inventoryTurnover"`
+	ReceivablesTurnover   float64 `json:"receivablesTurnover"`
+	PayablesTurnover      float64 `json:"payablesTurnover"`
+	FreeCashFlowPerShare  float64 `json:"freeCashFlowPerShare"`
+	PriceToBookRatio      float64 `json:"priceToBookRatio"`
+	PriceToSalesRatio     float64 `json:"priceToSalesRatio"`
+	PriceEarningsRatio    float64 `json:"priceEarningsRatio"`
+	PriceToFreeCashFlowsRatio float64 `json:"priceToFreeCashFlowsRatio"`
+	PriceToOperatingCashFlowsRatio float64 `json:"priceToOperatingCashFlowsRatio"`
+	PriceCashFlowRatio    float64 `json:"priceCashFlowRatio"`
+	PriceEarningsToGrowthRatio float64 `json:"priceEarningsToGrowthRatio"`
+	DividendYield         float64 `json:"dividendYield"`
+	EnterpriseValueMultiple float64 `json:"enterpriseValueMultiple"`
+	PriceFairValue        float64 `json:"priceFairValue"`
+}

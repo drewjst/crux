@@ -124,6 +124,18 @@ func (c *Client) SearchTicker(ctx context.Context, query string, limit int) ([]S
 	return results, nil
 }
 
+// GetRatios retrieves financial ratios data.
+func (c *Client) GetRatios(ctx context.Context, ticker string, limit int) ([]Ratios, error) {
+	url := fmt.Sprintf("%s/ratios?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+
+	var ratios []Ratios
+	if err := c.get(ctx, url, &ratios); err != nil {
+		return nil, fmt.Errorf("fetching ratios: %w", err)
+	}
+
+	return ratios, nil
+}
+
 // get makes an HTTP GET request and unmarshals the response.
 func (c *Client) get(ctx context.Context, url string, dest any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
