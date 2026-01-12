@@ -54,8 +54,8 @@ func (r *Repository) GetQuote(ctx context.Context, ticker string) (*stock.Quote,
 		Price:            quote.Price,
 		Change:           quote.Change,
 		ChangePercent:    quote.ChangePercent,
-		Volume:           quote.Volume,
-		MarketCap:        quote.MarketCap,
+		Volume:           int64(quote.Volume),
+		MarketCap:        int64(quote.MarketCap),
 		FiftyTwoWeekHigh: quote.YearHigh,
 		FiftyTwoWeekLow:  quote.YearLow,
 		AsOf:             time.Unix(quote.Timestamp, 0),
@@ -87,9 +87,9 @@ func (r *Repository) GetFinancials(ctx context.Context, ticker string) (*stock.F
 	if len(incomeStmts) >= 1 {
 		current := incomeStmts[0]
 		if current.Revenue > 0 {
-			financials.GrossMargin = current.GrossProfitRatio * 100
-			financials.OperatingMargin = current.OperatingIncomeRatio * 100
-			financials.NetMargin = current.NetIncomeRatio * 100
+			financials.GrossMargin = (current.GrossProfit / current.Revenue) * 100
+			financials.OperatingMargin = (current.OperatingIncome / current.Revenue) * 100
+			financials.NetMargin = (current.NetIncome / current.Revenue) * 100
 		}
 
 		// Calculate YoY revenue growth if we have previous year
@@ -180,7 +180,7 @@ func (r *Repository) GetFinancialData(ctx context.Context, ticker string, period
 			LongTermDebt:       bs.LongTermDebt,
 			ShareholdersEquity: bs.TotalStockholdersEquity,
 			RetainedEarnings:   bs.RetainedEarnings,
-			SharesOutstanding:  bs.SharesOutstanding,
+			SharesOutstanding:  0, // Not available in stable API
 
 			// Cash Flow
 			OperatingCashFlow: cf.OperatingCashFlow,
@@ -192,7 +192,7 @@ func (r *Repository) GetFinancialData(ctx context.Context, ticker string, period
 
 		// Add market data for current period
 		if i == 0 && quote != nil {
-			fd.MarketCap = float64(quote.MarketCap)
+			fd.MarketCap = quote.MarketCap
 			fd.StockPrice = quote.Price
 		}
 
@@ -209,12 +209,16 @@ func (r *Repository) GetValuation(ctx context.Context, ticker string) (*stock.Va
 		return nil, fmt.Errorf("fetching quote: %w", err)
 	}
 
-	// For MVP, we just use basic PE from quote
-	// Full implementation would fetch more valuation data
+	incomeStmts, err := r.client.GetIncomeStatement(ctx, ticker, 1)
+	if err != nil {
+		return nil, fmt.Errorf("fetching income statement: %w", err)
+	}
+
+	// Calculate PE from price and EPS
 	valuation := &stock.Valuation{}
 
-	if quote != nil && quote.PE > 0 {
-		pe := quote.PE
+	if quote != nil && len(incomeStmts) > 0 && incomeStmts[0].EPSDiluted > 0 {
+		pe := quote.Price / incomeStmts[0].EPSDiluted
 		valuation.PE = stock.ValuationMetric{Value: &pe}
 	}
 

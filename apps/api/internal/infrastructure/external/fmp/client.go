@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	baseURL        = "https://financialmodelingprep.com/api/v3"
+	baseURL        = "https://financialmodelingprep.com/stable"
 	defaultTimeout = 30 * time.Second
 )
 
@@ -45,7 +45,7 @@ func NewClient(cfg Config) *Client {
 
 // GetCompanyProfile retrieves company profile information.
 func (c *Client) GetCompanyProfile(ctx context.Context, ticker string) (*CompanyProfile, error) {
-	url := fmt.Sprintf("%s/profile/%s?apikey=%s", c.baseURL, ticker, c.apiKey)
+	url := fmt.Sprintf("%s/profile?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
 
 	var profiles []CompanyProfile
 	if err := c.get(ctx, url, &profiles); err != nil {
@@ -61,7 +61,7 @@ func (c *Client) GetCompanyProfile(ctx context.Context, ticker string) (*Company
 
 // GetQuote retrieves real-time quote data.
 func (c *Client) GetQuote(ctx context.Context, ticker string) (*Quote, error) {
-	url := fmt.Sprintf("%s/quote/%s?apikey=%s", c.baseURL, ticker, c.apiKey)
+	url := fmt.Sprintf("%s/quote?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
 
 	var quotes []Quote
 	if err := c.get(ctx, url, &quotes); err != nil {
@@ -77,7 +77,7 @@ func (c *Client) GetQuote(ctx context.Context, ticker string) (*Quote, error) {
 
 // GetIncomeStatement retrieves income statement data.
 func (c *Client) GetIncomeStatement(ctx context.Context, ticker string, limit int) ([]IncomeStatement, error) {
-	url := fmt.Sprintf("%s/income-statement/%s?limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+	url := fmt.Sprintf("%s/income-statement?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
 
 	var statements []IncomeStatement
 	if err := c.get(ctx, url, &statements); err != nil {
@@ -89,7 +89,7 @@ func (c *Client) GetIncomeStatement(ctx context.Context, ticker string, limit in
 
 // GetBalanceSheet retrieves balance sheet data.
 func (c *Client) GetBalanceSheet(ctx context.Context, ticker string, limit int) ([]BalanceSheet, error) {
-	url := fmt.Sprintf("%s/balance-sheet-statement/%s?limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+	url := fmt.Sprintf("%s/balance-sheet-statement?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
 
 	var statements []BalanceSheet
 	if err := c.get(ctx, url, &statements); err != nil {
@@ -101,7 +101,7 @@ func (c *Client) GetBalanceSheet(ctx context.Context, ticker string, limit int) 
 
 // GetCashFlowStatement retrieves cash flow statement data.
 func (c *Client) GetCashFlowStatement(ctx context.Context, ticker string, limit int) ([]CashFlowStatement, error) {
-	url := fmt.Sprintf("%s/cash-flow-statement/%s?limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+	url := fmt.Sprintf("%s/cash-flow-statement?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
 
 	var statements []CashFlowStatement
 	if err := c.get(ctx, url, &statements); err != nil {
@@ -112,6 +112,7 @@ func (c *Client) GetCashFlowStatement(ctx context.Context, ticker string, limit 
 }
 
 // SearchTicker searches for tickers matching a query.
+// Note: Search may return empty results on free tier.
 func (c *Client) SearchTicker(ctx context.Context, query string, limit int) ([]SearchResult, error) {
 	url := fmt.Sprintf("%s/search?query=%s&limit=%d&apikey=%s", c.baseURL, query, limit, c.apiKey)
 
