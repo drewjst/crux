@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, FormEvent, useEffect, Suspense } from 'react';
-import Link from 'next/link';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, TrendingUp, Calculator, Users, Zap, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { TrendingUp, Calculator, Users, Zap } from 'lucide-react';
 import { StockDashboard } from '@/components/dashboard/stock-dashboard';
 import { TickerSearch } from '@/components/search/ticker-search';
 
@@ -14,46 +11,13 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tickerParam = searchParams.get('ticker');
-  const [localTicker, setLocalTicker] = useState('');
 
-  // Update local input when param changes, but only if empty to avoid fighting user
-  useEffect(() => {
-    if (tickerParam && !localTicker) {
-      setLocalTicker(tickerParam);
-    }
-  }, [tickerParam]);
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const normalizedTicker = localTicker.trim().toUpperCase();
-    if (normalizedTicker) {
-      router.push(`/?ticker=${normalizedTicker}`);
-    } else {
-      router.push('/');
-    }
-  };
-
-  const clearSearch = () => {
-    setLocalTicker('');
-    router.push('/');
-  };
-
-  // If a ticker is selected, we show the dashboard view (condensed header + dashboard)
+  // If a ticker is selected, we show the dashboard view
   if (tickerParam) {
     return (
       <div className="flex flex-col min-h-screen">
-        {/* Condensed Header / Search Bar */}
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-16 z-40">
-           <div className="container py-4 flex items-center gap-4">
-             <div className="max-w-lg flex-1">
-               <TickerSearch />
-             </div>
-             <Button type="button" variant="ghost" size="sm" onClick={clearSearch}>Clear</Button>
-           </div>
-        </div>
-
         {/* Dashboard Content */}
-        <div className="container py-8 flex-1">
+        <div className="py-8 flex-1">
           <StockDashboard ticker={tickerParam} />
         </div>
       </div>
@@ -133,21 +97,13 @@ function HomeContent() {
       <section className="py-16 md:py-24">
         <div className="px-4">
           <div className="rounded-2xl bg-gradient-to-br from-secondary to-muted p-8 md:p-12 lg:p-16">
-            <div className="max-w-2xl">
+            <div className="max-w-2xl mx-auto text-center">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
                 Ready to get started?
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 Stop drowning in financial data. Recon distills what matters so you can make informed decisions faster.
               </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button size="lg" onClick={() => router.push('/?ticker=AAPL')}>
-                  Try the Demo
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="#features">Learn More</Link>
-                </Button>
-              </div>
             </div>
           </div>
         </div>

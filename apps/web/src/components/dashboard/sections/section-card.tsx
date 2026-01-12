@@ -24,12 +24,11 @@ export function SectionCard({ title, children, className }: SectionCardProps) {
 
 export function DashboardDivider() {
   return (
-    <div className="flex items-center justify-center py-2">
-      <div className="flex gap-1.5">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div key={i} className="w-2 h-px bg-border" />
-        ))}
-      </div>
+    <div className="relative py-4">
+      <div
+        className="absolute left-1/2 -translate-x-1/2 w-screen border-t border-dashed border-border"
+        style={{ maxWidth: 'calc(100vw - 2px)' }}
+      />
     </div>
   );
 }
