@@ -7,6 +7,7 @@ import "time"
 type Company struct {
 	Ticker      string `json:"ticker" db:"ticker"`
 	Name        string `json:"name" db:"name"`
+	Exchange    string `json:"exchange" db:"exchange"`
 	Sector      string `json:"sector" db:"sector"`
 	Industry    string `json:"industry" db:"industry"`
 	Description string `json:"description,omitempty" db:"description"`

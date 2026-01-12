@@ -3,7 +3,7 @@ package database
 // SQL queries as constants for type safety and easy review.
 const (
 	queryGetCompany = `
-		SELECT ticker, name, sector, industry, description
+		SELECT ticker, name, exchange, sector, industry, description
 		FROM companies
 		WHERE ticker = $1`
 

@@ -18,6 +18,8 @@ export interface Company {
   ticker: string;
   /** Full company name */
   name: string;
+  /** Stock exchange (e.g., "NASDAQ", "NYSE") */
+  exchange: string;
   /** GICS sector classification (e.g., "Technology", "Healthcare") */
   sector: string;
   /** GICS industry classification (e.g., "Software", "Semiconductors") */

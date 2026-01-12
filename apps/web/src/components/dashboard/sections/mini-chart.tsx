@@ -4,18 +4,42 @@ import { useEffect, useRef, memo } from 'react';
 
 interface MiniChartProps {
   symbol: string;
+  exchange?: string;
   colorTheme?: 'light' | 'dark';
   dateRange?: '1D' | '1M' | '3M' | '12M' | '60M' | 'ALL';
   width?: string | number;
   height?: string | number;
+  chartOnly?: boolean;
+}
+
+/**
+ * Formats a ticker symbol for TradingView.
+ * TradingView expects format like "NASDAQ:AAPL" or "NYSE:IBM".
+ */
+function formatTradingViewSymbol(ticker: string, exchange?: string): string {
+  if (!exchange) {
+    return ticker;
+  }
+  // Normalize exchange names to TradingView format
+  const exchangeMap: Record<string, string> = {
+    NASDAQ: 'NASDAQ',
+    NYSE: 'NYSE',
+    AMEX: 'AMEX',
+    'NYSE ARCA': 'AMEX',
+    'NYSE MKT': 'AMEX',
+  };
+  const tvExchange = exchangeMap[exchange.toUpperCase()] || exchange.toUpperCase();
+  return `${tvExchange}:${ticker}`;
 }
 
 function MiniChartComponent({
   symbol,
+  exchange,
   colorTheme = 'light',
   dateRange = '12M',
   width = '100%',
   height = 220,
+  chartOnly = false,
 }: MiniChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +49,8 @@ function MiniChartComponent({
 
     // Clear any existing content
     container.innerHTML = '';
+
+    const formattedSymbol = formatTradingViewSymbol(symbol, exchange);
 
     // Create the widget container
     const widgetContainer = document.createElement('div');
@@ -37,7 +63,7 @@ function MiniChartComponent({
     script.type = 'text/javascript';
     script.async = true;
     script.innerHTML = JSON.stringify({
-      symbol: symbol,
+      symbol: formattedSymbol,
       width: width,
       height: height,
       locale: 'en',
@@ -45,9 +71,9 @@ function MiniChartComponent({
       colorTheme: colorTheme,
       isTransparent: true,
       autosize: false,
-      largeChartUrl: `https://www.tradingview.com/chart/?symbol=${symbol}`,
+      largeChartUrl: `https://www.tradingview.com/chart/?symbol=${formattedSymbol}`,
       noTimeScale: false,
-      chartOnly: false,
+      chartOnly: chartOnly,
     });
 
     container.appendChild(script);
@@ -55,7 +81,7 @@ function MiniChartComponent({
     return () => {
       container.innerHTML = '';
     };
-  }, [symbol, colorTheme, dateRange, width, height]);
+  }, [symbol, exchange, colorTheme, dateRange, width, height, chartOnly]);
 
   return (
     <div className="tradingview-widget-container" ref={containerRef}>
