@@ -1,36 +1,39 @@
-FROM node:20-alpine AS base
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Dependencies stage
-FROM base AS deps
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
-
 # Build stage
-FROM base AS builder
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy package files for dependency installation
+COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
 
-RUN pnpm build
+# Install dependencies
+WORKDIR /app/apps/web
+RUN npm ci
 
-# Production stage
-FROM base AS runner
+# Copy source files
+WORKDIR /app
+COPY packages/shared ./packages/shared
+COPY apps/web ./apps/web
+
+# Build web app
+WORKDIR /app/apps/web
+RUN npm run build
+
+# Run stage
+FROM node:20-alpine AS runner
+
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy standalone output
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
 
 USER nextjs
 

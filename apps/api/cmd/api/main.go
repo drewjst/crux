@@ -15,8 +15,7 @@ import (
 	"github.com/drewjst/recon/apps/api/internal/api"
 	"github.com/drewjst/recon/apps/api/internal/config"
 	"github.com/drewjst/recon/apps/api/internal/domain/stock"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/cache"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/database"
+	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/fmp"
 )
 
 func main() {
@@ -34,41 +33,27 @@ func main() {
 }
 
 func run() error {
-	ctx := context.Background()
-
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	// Initialize database
-	db, err := database.NewSQLx(ctx, cfg.DatabaseURL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+	// Initialize FMP client
+	fmpClient := fmp.NewClient(fmp.Config{
+		APIKey: cfg.FMPAPIKey,
+	})
 
-	// Initialize cache
-	var stockCache stock.Cache
-	if cfg.EnableCache {
-		redisCache, err := cache.NewRedis(ctx, cache.Config{URL: cfg.RedisURL})
-		if err != nil {
-			slog.Warn("redis unavailable, caching disabled", "error", err)
-		} else {
-			stockCache = redisCache
-			defer redisCache.Close()
-		}
-	}
+	// Initialize FMP repository (implements stock.Repository)
+	repo := fmp.NewRepository(fmpClient)
 
-	// Initialize services
-	repo := database.NewRepository(db)
-	stockService := stock.NewService(repo, stockCache)
+	// Initialize stock service (no cache for MVP)
+	stockService := stock.NewService(repo, nil)
 
 	// Initialize router
 	router := api.NewRouter(api.RouterDeps{
 		StockService:   stockService,
-		AllowedOrigins: []string{"http://localhost:3000"},
+		AllowedOrigins: []string{"*"}, // Allow all origins for MVP
 	})
 
 	// Create server

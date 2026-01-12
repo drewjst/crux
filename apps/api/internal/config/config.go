@@ -4,7 +4,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 )
 
 // Config holds all configuration values for the application.
@@ -14,29 +13,17 @@ type Config struct {
 	Port string
 	Env  string // "development", "staging", "production"
 
-	// Database
-	DatabaseURL string
-
-	// Redis
-	RedisURL string
-
 	// External APIs
 	FMPAPIKey string // Financial Modeling Prep API key
-
-	// Feature flags
-	EnableCache bool
 }
 
 // Load reads configuration from environment variables and validates required fields.
 // Returns an error if any required configuration is missing.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:        getEnv("PORT", "8080"),
-		Env:         getEnv("ENV", "development"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379"),
-		FMPAPIKey:   os.Getenv("FMP_API_KEY"),
-		EnableCache: getEnvBool("ENABLE_CACHE", true),
+		Port:      getEnv("PORT", "8080"),
+		Env:       getEnv("ENV", "development"),
+		FMPAPIKey: os.Getenv("FMP_API_KEY"),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -48,8 +35,8 @@ func Load() (*Config, error) {
 
 // validate checks that all required configuration is present.
 func (c *Config) validate() error {
-	if c.DatabaseURL == "" {
-		return fmt.Errorf("DATABASE_URL is required")
+	if c.FMPAPIKey == "" {
+		return fmt.Errorf("FMP_API_KEY is required")
 	}
 	return nil
 }
@@ -70,17 +57,4 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
-}
-
-// getEnvBool returns a boolean environment variable or a default if not set.
-func getEnvBool(key string, defaultValue bool) bool {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return defaultValue
-	}
-	return parsed
 }
