@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Info } from 'lucide-react';
 import { SectionCard } from './section-card';
 import { Card } from '@/components/ui/card';
@@ -18,19 +19,19 @@ interface ScoreBoxProps {
   tooltip: string;
 }
 
-function ScoreBox({ label, value, description, status, tooltip }: ScoreBoxProps) {
-  const statusColors = {
-    positive: 'border-success/30 bg-success/5',
-    neutral: 'border-border/50',
-    negative: 'border-destructive/30 bg-destructive/5',
-  };
+const statusColors = {
+  positive: 'border-success/30 bg-success/5',
+  neutral: 'border-border/50',
+  negative: 'border-destructive/30 bg-destructive/5',
+};
 
-  const valueColors = {
-    positive: 'text-success',
-    neutral: 'text-foreground',
-    negative: 'text-destructive',
-  };
+const valueColors = {
+  positive: 'text-success',
+  neutral: 'text-foreground',
+  negative: 'text-destructive',
+};
 
+const ScoreBox = memo(function ScoreBox({ label, value, description, status, tooltip }: ScoreBoxProps) {
   return (
     <Card className={`p-4 text-center transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center justify-center gap-1 mb-2">
@@ -54,28 +55,28 @@ function ScoreBox({ label, value, description, status, tooltip }: ScoreBoxProps)
       <div className="text-xs text-muted-foreground">{description}</div>
     </Card>
   );
-}
+});
 
-export function ConvictionScoresSection({ data }: ConvictionScoresSectionProps) {
+const getPiotroskiStatus = (score: number): 'positive' | 'neutral' | 'negative' => {
+  if (score >= 7) return 'positive';
+  if (score >= 4) return 'neutral';
+  return 'negative';
+};
+
+const getAltmanStatus = (zone: string): 'positive' | 'neutral' | 'negative' => {
+  if (zone === 'safe') return 'positive';
+  if (zone === 'gray') return 'neutral';
+  return 'negative';
+};
+
+const getGradeStatus = (grade: string): 'positive' | 'neutral' | 'negative' => {
+  if (['A', 'B+'].includes(grade)) return 'positive';
+  if (['B', 'C'].includes(grade)) return 'neutral';
+  return 'negative';
+};
+
+function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps) {
   const { scores } = data;
-
-  const getPiotroskiStatus = (score: number): 'positive' | 'neutral' | 'negative' => {
-    if (score >= 7) return 'positive';
-    if (score >= 4) return 'neutral';
-    return 'negative';
-  };
-
-  const getAltmanStatus = (zone: string): 'positive' | 'neutral' | 'negative' => {
-    if (zone === 'safe') return 'positive';
-    if (zone === 'gray') return 'neutral';
-    return 'negative';
-  };
-
-  const getGradeStatus = (grade: string): 'positive' | 'neutral' | 'negative' => {
-    if (['A', 'B+'].includes(grade)) return 'positive';
-    if (['B', 'C'].includes(grade)) return 'neutral';
-    return 'negative';
-  };
 
   return (
     <SectionCard title="Conviction Scores">
@@ -112,3 +113,5 @@ export function ConvictionScoresSection({ data }: ConvictionScoresSectionProps) 
     </SectionCard>
   );
 }
+
+export const ConvictionScoresSection = memo(ConvictionScoresSectionComponent);
