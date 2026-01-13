@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { CheckCircle2, AlertTriangle, TrendingDown } from 'lucide-react';
 import { SectionCard } from './section-card';
 import { Badge } from '@/components/ui/badge';
@@ -9,26 +10,26 @@ interface SignalsSectionProps {
   data: StockDetailResponse;
 }
 
-export function SignalsSection({ data }: SignalsSectionProps) {
+const getSignalIcon = (type: string) => {
+  switch (type) {
+    case 'bullish':
+      return <CheckCircle2 className="h-4 w-4 text-success" />;
+    case 'warning':
+      return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+    case 'bearish':
+      return <TrendingDown className="h-4 w-4 text-destructive" />;
+    default:
+      return null;
+  }
+};
+
+function SignalsSectionComponent({ data }: SignalsSectionProps) {
   const { signals } = data;
   const bullish = signals.filter((s) => s.type === 'bullish');
   const bearish = signals.filter((s) => s.type === 'bearish');
   const warning = signals.filter((s) => s.type === 'warning');
 
   const topSignals = [...bullish, ...warning, ...bearish].slice(0, 5);
-
-  const getSignalIcon = (type: string) => {
-    switch (type) {
-      case 'bullish':
-        return <CheckCircle2 className="h-4 w-4 text-success" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case 'bearish':
-        return <TrendingDown className="h-4 w-4 text-destructive" />;
-      default:
-        return null;
-    }
-  };
 
   return (
     <SectionCard title="Key Signals">
@@ -67,3 +68,5 @@ export function SignalsSection({ data }: SignalsSectionProps) {
     </SectionCard>
   );
 }
+
+export const SignalsSection = memo(SignalsSectionComponent);
