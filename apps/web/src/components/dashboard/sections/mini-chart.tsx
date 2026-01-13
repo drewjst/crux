@@ -64,12 +64,12 @@ function MiniChartComponent({
     script.async = true;
     script.innerHTML = JSON.stringify({
       symbol: formattedSymbol,
-      width: width,
+      width: '100%',
       height: height,
       locale: 'en',
       dateRange: dateRange,
       colorTheme: colorTheme,
-      isTransparent: true,
+      isTransparent: false,
       autosize: false,
       largeChartUrl: `https://www.tradingview.com/chart/?symbol=${formattedSymbol}`,
       noTimeScale: false,

@@ -1,13 +1,111 @@
 'use client';
 
 import { memo } from 'react';
-import { CheckCircle2, AlertTriangle, TrendingDown } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, TrendingDown, TrendingUp, Activity } from 'lucide-react';
 import { SectionCard } from './section-card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import type { StockDetailResponse } from '@recon/shared';
 
 interface SignalsSectionProps {
   data: StockDetailResponse;
+}
+
+interface TechnicalIndicator {
+  name: string;
+  value: string;
+  signal: 'bullish' | 'bearish' | 'neutral';
+  description: string;
+}
+
+function calculateMomentum(performance: StockDetailResponse['performance']): TechnicalIndicator {
+  // Momentum: Compare short-term (1W) vs medium-term (1M) performance
+  // Positive momentum = 1W performance better than 1M average weekly
+  const weeklyAvgFromMonth = performance.month1Change / 4;
+  const momentumDiff = performance.week1Change - weeklyAvgFromMonth;
+
+  let signal: 'bullish' | 'bearish' | 'neutral';
+  let description: string;
+
+  if (momentumDiff > 2) {
+    signal = 'bullish';
+    description = 'Accelerating upward';
+  } else if (momentumDiff < -2) {
+    signal = 'bearish';
+    description = 'Losing momentum';
+  } else {
+    signal = 'neutral';
+    description = 'Steady pace';
+  }
+
+  const momentumScore = Math.max(-100, Math.min(100, momentumDiff * 10));
+
+  return {
+    name: 'Momentum',
+    value: momentumScore > 0 ? `+${momentumScore.toFixed(0)}` : momentumScore.toFixed(0),
+    signal,
+    description,
+  };
+}
+
+function calculateTrendPosition(quote: StockDetailResponse['quote']): TechnicalIndicator {
+  // Trend Position: Where price sits in 52-week range
+  const range = quote.fiftyTwoWeekHigh - quote.fiftyTwoWeekLow;
+  const position = range > 0 ? ((quote.price - quote.fiftyTwoWeekLow) / range) * 100 : 50;
+
+  let signal: 'bullish' | 'bearish' | 'neutral';
+  let description: string;
+
+  if (position >= 80) {
+    signal = 'bullish';
+    description = 'Near 52W high';
+  } else if (position <= 20) {
+    signal = 'bearish';
+    description = 'Near 52W low';
+  } else if (position >= 50) {
+    signal = 'neutral';
+    description = 'Upper range';
+  } else {
+    signal = 'neutral';
+    description = 'Lower range';
+  }
+
+  return {
+    name: 'Trend',
+    value: `${position.toFixed(0)}%`,
+    signal,
+    description,
+  };
+}
+
+function TechnicalIndicatorCard({ indicator }: { indicator: TechnicalIndicator }) {
+  const colors = {
+    bullish: 'border-success/30 bg-success/5 text-success',
+    bearish: 'border-destructive/30 bg-destructive/5 text-destructive',
+    neutral: 'border-border/50 bg-muted/30 text-muted-foreground',
+  };
+
+  const icons = {
+    bullish: <TrendingUp className="h-4 w-4" />,
+    bearish: <TrendingDown className="h-4 w-4" />,
+    neutral: <Activity className="h-4 w-4" />,
+  };
+
+  return (
+    <Card className={`p-3 ${colors[indicator.signal]}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icons[indicator.signal]}
+          <span className="text-sm font-medium text-foreground">{indicator.name}</span>
+        </div>
+        <Badge variant="secondary" className="text-xs">Technical</Badge>
+      </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="text-xl font-bold font-mono">{indicator.value}</span>
+        <span className="text-xs text-muted-foreground">{indicator.description}</span>
+      </div>
+    </Card>
+  );
 }
 
 const getSignalIcon = (type: string) => {
@@ -24,16 +122,27 @@ const getSignalIcon = (type: string) => {
 };
 
 function SignalsSectionComponent({ data }: SignalsSectionProps) {
-  const { signals } = data;
+  const { signals, performance, quote } = data;
   const bullish = signals.filter((s) => s.type === 'bullish');
   const bearish = signals.filter((s) => s.type === 'bearish');
   const warning = signals.filter((s) => s.type === 'warning');
 
-  const topSignals = [...bullish, ...warning, ...bearish].slice(0, 5);
+  const topSignals = [...bullish, ...warning, ...bearish].slice(0, 4);
+
+  // Calculate technical indicators
+  const momentum = calculateMomentum(performance);
+  const trend = calculateTrendPosition(quote);
 
   return (
     <SectionCard title="Key Signals">
-      <div className="flex gap-4 mb-4">
+      {/* Technical Indicators */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <TechnicalIndicatorCard indicator={momentum} />
+        <TechnicalIndicatorCard indicator={trend} />
+      </div>
+
+      {/* Signal Summary Badges */}
+      <div className="flex gap-3 mb-4">
         <Badge variant="outline" className="text-success border-success/30 bg-success/5">
           Bullish ({bullish.length})
         </Badge>
@@ -45,6 +154,7 @@ function SignalsSectionComponent({ data }: SignalsSectionProps) {
         </Badge>
       </div>
 
+      {/* Fundamental Signals */}
       <div className="space-y-3">
         {topSignals.length === 0 ? (
           <p className="text-sm text-muted-foreground">No significant signals detected.</p>
