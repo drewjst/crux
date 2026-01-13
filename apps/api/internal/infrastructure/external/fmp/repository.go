@@ -312,17 +312,26 @@ func (r *Repository) GetInsiderTrades(ctx context.Context, ticker string, limit 
 
 	var result []stock.InsiderTrade
 	for _, t := range trades {
+		// Skip trades with no shares transacted (Form 3 initial filings, etc.)
+		if t.SecuritiesTransacted == 0 {
+			continue
+		}
+
 		tradeType := "sell"
-		if t.TransactionType == "A" {
+		if t.AcquisitionOrDisp == "A" {
 			tradeType = "buy"
 		}
+
+		// Calculate value from shares * price
+		value := int64(float64(t.SecuritiesTransacted) * t.Price)
+
 		result = append(result, stock.InsiderTrade{
 			InsiderName: t.ReportingName,
 			Title:       t.TypeOfOwner,
 			TradeType:   tradeType,
 			Shares:      t.SecuritiesTransacted,
 			Price:       t.Price,
-			Value:       int64(t.Value),
+			Value:       value,
 			TradeDate:   t.TransactionDate,
 		})
 	}
@@ -390,16 +399,36 @@ func (r *Repository) GetPerformance(ctx context.Context, ticker string, currentP
 
 // GetInsiderActivity aggregates insider trading activity.
 func (r *Repository) GetInsiderActivity(ctx context.Context, ticker string) (*stock.InsiderActivity, error) {
-	trades, err := r.client.GetInsiderTrades(ctx, ticker, 50)
-	if err != nil {
-		return nil, fmt.Errorf("fetching insider trades: %w", err)
-	}
-
 	activity := &stock.InsiderActivity{
 		Trades: []stock.InsiderTrade{},
 	}
 
-	// Filter to last 90 days
+	// Get quarterly statistics for summary counts
+	stats, err := r.client.GetInsiderStatistics(ctx, ticker)
+	if err == nil && len(stats) > 0 {
+		// Sum the most recent 1-2 quarters to approximate 90 days
+		// Skip current quarter if it has no activity yet
+		for i, stat := range stats {
+			if i >= 2 {
+				break // Only look at 2 most recent quarters
+			}
+			// Skip if current quarter has no transactions yet
+			if i == 0 && stat.AcquiredTransactions == 0 && stat.DisposedTransactions == 0 {
+				continue
+			}
+			activity.BuyCount90d += stat.AcquiredTransactions
+			activity.SellCount90d += stat.DisposedTransactions
+		}
+	}
+
+	// Get recent trades for the list display
+	trades, err := r.client.GetInsiderTrades(ctx, ticker, 50)
+	if err != nil {
+		// Return what we have from statistics
+		return activity, nil
+	}
+
+	// Filter to last 90 days and build trade list
 	cutoffDate := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
 
 	for _, t := range trades {
@@ -407,14 +436,26 @@ func (r *Repository) GetInsiderActivity(ctx context.Context, ticker string) (*st
 			continue
 		}
 
+		// Skip trades with no shares transacted (Form 3 initial filings, etc.)
+		if t.SecuritiesTransacted == 0 {
+			continue
+		}
+
+		// Calculate value from shares * price (only meaningful for priced transactions)
+		value := float64(t.SecuritiesTransacted) * t.Price
+
 		tradeType := "sell"
-		if t.TransactionType == "A" {
+		if t.AcquisitionOrDisp == "A" {
 			tradeType = "buy"
-			activity.BuyCount90d++
-			activity.NetValue90d += t.Value
+			// Add to net value for buys with price
+			if t.Price > 0 {
+				activity.NetValue90d += value
+			}
 		} else {
-			activity.SellCount90d++
-			activity.NetValue90d -= t.Value
+			// Subtract from net value for sells with price
+			if t.Price > 0 {
+				activity.NetValue90d -= value
+			}
 		}
 
 		activity.Trades = append(activity.Trades, stock.InsiderTrade{
@@ -423,7 +464,7 @@ func (r *Repository) GetInsiderActivity(ctx context.Context, ticker string) (*st
 			TradeType:   tradeType,
 			Shares:      t.SecuritiesTransacted,
 			Price:       t.Price,
-			Value:       int64(t.Value),
+			Value:       int64(value),
 			TradeDate:   t.TransactionDate,
 		})
 	}

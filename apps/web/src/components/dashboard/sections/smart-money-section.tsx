@@ -18,7 +18,12 @@ export function SmartMoneySection({ data }: SmartMoneySectionProps) {
     return `$${val.toFixed(0)}`;
   };
 
-  const hasInsiderActivity = insiderActivity.buyCount90d > 0 || insiderActivity.sellCount90d > 0;
+  // Defensive: ensure insiderActivity exists and has expected properties
+  const buyCount = insiderActivity?.buyCount90d ?? 0;
+  const sellCount = insiderActivity?.sellCount90d ?? 0;
+  const netValue = insiderActivity?.netValue90d ?? 0;
+  const trades = insiderActivity?.trades ?? [];
+  const hasInsiderActivity = buyCount > 0 || sellCount > 0;
 
   return (
     <SectionCard title="Smart Money">
@@ -81,31 +86,34 @@ export function SmartMoneySection({ data }: SmartMoneySectionProps) {
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-success" />
                 <span className="text-sm font-mono">
-                  {insiderActivity.buyCount90d} buys
+                  {buyCount} buys
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-destructive" />
                 <span className="text-sm font-mono">
-                  {insiderActivity.sellCount90d} sells
+                  {sellCount} sells
                 </span>
               </div>
               <div className="ml-auto">
-                <span className={`text-sm font-medium font-mono ${insiderActivity.netValue90d >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  Net: {insiderActivity.netValue90d >= 0 ? '+' : ''}{formatValue(insiderActivity.netValue90d)}
+                <span className={`text-sm font-medium font-mono ${netValue >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  Net: {netValue >= 0 ? '+' : ''}{formatValue(netValue)}
                 </span>
               </div>
             </div>
-            {insiderActivity.trades.length > 0 && (
+            {trades.length > 0 && (
               <div className="space-y-2">
-                {insiderActivity.trades.slice(0, 5).map((trade, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm py-1 border-t border-border/30 first:border-t-0">
-                    <span className="truncate max-w-[150px] md:max-w-[200px]">{trade.insiderName}</span>
-                    <span className={`font-mono ${trade.tradeType === 'buy' ? 'text-success' : 'text-destructive'}`}>
-                      {trade.tradeType === 'buy' ? 'Buy' : 'Sell'} {formatValue(trade.value)}
-                    </span>
-                  </div>
-                ))}
+                {trades
+                  .filter((trade) => trade.value > 0)
+                  .slice(0, 5)
+                  .map((trade, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm py-1 border-t border-border/30 first:border-t-0">
+                      <span className="truncate max-w-[150px] md:max-w-[200px]">{trade.insiderName}</span>
+                      <span className={`font-mono ${trade.tradeType === 'buy' ? 'text-success' : 'text-destructive'}`}>
+                        {trade.tradeType === 'buy' ? 'Buy' : 'Sell'} {formatValue(trade.value)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             )}
           </>

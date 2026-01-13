@@ -160,9 +160,9 @@ func (c *Client) GetHistoricalPrices(ctx context.Context, ticker string, fromDat
 	return prices, nil
 }
 
-// GetInsiderTrades retrieves insider trading data.
+// GetInsiderTrades retrieves insider trading data using the search endpoint.
 func (c *Client) GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]InsiderTrade, error) {
-	url := fmt.Sprintf("%s/insider-trading?symbol=%s&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+	url := fmt.Sprintf("%s/insider-trading/search?symbol=%s&page=0&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
 
 	var trades []InsiderTrade
 	if err := c.get(ctx, url, &trades); err != nil {
@@ -170,6 +170,18 @@ func (c *Client) GetInsiderTrades(ctx context.Context, ticker string, limit int)
 	}
 
 	return trades, nil
+}
+
+// GetInsiderStatistics retrieves aggregated insider trading statistics by quarter.
+func (c *Client) GetInsiderStatistics(ctx context.Context, ticker string) ([]InsiderStatistics, error) {
+	url := fmt.Sprintf("%s/insider-trading/statistics?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var stats []InsiderStatistics
+	if err := c.get(ctx, url, &stats); err != nil {
+		return nil, fmt.Errorf("fetching insider statistics: %w", err)
+	}
+
+	return stats, nil
 }
 
 // GetRatiosTTM retrieves trailing twelve month financial ratios.

@@ -197,18 +197,32 @@ type HistoricalPrice struct {
 	ChangePercent float64 `json:"changePercent"`
 }
 
-// InsiderTrade represents an insider trading transaction.
+// InsiderTrade represents an insider trading transaction from the search endpoint.
 type InsiderTrade struct {
 	Symbol               string  `json:"symbol"`
 	FilingDate           string  `json:"filingDate"`
 	TransactionDate      string  `json:"transactionDate"`
 	ReportingName        string  `json:"reportingName"`
 	TypeOfOwner          string  `json:"typeOfOwner"`
-	TransactionType      string  `json:"acquistionOrDisposition"`
+	TransactionType      string  `json:"transactionType"`
+	AcquisitionOrDisp    string  `json:"acquisitionOrDisposition"`
 	SecuritiesOwned      int64   `json:"securitiesOwned"`
 	SecuritiesTransacted int64   `json:"securitiesTransacted"`
 	Price                float64 `json:"price"`
-	Value                float64 `json:"value"`
+	SecurityName         string  `json:"securityName"`
+}
+
+// InsiderStatistics represents aggregated insider trading statistics by quarter.
+type InsiderStatistics struct {
+	Symbol               string  `json:"symbol"`
+	Year                 int     `json:"year"`
+	Quarter              int     `json:"quarter"`
+	AcquiredTransactions int     `json:"acquiredTransactions"`
+	DisposedTransactions int     `json:"disposedTransactions"`
+	TotalAcquired        int64   `json:"totalAcquired"`
+	TotalDisposed        int64   `json:"totalDisposed"`
+	TotalPurchases       float64 `json:"totalPurchases"`
+	TotalSales           float64 `json:"totalSales"`
 }
 
 // RatiosTTM represents trailing twelve month ratios from FMP API.
