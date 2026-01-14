@@ -20,6 +20,7 @@ type Repository interface {
 	GetFinancials(ctx context.Context, ticker string) (*Financials, error)
 	GetFinancialData(ctx context.Context, ticker string, periods int) ([]scores.FinancialData, error)
 	GetValuation(ctx context.Context, ticker string, sector string) (*Valuation, error)
+	GetEfficiency(ctx context.Context, ticker string, sector string, financials *Financials, valuation *Valuation) (*Efficiency, error)
 	GetHoldings(ctx context.Context, ticker string) (*Holdings, error)
 	GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]InsiderTrade, error)
 	GetPerformance(ctx context.Context, ticker string, currentPrice, yearHigh float64) (*Performance, error)
@@ -60,6 +61,7 @@ type StockDetailResponse struct {
 	InsiderTrades   []InsiderTrade   `json:"insiderTrades"`
 	InsiderActivity InsiderActivity  `json:"insiderActivity"`
 	Financials      Financials       `json:"financials"`
+	Efficiency      Efficiency       `json:"efficiency"`
 	Meta            DataMeta         `json:"meta"`
 }
 
@@ -94,6 +96,11 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 	valuation, err := s.repo.GetValuation(ctx, ticker, company.Sector)
 	if err != nil {
 		return nil, fmt.Errorf("fetching valuation for %s: %w", ticker, err)
+	}
+
+	efficiency, err := s.repo.GetEfficiency(ctx, ticker, company.Sector, financials, valuation)
+	if err != nil {
+		return nil, fmt.Errorf("fetching efficiency for %s: %w", ticker, err)
 	}
 
 	holdings, err := s.repo.GetHoldings(ctx, ticker)
@@ -148,6 +155,7 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 		InsiderTrades:   insiderTrades,
 		InsiderActivity: *insiderActivity,
 		Financials:      *financials,
+		Efficiency:      *efficiency,
 		Meta: DataMeta{
 			FundamentalsAsOf: fundamentalsDate,
 			HoldingsAsOf:     "N/A",

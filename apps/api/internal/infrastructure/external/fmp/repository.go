@@ -205,10 +205,10 @@ func (r *Repository) GetFinancialData(ctx context.Context, ticker string, period
 // sectorMedians contains typical valuation medians by sector.
 // These are approximate values based on historical averages.
 var sectorMedians = map[string]struct {
-	PE         float64
-	PEG        float64
-	EVToEBITDA float64
-	PriceToFCF float64
+	PE          float64
+	PEG         float64
+	EVToEBITDA  float64
+	PriceToFCF  float64
 	PriceToBook float64
 }{
 	"Technology":             {PE: 28.0, PEG: 1.8, EVToEBITDA: 18.0, PriceToFCF: 25.0, PriceToBook: 6.0},
@@ -222,6 +222,83 @@ var sectorMedians = map[string]struct {
 	"Utilities":              {PE: 18.0, PEG: 2.5, EVToEBITDA: 12.0, PriceToFCF: 15.0, PriceToBook: 2.0},
 	"Real Estate":            {PE: 35.0, PEG: 2.0, EVToEBITDA: 18.0, PriceToFCF: 25.0, PriceToBook: 2.5},
 	"Communication Services": {PE: 18.0, PEG: 1.3, EVToEBITDA: 10.0, PriceToFCF: 15.0, PriceToBook: 3.0},
+}
+
+// efficiencyRange defines min, median, max for an efficiency metric within a sector.
+type efficiencyRange struct {
+	Min    float64
+	Median float64
+	Max    float64
+}
+
+// sectorEfficiencyRanges defines efficiency metric ranges for a single sector.
+type sectorEfficiencyRanges struct {
+	ROIC            efficiencyRange
+	ROE             efficiencyRange
+	OperatingMargin efficiencyRange
+	FCFYield        efficiencyRange
+	DebtToEquity    efficiencyRange
+	CurrentRatio    efficiencyRange
+}
+
+// sectorEfficiency contains typical efficiency ranges by sector.
+// ROIC/ROE/OperatingMargin/FCFYield are percentages, DebtToEquity/CurrentRatio are ratios.
+var sectorEfficiency = map[string]sectorEfficiencyRanges{
+	"Technology": {
+		ROIC: efficiencyRange{5, 15, 40}, ROE: efficiencyRange{10, 25, 50},
+		OperatingMargin: efficiencyRange{10, 20, 40}, FCFYield: efficiencyRange{1, 3, 8},
+		DebtToEquity: efficiencyRange{0, 0.4, 1.5}, CurrentRatio: efficiencyRange{1, 2, 4},
+	},
+	"Healthcare": {
+		ROIC: efficiencyRange{3, 12, 30}, ROE: efficiencyRange{8, 18, 40},
+		OperatingMargin: efficiencyRange{5, 15, 30}, FCFYield: efficiencyRange{1, 2.5, 6},
+		DebtToEquity: efficiencyRange{0, 0.5, 1.8}, CurrentRatio: efficiencyRange{1, 1.8, 3.5},
+	},
+	"Financial Services": {
+		ROIC: efficiencyRange{2, 8, 18}, ROE: efficiencyRange{8, 12, 20},
+		OperatingMargin: efficiencyRange{15, 30, 50}, FCFYield: efficiencyRange{2, 5, 12},
+		DebtToEquity: efficiencyRange{0.5, 2, 8}, CurrentRatio: efficiencyRange{0.8, 1.2, 2},
+	},
+	"Consumer Cyclical": {
+		ROIC: efficiencyRange{4, 12, 28}, ROE: efficiencyRange{10, 20, 40},
+		OperatingMargin: efficiencyRange{5, 12, 25}, FCFYield: efficiencyRange{1, 3, 7},
+		DebtToEquity: efficiencyRange{0.2, 0.8, 2}, CurrentRatio: efficiencyRange{1, 1.5, 3},
+	},
+	"Consumer Defensive": {
+		ROIC: efficiencyRange{5, 14, 30}, ROE: efficiencyRange{12, 22, 45},
+		OperatingMargin: efficiencyRange{8, 15, 28}, FCFYield: efficiencyRange{2, 4, 8},
+		DebtToEquity: efficiencyRange{0.2, 0.6, 1.5}, CurrentRatio: efficiencyRange{0.8, 1.2, 2},
+	},
+	"Industrials": {
+		ROIC: efficiencyRange{4, 11, 25}, ROE: efficiencyRange{10, 18, 35},
+		OperatingMargin: efficiencyRange{6, 12, 22}, FCFYield: efficiencyRange{1.5, 3.5, 7},
+		DebtToEquity: efficiencyRange{0.3, 0.8, 2}, CurrentRatio: efficiencyRange{1, 1.5, 2.5},
+	},
+	"Energy": {
+		ROIC: efficiencyRange{2, 8, 20}, ROE: efficiencyRange{5, 15, 30},
+		OperatingMargin: efficiencyRange{5, 15, 35}, FCFYield: efficiencyRange{3, 6, 15},
+		DebtToEquity: efficiencyRange{0.2, 0.5, 1.5}, CurrentRatio: efficiencyRange{0.8, 1.2, 2},
+	},
+	"Basic Materials": {
+		ROIC: efficiencyRange{3, 9, 20}, ROE: efficiencyRange{8, 15, 28},
+		OperatingMargin: efficiencyRange{8, 15, 28}, FCFYield: efficiencyRange{2, 4, 10},
+		DebtToEquity: efficiencyRange{0.2, 0.5, 1.5}, CurrentRatio: efficiencyRange{1, 1.8, 3},
+	},
+	"Utilities": {
+		ROIC: efficiencyRange{2, 5, 10}, ROE: efficiencyRange{6, 10, 15},
+		OperatingMargin: efficiencyRange{15, 25, 40}, FCFYield: efficiencyRange{2, 4, 8},
+		DebtToEquity: efficiencyRange{0.8, 1.2, 2.5}, CurrentRatio: efficiencyRange{0.6, 0.9, 1.5},
+	},
+	"Real Estate": {
+		ROIC: efficiencyRange{2, 5, 12}, ROE: efficiencyRange{4, 8, 15},
+		OperatingMargin: efficiencyRange{20, 35, 55}, FCFYield: efficiencyRange{3, 5, 10},
+		DebtToEquity: efficiencyRange{0.5, 1, 2.5}, CurrentRatio: efficiencyRange{0.5, 1, 2},
+	},
+	"Communication Services": {
+		ROIC: efficiencyRange{4, 10, 22}, ROE: efficiencyRange{8, 16, 32},
+		OperatingMargin: efficiencyRange{10, 20, 35}, FCFYield: efficiencyRange{2, 4, 9},
+		DebtToEquity: efficiencyRange{0.3, 0.8, 2}, CurrentRatio: efficiencyRange{0.8, 1.3, 2.5},
+	},
 }
 
 // GetValuation retrieves valuation metrics using TTM data.
@@ -293,6 +370,114 @@ func (r *Repository) GetValuation(ctx context.Context, ticker string, sector str
 	}
 
 	return valuation, nil
+}
+
+// calculatePercentile computes where a value falls in a range (0-100).
+// For "higher is better" metrics (ROIC, FCFYield, InterestCoverage).
+func calculatePercentile(value, min, max float64) int {
+	if max <= min {
+		return 50
+	}
+	// Clamp value to range
+	if value <= min {
+		return 0
+	}
+	if value >= max {
+		return 100
+	}
+	pct := ((value - min) / (max - min)) * 100
+	return int(pct)
+}
+
+// calculatePercentileInverted computes percentile for "lower is better" metrics (DebtToEquity).
+func calculatePercentileInverted(value, min, max float64) int {
+	if max <= min {
+		return 50
+	}
+	// Clamp value to range
+	if value <= min {
+		return 100 // Lower is better, so being at min = 100th percentile
+	}
+	if value >= max {
+		return 0
+	}
+	pct := ((max - value) / (max - min)) * 100
+	return int(pct)
+}
+
+// GetEfficiency constructs efficiency metrics with sector context.
+func (r *Repository) GetEfficiency(ctx context.Context, ticker string, sector string, financials *stock.Financials, valuation *stock.Valuation) (*stock.Efficiency, error) {
+	// Get sector ranges (with fallback to Technology)
+	ranges, ok := sectorEfficiency[sector]
+	if !ok {
+		ranges = sectorEfficiency["Technology"]
+	}
+
+	efficiency := &stock.Efficiency{}
+
+	// ROIC - already in percentage form from financials
+	roicValue := financials.ROIC
+	efficiency.ROIC = stock.EfficiencyMetric{
+		Value:        roicValue,
+		SectorMin:    ranges.ROIC.Min,
+		SectorMedian: ranges.ROIC.Median,
+		SectorMax:    ranges.ROIC.Max,
+		Percentile:   calculatePercentile(roicValue, ranges.ROIC.Min, ranges.ROIC.Max),
+	}
+
+	// ROE - already in percentage form from financials
+	roeValue := financials.ROE
+	efficiency.ROE = stock.EfficiencyMetric{
+		Value:        roeValue,
+		SectorMin:    ranges.ROE.Min,
+		SectorMedian: ranges.ROE.Median,
+		SectorMax:    ranges.ROE.Max,
+		Percentile:   calculatePercentile(roeValue, ranges.ROE.Min, ranges.ROE.Max),
+	}
+
+	// Operating Margin - already in percentage form from financials
+	opMarginValue := financials.OperatingMargin
+	efficiency.OperatingMargin = stock.EfficiencyMetric{
+		Value:        opMarginValue,
+		SectorMin:    ranges.OperatingMargin.Min,
+		SectorMedian: ranges.OperatingMargin.Median,
+		SectorMax:    ranges.OperatingMargin.Max,
+		Percentile:   calculatePercentile(opMarginValue, ranges.OperatingMargin.Min, ranges.OperatingMargin.Max),
+	}
+
+	// FCF Yield - calculated from Price/FCF (FCF Yield = 1 / P/FCF * 100)
+	if valuation.PriceToFCF.Value != nil && *valuation.PriceToFCF.Value > 0 {
+		fcfYield := (1 / *valuation.PriceToFCF.Value) * 100
+		efficiency.FCFYield = &stock.EfficiencyMetric{
+			Value:        fcfYield,
+			SectorMin:    ranges.FCFYield.Min,
+			SectorMedian: ranges.FCFYield.Median,
+			SectorMax:    ranges.FCFYield.Max,
+			Percentile:   calculatePercentile(fcfYield, ranges.FCFYield.Min, ranges.FCFYield.Max),
+		}
+	}
+
+	// Debt/Equity - lower is better (inverted percentile)
+	debtEquity := financials.DebtToEquity
+	efficiency.DebtToEquity = stock.EfficiencyMetric{
+		Value:        debtEquity,
+		SectorMin:    ranges.DebtToEquity.Min,
+		SectorMedian: ranges.DebtToEquity.Median,
+		SectorMax:    ranges.DebtToEquity.Max,
+		Percentile:   calculatePercentileInverted(debtEquity, ranges.DebtToEquity.Min, ranges.DebtToEquity.Max),
+	}
+
+	// Current Ratio - higher is better (good liquidity)
+	currentRatio := financials.CurrentRatio
+	efficiency.CurrentRatio = stock.EfficiencyMetric{
+		Value:        currentRatio,
+		SectorMin:    ranges.CurrentRatio.Min,
+		SectorMedian: ranges.CurrentRatio.Median,
+		SectorMax:    ranges.CurrentRatio.Max,
+		Percentile:   calculatePercentile(currentRatio, ranges.CurrentRatio.Min, ranges.CurrentRatio.Max),
+	}
+
+	return efficiency, nil
 }
 
 // GetHoldings retrieves institutional holdings data.

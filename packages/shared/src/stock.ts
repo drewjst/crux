@@ -359,6 +359,50 @@ export interface InsiderActivity {
 }
 
 // =============================================================================
+// Efficiency Metrics
+// =============================================================================
+
+/**
+ * A single efficiency metric with sector context for comparison.
+ *
+ * Each metric includes the sector range (min, median, max) and a percentile
+ * ranking showing where the stock falls within its sector.
+ */
+export interface EfficiencyMetric {
+  /** The stock's metric value */
+  value: number;
+  /** Minimum value typically seen in this sector */
+  sectorMin: number;
+  /** Median value for stocks in the same sector */
+  sectorMedian: number;
+  /** Maximum value typically seen in this sector */
+  sectorMax: number;
+  /** Percentile rank within sector (0-100, higher = better) */
+  percentile: number;
+}
+
+/**
+ * Efficiency metrics with sector comparisons.
+ *
+ * These metrics show capital efficiency and financial health,
+ * with context on how the stock compares to sector peers.
+ */
+export interface Efficiency {
+  /** Return on Invested Capital (higher is better) */
+  roic: EfficiencyMetric;
+  /** Return on Equity (higher is better) */
+  roe: EfficiencyMetric;
+  /** Operating Margin percentage (higher is better) */
+  operatingMargin: EfficiencyMetric;
+  /** Free Cash Flow Yield (higher is better, null if not calculable) */
+  fcfYield: EfficiencyMetric | null;
+  /** Debt to Equity ratio (lower is better for most sectors) */
+  debtToEquity: EfficiencyMetric;
+  /** Current Ratio - liquidity measure (higher is better) */
+  currentRatio: EfficiencyMetric;
+}
+
+// =============================================================================
 // Financial Metrics
 // =============================================================================
 
@@ -445,6 +489,8 @@ export interface StockDetailResponse {
   insiderActivity: InsiderActivity;
   /** Key financial metrics */
   financials: Financials;
+  /** Efficiency metrics with sector comparisons */
+  efficiency: Efficiency;
   /** Data freshness timestamps */
   meta: DataMeta;
 }

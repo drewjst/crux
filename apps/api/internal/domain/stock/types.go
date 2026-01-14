@@ -73,6 +73,25 @@ type InsiderTrade struct {
 	TradeDate   string  `json:"tradeDate" db:"trade_date"`
 }
 
+// EfficiencyMetric represents an efficiency metric with sector context.
+type EfficiencyMetric struct {
+	Value        float64 `json:"value"`
+	SectorMin    float64 `json:"sectorMin"`
+	SectorMedian float64 `json:"sectorMedian"`
+	SectorMax    float64 `json:"sectorMax"`
+	Percentile   int     `json:"percentile"` // 0-100, where stock ranks in sector
+}
+
+// Efficiency contains efficiency metrics with sector comparisons.
+type Efficiency struct {
+	ROIC            EfficiencyMetric  `json:"roic"`
+	ROE             EfficiencyMetric  `json:"roe"`
+	OperatingMargin EfficiencyMetric  `json:"operatingMargin"`
+	FCFYield        *EfficiencyMetric `json:"fcfYield,omitempty"`
+	DebtToEquity    EfficiencyMetric  `json:"debtToEquity"`
+	CurrentRatio    EfficiencyMetric  `json:"currentRatio"`
+}
+
 // Financials contains key financial metrics.
 type Financials struct {
 	RevenueGrowthYoY float64  `json:"revenueGrowthYoY" db:"revenue_growth_yoy"`

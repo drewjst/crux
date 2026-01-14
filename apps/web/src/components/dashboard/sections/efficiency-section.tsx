@@ -1,145 +1,175 @@
 'use client';
 
 import { SectionCard } from './section-card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import type { StockDetailResponse } from '@recon/shared';
+import type { StockDetailResponse, EfficiencyMetric } from '@recon/shared';
 
 interface EfficiencySectionProps {
   data: StockDetailResponse;
 }
 
-interface EfficiencyMetric {
-  metric: string;
-  current: number | null;
-  assessment: string;
-  assessmentType: 'positive' | 'neutral' | 'negative';
+type Assessment = 'Excellent' | 'Good' | 'Average' | 'Below Avg' | 'Caution';
+type AssessmentType = 'positive' | 'neutral' | 'negative';
+
+interface MetricConfig {
+  label: string;
+  metric: EfficiencyMetric | null;
+  formatValue: (value: number) => string;
+  formatRange: (value: number) => string;
 }
 
-function assessROIC(roic: number): { assessment: string; type: 'positive' | 'neutral' | 'negative' } {
-  const roicPercent = roic * 100;
-  if (roicPercent >= 15) return { assessment: 'Excellent', type: 'positive' };
-  if (roicPercent >= 10) return { assessment: 'Good', type: 'positive' };
-  if (roicPercent >= 5) return { assessment: 'Average', type: 'neutral' };
-  return { assessment: 'Below avg', type: 'negative' };
+function getAssessment(percentile: number): { text: Assessment; type: AssessmentType } {
+  if (percentile >= 75) return { text: 'Excellent', type: 'positive' };
+  if (percentile >= 50) return { text: 'Good', type: 'positive' };
+  if (percentile >= 25) return { text: 'Average', type: 'neutral' };
+  if (percentile >= 10) return { text: 'Below Avg', type: 'negative' };
+  return { text: 'Caution', type: 'negative' };
 }
 
-function assessFCFYield(fcfYield: number): { assessment: string; type: 'positive' | 'neutral' | 'negative' } {
-  if (fcfYield >= 5) return { assessment: 'Excellent', type: 'positive' };
-  if (fcfYield >= 3) return { assessment: 'Good', type: 'positive' };
-  if (fcfYield >= 1) return { assessment: 'Average', type: 'neutral' };
-  return { assessment: 'Low yield', type: 'negative' };
-}
-
-function assessDebtToEquity(ratio: number): { assessment: string; type: 'positive' | 'neutral' | 'negative' } {
-  if (ratio < 0.3) return { assessment: 'Very low', type: 'positive' };
-  if (ratio < 0.5) return { assessment: 'Low', type: 'positive' };
-  if (ratio <= 1) return { assessment: 'Moderate', type: 'neutral' };
-  return { assessment: 'High', type: 'negative' };
-}
-
-function assessInterestCoverage(coverage: number | null): { assessment: string; type: 'positive' | 'neutral' | 'negative' } {
-  if (coverage === null) return { assessment: 'No debt', type: 'positive' };
-  if (coverage >= 10) return { assessment: 'Strong', type: 'positive' };
-  if (coverage >= 5) return { assessment: 'Adequate', type: 'neutral' };
-  if (coverage >= 2) return { assessment: 'Weak', type: 'negative' };
-  return { assessment: 'At risk', type: 'negative' };
-}
-
-export function EfficiencySection({ data }: EfficiencySectionProps) {
-  const { financials, valuation } = data;
-
-  // Calculate FCF Yield from Price/FCF (FCF Yield = 1 / P/FCF * 100)
-  const fcfYield = valuation.priceToFcf.value ? (1 / valuation.priceToFcf.value) * 100 : null;
-
-  const roicAssessment = assessROIC(financials.roic);
-  const fcfYieldAssessment = fcfYield !== null ? assessFCFYield(fcfYield) : { assessment: 'N/A', type: 'neutral' as const };
-  const debtEquityAssessment = assessDebtToEquity(financials.debtToEquity);
-  const interestCoverageAssessment = assessInterestCoverage(financials.interestCoverage);
-
-  const rows: EfficiencyMetric[] = [
-    {
-      metric: 'ROIC',
-      current: financials.roic * 100,
-      assessment: roicAssessment.assessment,
-      assessmentType: roicAssessment.type,
-    },
-    {
-      metric: 'FCF Yield',
-      current: fcfYield,
-      assessment: fcfYieldAssessment.assessment,
-      assessmentType: fcfYieldAssessment.type,
-    },
-    {
-      metric: 'Debt/Equity',
-      current: financials.debtToEquity,
-      assessment: debtEquityAssessment.assessment,
-      assessmentType: debtEquityAssessment.type,
-    },
-    {
-      metric: 'Interest Coverage',
-      current: financials.interestCoverage,
-      assessment: interestCoverageAssessment.assessment,
-      assessmentType: interestCoverageAssessment.type,
-    },
-  ];
-
-  const validRows = rows.filter((row) => row.current !== null);
-
-  const assessmentColors = {
-    positive: 'text-success',
-    neutral: 'text-muted-foreground',
-    negative: 'text-destructive',
-  };
-
-  const formatValue = (metric: string, value: number | null): string => {
-    if (value === null) return '-';
-    switch (metric) {
-      case 'ROIC':
-      case 'FCF Yield':
-        return `${value.toFixed(2)}%`;
-      case 'Debt/Equity':
-        return value.toFixed(2);
-      case 'Interest Coverage':
-        return `${value.toFixed(1)}x`;
-      default:
-        return value.toFixed(2);
-    }
+function AssessmentBadge({ assessment }: { assessment: { text: Assessment; type: AssessmentType } }) {
+  const colors = {
+    positive: 'bg-success/10 text-success',
+    neutral: 'bg-muted text-muted-foreground',
+    negative: 'bg-destructive/10 text-destructive',
   };
 
   return (
+    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[assessment.type]}`}>
+      {assessment.text}
+    </span>
+  );
+}
+
+function PositionBar({ metric }: { metric: EfficiencyMetric }) {
+  const { percentile, sectorMin, sectorMedian, sectorMax } = metric;
+
+  // Determine dot color based on percentile
+  const getDotColor = () => {
+    if (percentile >= 75) return 'bg-success';
+    if (percentile >= 25) return 'bg-amber-500';
+    return 'bg-destructive';
+  };
+
+  // Calculate median position on the bar (as percentage of the range)
+  const medianPosition = ((sectorMedian - sectorMin) / (sectorMax - sectorMin)) * 100;
+
+  return (
+    <div className="mt-2">
+      {/* Position bar */}
+      <div className="relative h-2 bg-muted rounded-full">
+        {/* Median marker */}
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-border"
+          style={{ left: `${medianPosition}%` }}
+        />
+
+        {/* Stock position dot */}
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${getDotColor()} border-2 border-background shadow-sm transition-all duration-300`}
+          style={{ left: `calc(${Math.max(0, Math.min(100, percentile))}% - 6px)` }}
+        />
+      </div>
+
+      {/* Range labels */}
+      <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+        <span className="font-mono">{formatRangeValue(metric, sectorMin)}</span>
+        <span>Median</span>
+        <span className="font-mono">{formatRangeValue(metric, sectorMax)}</span>
+      </div>
+    </div>
+  );
+}
+
+function formatRangeValue(metric: EfficiencyMetric, value: number): string {
+  // For percentages (ROIC, FCF Yield)
+  if (metric.sectorMax > 10) {
+    return `${value.toFixed(0)}%`;
+  }
+  // For ratios (Debt/Equity)
+  if (metric.sectorMax <= 10) {
+    return value.toFixed(1);
+  }
+  return value.toFixed(1);
+}
+
+function EfficiencyMetricRow({
+  label,
+  metric,
+  formatValue,
+}: MetricConfig) {
+  if (!metric) return null;
+
+  const assessment = getAssessment(metric.percentile);
+
+  return (
+    <div className="py-4 border-b border-border/50 last:border-0">
+      <div className="flex justify-between items-center mb-1">
+        <span className="font-medium text-sm">{label}</span>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-sm">{formatValue(metric.value)}</span>
+          <AssessmentBadge assessment={assessment} />
+        </div>
+      </div>
+
+      <PositionBar metric={metric} />
+    </div>
+  );
+}
+
+export function EfficiencySection({ data }: EfficiencySectionProps) {
+  const { efficiency } = data;
+
+  const metrics: MetricConfig[] = [
+    {
+      label: 'ROIC',
+      metric: efficiency.roic,
+      formatValue: (v) => `${v.toFixed(1)}%`,
+      formatRange: (v) => `${v.toFixed(0)}%`,
+    },
+    {
+      label: 'ROE',
+      metric: efficiency.roe,
+      formatValue: (v) => `${v.toFixed(1)}%`,
+      formatRange: (v) => `${v.toFixed(0)}%`,
+    },
+    {
+      label: 'Operating Margin',
+      metric: efficiency.operatingMargin,
+      formatValue: (v) => `${v.toFixed(1)}%`,
+      formatRange: (v) => `${v.toFixed(0)}%`,
+    },
+    {
+      label: 'FCF Yield',
+      metric: efficiency.fcfYield,
+      formatValue: (v) => `${v.toFixed(2)}%`,
+      formatRange: (v) => `${v.toFixed(1)}%`,
+    },
+    {
+      label: 'Debt/Equity',
+      metric: efficiency.debtToEquity,
+      formatValue: (v) => v.toFixed(2),
+      formatRange: (v) => v.toFixed(1),
+    },
+    {
+      label: 'Current Ratio',
+      metric: efficiency.currentRatio,
+      formatValue: (v) => `${v.toFixed(2)}x`,
+      formatRange: (v) => `${v.toFixed(1)}x`,
+    },
+  ];
+
+  // Filter out null metrics
+  const validMetrics = metrics.filter((m) => m.metric !== null);
+
+  return (
     <SectionCard title="Efficiency">
-      {validRows.length === 0 ? (
+      {validMetrics.length === 0 ? (
         <p className="text-sm text-muted-foreground">Efficiency data not available.</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="w-[150px] text-muted-foreground">Metric</TableHead>
-              <TableHead className="text-right text-muted-foreground">Current</TableHead>
-              <TableHead className="text-right text-muted-foreground">Assessment</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {validRows.map((row) => (
-              <TableRow key={row.metric} className="border-border/30 hover:bg-secondary/30">
-                <TableCell className="font-medium">{row.metric}</TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatValue(row.metric, row.current)}
-                </TableCell>
-                <TableCell className={`text-right font-medium ${assessmentColors[row.assessmentType]}`}>
-                  {row.assessment}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div>
+          {validMetrics.map((config) => (
+            <EfficiencyMetricRow key={config.label} {...config} />
+          ))}
+        </div>
       )}
     </SectionCard>
   );
