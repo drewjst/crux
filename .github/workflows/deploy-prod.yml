@@ -53,6 +53,7 @@ jobs:
       - name: Build and push API image
         run: |
           gcloud builds submit . \
+            --suppress-logs \
             --config=/dev/stdin <<EOF
           steps:
             - name: 'gcr.io/cloud-builders/docker'
@@ -99,6 +100,7 @@ jobs:
       - name: Build and push Web image
         run: |
           gcloud builds submit . \
+            --suppress-logs \
             --config=/dev/stdin <<EOF
           steps:
             - name: 'gcr.io/cloud-builders/docker'
