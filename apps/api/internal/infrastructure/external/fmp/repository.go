@@ -657,6 +657,54 @@ func (r *Repository) GetInsiderActivity(ctx context.Context, ticker string) (*st
 	return activity, nil
 }
 
+// GetDCF retrieves and calculates DCF valuation assessment.
+func (r *Repository) GetDCF(ctx context.Context, ticker string) (*stock.DCFValuation, error) {
+	dcfData, err := r.client.GetDCF(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching DCF: %w", err)
+	}
+	if dcfData == nil {
+		return nil, nil
+	}
+
+	// FMP DCF endpoint doesn't reliably return stock price, so fetch from quote
+	currentPrice := dcfData.StockPrice
+	if currentPrice == 0 {
+		quote, err := r.client.GetQuote(ctx, ticker)
+		if err == nil && quote != nil {
+			currentPrice = quote.Price
+		}
+	}
+
+	return calculateDCFAssessment(dcfData.DCF, currentPrice), nil
+}
+
+// calculateDCFAssessment determines valuation status based on DCF vs current price.
+func calculateDCFAssessment(dcf, price float64) *stock.DCFValuation {
+	if price == 0 {
+		return &stock.DCFValuation{
+			IntrinsicValue: dcf,
+			Assessment:     "N/A",
+		}
+	}
+
+	diff := ((dcf - price) / price) * 100
+
+	assessment := "Fairly Valued"
+	if diff > 15 {
+		assessment = "Undervalued"
+	} else if diff < -15 {
+		assessment = "Overvalued"
+	}
+
+	return &stock.DCFValuation{
+		IntrinsicValue:    dcf,
+		CurrentPrice:      price,
+		DifferencePercent: diff,
+		Assessment:        assessment,
+	}
+}
+
 // Search finds tickers matching the query.
 func (r *Repository) Search(ctx context.Context, query string, limit int) ([]stock.SearchResult, error) {
 	results, err := r.client.SearchTicker(ctx, query, limit)

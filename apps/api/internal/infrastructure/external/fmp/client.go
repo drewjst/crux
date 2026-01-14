@@ -208,6 +208,22 @@ func (c *Client) GetKeyMetricsTTM(ctx context.Context, ticker string) ([]KeyMetr
 	return metrics, nil
 }
 
+// GetDCF retrieves discounted cash flow valuation data.
+func (c *Client) GetDCF(ctx context.Context, ticker string) (*DCF, error) {
+	url := fmt.Sprintf("%s/discounted-cash-flow?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var dcfData []DCF
+	if err := c.get(ctx, url, &dcfData); err != nil {
+		return nil, fmt.Errorf("fetching DCF: %w", err)
+	}
+
+	if len(dcfData) == 0 {
+		return nil, nil
+	}
+
+	return &dcfData[0], nil
+}
+
 // get makes an HTTP GET request and unmarshals the response.
 func (c *Client) get(ctx context.Context, url string, dest any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

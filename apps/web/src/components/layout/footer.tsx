@@ -1,22 +1,28 @@
-import Link from 'next/link';
+'use client';
+
+import { LegalModal } from '@/components/legal-modal';
+import { AboutContent, DisclaimerContent, PrivacyContent, TermsContent } from '@/components/legal-content';
 
 export function Footer() {
   return (
     <footer className="border-t border-border/40 bg-muted/30">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-8 px-4 sm:px-6 lg:px-8">
         <p className="text-sm text-muted-foreground">
-          Recon distills stock fundamentals into actionable signals.
+          © 2025 Recon. Not financial advice.
         </p>
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <Link href="#" className="hover:text-foreground transition-colors">
-            About
-          </Link>
-          <Link href="#" className="hover:text-foreground transition-colors">
-            Privacy
-          </Link>
-          <Link href="#" className="hover:text-foreground transition-colors">
-            Terms
-          </Link>
+        <div className="flex items-center gap-6">
+          <LegalModal trigger="About" title="About Recon">
+            <AboutContent />
+          </LegalModal>
+          <LegalModal trigger="Disclaimer" title="Investment Disclaimer">
+            <DisclaimerContent />
+          </LegalModal>
+          <LegalModal trigger="Privacy" title="Privacy Policy">
+            <PrivacyContent />
+          </LegalModal>
+          <LegalModal trigger="Terms" title="Terms of Service">
+            <TermsContent />
+          </LegalModal>
         </div>
       </div>
     </footer>

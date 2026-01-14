@@ -243,3 +243,11 @@ type KeyMetricsTTM struct {
 	EVToSalesTTM  float64 `json:"evToSalesTTM"`
 	MarketCap     float64 `json:"marketCap"`
 }
+
+// DCF represents the FMP discounted cash flow response.
+type DCF struct {
+	Symbol     string  `json:"symbol"`
+	Date       string  `json:"date"`
+	DCF        float64 `json:"dcf"`
+	StockPrice float64 `json:"stockPrice"`
+}

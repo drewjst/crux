@@ -25,6 +25,7 @@ type Repository interface {
 	GetInsiderTrades(ctx context.Context, ticker string, limit int) ([]InsiderTrade, error)
 	GetPerformance(ctx context.Context, ticker string, currentPrice, yearHigh float64) (*Performance, error)
 	GetInsiderActivity(ctx context.Context, ticker string) (*InsiderActivity, error)
+	GetDCF(ctx context.Context, ticker string) (*DCFValuation, error)
 	Search(ctx context.Context, query string, limit int) ([]SearchResult, error)
 }
 
@@ -70,7 +71,7 @@ type Scores struct {
 	Piotroski    scores.PiotroskiResult `json:"piotroski"`
 	RuleOf40     scores.RuleOf40Result  `json:"ruleOf40"`
 	AltmanZ      scores.AltmanZResult   `json:"altmanZ"`
-	OverallGrade string                 `json:"overallGrade"`
+	DCFValuation DCFValuation           `json:"dcfValuation"`
 }
 
 // GetStockDetail retrieves comprehensive stock data for a ticker.
@@ -132,8 +133,14 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 		return nil, fmt.Errorf("fetching financial data for %s: %w", ticker, err)
 	}
 
+	// Get DCF valuation (non-fatal if unavailable)
+	dcfValuation, err := s.repo.GetDCF(ctx, ticker)
+	if err != nil {
+		dcfValuation = &DCFValuation{}
+	}
+
 	// Calculate scores
-	stockScores := s.calculateScores(financialData)
+	stockScores := s.calculateScores(financialData, dcfValuation)
 
 	// Generate signals
 	signalList := s.generateSignals(company, quote, financials, holdings, insiderTrades, stockScores)
@@ -166,7 +173,7 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 }
 
 // calculateScores computes all financial scores from raw data.
-func (s *Service) calculateScores(data []scores.FinancialData) Scores {
+func (s *Service) calculateScores(data []scores.FinancialData, dcf *DCFValuation) Scores {
 	var piotroskiResult scores.PiotroskiResult
 	var ruleOf40Result scores.RuleOf40Result
 	var altmanZResult scores.AltmanZResult
@@ -183,11 +190,16 @@ func (s *Service) calculateScores(data []scores.FinancialData) Scores {
 		altmanZResult = scores.CalculateAltmanZScore(data[0])
 	}
 
+	dcfValuation := DCFValuation{}
+	if dcf != nil {
+		dcfValuation = *dcf
+	}
+
 	return Scores{
 		Piotroski:    piotroskiResult,
 		RuleOf40:     ruleOf40Result,
 		AltmanZ:      altmanZResult,
-		OverallGrade: calculateOverallGrade(piotroskiResult, ruleOf40Result, altmanZResult),
+		DCFValuation: dcfValuation,
 	}
 }
 
@@ -202,49 +214,6 @@ func (s *Service) generateSignals(
 ) []signals.Signal {
 	generator := signals.NewGenerator()
 	return generator.GenerateAll(company, quote, financials, holdings, insiderTrades, stockScores.Piotroski, stockScores.AltmanZ)
-}
-
-// calculateOverallGrade determines a letter grade from all scores.
-func calculateOverallGrade(p scores.PiotroskiResult, r scores.RuleOf40Result, a scores.AltmanZResult) string {
-	points := 0
-
-	// Piotroski contribution (0-9 -> 0-36 points)
-	points += p.Score * 4
-
-	// Rule of 40 contribution (0-20 points)
-	if r.Passed {
-		points += 20
-	} else if r.Score >= 30 {
-		points += 15
-	} else if r.Score >= 20 {
-		points += 10
-	}
-
-	// Altman Z contribution (0-24 points)
-	switch a.Zone {
-	case "safe":
-		points += 24
-	case "gray":
-		points += 12
-	case "distress":
-		points += 0
-	}
-
-	// Total possible: 80 points
-	switch {
-	case points >= 70:
-		return "A"
-	case points >= 60:
-		return "B+"
-	case points >= 50:
-		return "B"
-	case points >= 35:
-		return "C"
-	case points >= 20:
-		return "D"
-	default:
-		return "F"
-	}
 }
 
 // Search finds tickers matching the query.

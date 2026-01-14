@@ -139,3 +139,11 @@ type SearchResult struct {
 	Exchange string `json:"exchange" db:"exchange"`
 	Sector   string `json:"sector,omitempty" db:"sector"`
 }
+
+// DCFValuation represents discounted cash flow valuation analysis.
+type DCFValuation struct {
+	IntrinsicValue    float64 `json:"intrinsicValue"`
+	CurrentPrice      float64 `json:"currentPrice"`
+	DifferencePercent float64 `json:"differencePercent"`
+	Assessment        string  `json:"assessment"` // "Undervalued", "Fairly Valued", "Overvalued"
+}

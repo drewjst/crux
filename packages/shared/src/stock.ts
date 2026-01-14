@@ -153,7 +153,24 @@ export interface AltmanZScore {
 }
 
 /**
- * Aggregated scoring results with letter grade.
+ * DCF (Discounted Cash Flow) valuation analysis.
+ *
+ * Compares intrinsic value calculated from projected cash flows
+ * against current market price to determine if stock is fairly valued.
+ */
+export interface DCFValuation {
+  /** Calculated intrinsic value per share based on DCF model */
+  intrinsicValue: number;
+  /** Current market price per share */
+  currentPrice: number;
+  /** Percentage difference: ((intrinsicValue - currentPrice) / currentPrice) * 100 */
+  differencePercent: number;
+  /** Valuation assessment based on difference threshold (±15%) */
+  assessment: 'Undervalued' | 'Fairly Valued' | 'Overvalued' | 'N/A';
+}
+
+/**
+ * Aggregated scoring results with DCF valuation.
  */
 export interface Scores {
   /** Piotroski F-Score (value/quality) */
@@ -162,11 +179,8 @@ export interface Scores {
   ruleOf40: RuleOf40;
   /** Altman Z-Score (financial health/bankruptcy risk) */
   altmanZ: AltmanZScore;
-  /**
-   * Overall letter grade synthesizing all scores.
-   * A = Excellent, B+ = Very Good, B = Good, C = Average, D = Below Average, F = Poor
-   */
-  overallGrade: 'A' | 'B+' | 'B' | 'C' | 'D' | 'F';
+  /** DCF valuation analysis */
+  dcfValuation: DCFValuation;
 }
 
 // =============================================================================

@@ -2,8 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Info, ExternalLink } from 'lucide-react';
 import type { Scores } from '@recon/shared';
 
 interface ScoreCardsProps {
@@ -22,7 +21,7 @@ export function ScoreCards({ scores, isLoading }: ScoreCardsProps) {
         <PiotroskiCard score={scores.piotroski} />
         <RuleOf40Card score={scores.ruleOf40} />
         <AltmanZCard score={scores.altmanZ} />
-        <OverallGradeCard grade={scores.overallGrade} />
+        <DCFCard dcf={scores.dcfValuation} />
       </div>
     </TooltipProvider>
   );
@@ -134,32 +133,61 @@ function AltmanZCard({ score }: { score: Scores['altmanZ'] }) {
   );
 }
 
-function OverallGradeCard({ grade }: { grade: string }) {
-  const getVariant = (g: string) => {
-    if (g.startsWith('A')) return 'success';
-    if (g.startsWith('B')) return 'secondary';
-    if (g.startsWith('C')) return 'warning';
-    return 'destructive';
+function DCFCard({ dcf }: { dcf: Scores['dcfValuation'] }) {
+  const getVariant = (assessment: string) => {
+    if (assessment === 'Undervalued') return 'success';
+    if (assessment === 'Fairly Valued') return 'secondary';
+    if (assessment === 'Overvalued') return 'destructive';
+    return 'outline';
+  };
+
+  const formatPrice = (value: number) => {
+    if (!value) return 'N/A';
+    return `$${value.toFixed(2)}`;
+  };
+
+  const formatPercent = (value: number) => {
+    if (!value && value !== 0) return '';
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
   };
 
   return (
-    <Card className={cn('border-2', getVariant(grade) === 'success' && 'border-green-200')}>
+    <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Overall Grade
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+          DCF Valuation
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="mb-2">Discounted Cash Flow intrinsic value vs current price. Undervalued if DCF is 15%+ above price, Overvalued if 15%+ below.</p>
+              <a
+                href="https://www.investopedia.com/terms/d/dcf.asp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-accent hover:underline font-medium"
+              >
+                Learn more
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </TooltipContent>
+          </Tooltip>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">{grade}</div>
-        <Badge variant={getVariant(grade)} className="mt-2">
-          {grade.startsWith('A')
-            ? 'Excellent'
-            : grade.startsWith('B')
-              ? 'Good'
-              : grade.startsWith('C')
-                ? 'Fair'
-                : 'Poor'}
-        </Badge>
+        <div className="text-3xl font-bold">{formatPrice(dcf.intrinsicValue)}</div>
+        <div className="flex items-center gap-2 mt-2">
+          <Badge variant={getVariant(dcf.assessment)}>
+            {dcf.assessment}
+          </Badge>
+          {dcf.differencePercent !== 0 && (
+            <span className="text-xs text-muted-foreground">
+              {formatPercent(dcf.differencePercent)}
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

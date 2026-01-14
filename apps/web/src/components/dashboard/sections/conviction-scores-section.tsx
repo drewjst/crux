@@ -81,9 +81,9 @@ const getAltmanStatus = (zone: string): 'positive' | 'neutral' | 'negative' => {
   return 'negative';
 };
 
-const getGradeStatus = (grade: string): 'positive' | 'neutral' | 'negative' => {
-  if (['A', 'B+'].includes(grade)) return 'positive';
-  if (['B', 'C'].includes(grade)) return 'neutral';
+const getDCFStatus = (assessment: string): 'positive' | 'neutral' | 'negative' => {
+  if (assessment === 'Undervalued') return 'positive';
+  if (assessment === 'Fairly Valued') return 'neutral';
   return 'negative';
 };
 
@@ -91,7 +91,7 @@ function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps
   const { scores } = data;
 
   return (
-    <SectionCard title="Conviction Scores">
+    <SectionCard title="Financial Health Scores">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <ScoreBox
           label="Piotroski"
@@ -118,11 +118,16 @@ function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps
           learnMoreUrl="https://www.investopedia.com/terms/a/altman.asp"
         />
         <ScoreBox
-          label="Overall"
-          value={scores.overallGrade}
-          description={scores.overallGrade === 'A' ? 'Excellent' : scores.overallGrade.startsWith('B') ? 'Good' : 'Average'}
-          status={getGradeStatus(scores.overallGrade)}
-          tooltip="Composite grade combining Piotroski, Rule of 40, and Altman Z scores. A is excellent, F is poor."
+          label="DCF Value"
+          value={scores.dcfValuation.intrinsicValue ? `$${scores.dcfValuation.intrinsicValue.toFixed(0)}` : 'N/A'}
+          description={
+            scores.dcfValuation.differencePercent
+              ? `${scores.dcfValuation.differencePercent > 0 ? '+' : ''}${scores.dcfValuation.differencePercent.toFixed(0)}% vs price`
+              : scores.dcfValuation.assessment
+          }
+          status={getDCFStatus(scores.dcfValuation.assessment)}
+          tooltip="Discounted Cash Flow intrinsic value vs current price. Undervalued if DCF is 15%+ above price, Overvalued if 15%+ below."
+          learnMoreUrl="https://www.investopedia.com/terms/d/dcf.asp"
         />
       </div>
     </SectionCard>
