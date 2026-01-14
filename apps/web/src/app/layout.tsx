@@ -24,11 +24,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className={`${inter.className} bg-zinc-50`}>
+      <body className={`${inter.className} bg-background`}>
         <Providers>
           <TooltipProvider>
-            <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col border-x border-border bg-background shadow-sm">
-              <Header />
+            {/* Header spans full width */}
+            <Header />
+            {/* Content container with max-width and borders */}
+            <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col bg-card border-x border-border/40 shadow-sm">
               <main className="flex-1">{children}</main>
               <Footer />
             </div>

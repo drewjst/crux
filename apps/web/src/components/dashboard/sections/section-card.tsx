@@ -47,11 +47,8 @@ export function SectionCard({ title, children, className, defaultOpen = true }: 
 
 export function DashboardDivider() {
   return (
-    <div className="relative py-4">
-      <div
-        className="absolute left-1/2 -translate-x-1/2 w-screen border-t border-border/30"
-        style={{ maxWidth: 'calc(100vw - 2px)' }}
-      />
+    <div className="relative py-3">
+      <div className="w-full border-t border-border/50" />
     </div>
   );
 }

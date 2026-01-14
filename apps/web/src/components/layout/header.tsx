@@ -15,7 +15,7 @@ function HeaderSearch() {
   if (!tickerParam) return null;
 
   return (
-    <div className="flex-1 max-w-md">
+    <div className="flex-1 max-w-xl">
       <TickerSearch />
     </div>
   );
@@ -86,8 +86,8 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-card/95 backdrop-blur-xl supports-[backdrop-filter]:bg-card/90">
+      <div className="mx-auto max-w-[1440px] flex h-14 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-all duration-300 group-hover:shadow-glow">
@@ -117,8 +117,8 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl">
-          <div className="container py-4">
+        <div className="md:hidden border-t border-border/40 bg-card/95 backdrop-blur-xl">
+          <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-4">
             <Navigation
               className="flex-col items-start gap-4"
               onLinkClick={() => setMobileMenuOpen(false)}
