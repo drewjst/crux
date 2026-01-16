@@ -72,6 +72,13 @@ function Navigation({ className, onLinkClick }: { className?: string; onLinkClic
       >
         Distill
       </Link>
+      <Link
+        href="/compare"
+        onClick={onLinkClick}
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Compare
+      </Link>
       <NavLink href="/options" disabled>
         Options
       </NavLink>

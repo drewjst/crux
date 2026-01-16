@@ -9,3 +9,4 @@
 
 export * from './stock';
 export * from './search';
+export * from './compare';

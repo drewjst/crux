@@ -27,3 +27,8 @@ export const SIGNAL_COLORS = {
   warning: 'text-amber-600 bg-amber-50 border-amber-200',
   neutral: 'text-gray-600 bg-gray-50 border-gray-200',
 } as const;
+
+export const COMPARE_LIMITS = {
+  MIN_TICKERS: 2,
+  MAX_TICKERS: 4,
+} as const;
