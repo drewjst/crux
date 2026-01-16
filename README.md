@@ -14,6 +14,7 @@ Recon synthesizes financial data into three conviction scores and actionable sig
 | **Financials** | Revenue growth, margins (gross/operating/net/FCF), ROE, ROIC, leverage |
 | **Smart Money** | Institutional ownership trends, insider buy/sell activity (90-day) |
 | **Signals** | Automated bullish/bearish/warning flags based on score thresholds |
+| **Stock Compare** | Side-by-side comparison of 2-4 stocks with winner highlighting |
 
 ## Architecture
 
@@ -410,7 +411,7 @@ recon/
 ### Prerequisites
 
 - Node.js 20+
-- Go 1.22+
+- Go 1.23+
 - pnpm
 - [FMP API key](https://financialmodelingprep.com/developer/docs/) (free tier available)
 
@@ -515,6 +516,64 @@ flowchart LR
     Profile & Quote & Financials & Ratios & Holders & Insiders --> Processing
     Calc & Gen & Val --> Response
 ```
+
+## Deployment
+
+Recon is hosted on **Google Cloud Platform** using a fully automated CI/CD pipeline.
+
+### Infrastructure
+
+```mermaid
+flowchart LR
+    subgraph GitHub
+        Push[Push to main]
+        Actions[GitHub Actions]
+    end
+
+    subgraph GCP ["Google Cloud Platform"]
+        Build[Cloud Build]
+        GCR[Container Registry]
+        subgraph CloudRun ["Cloud Run"]
+            API[recon-api]
+            Web[recon-web]
+        end
+        Secrets[Secret Manager]
+    end
+
+    Push --> Actions
+    Actions --> Build
+    Build --> GCR
+    GCR --> API
+    GCR --> Web
+    Secrets -.->|FMP_API_KEY| API
+```
+
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| **Cloud Run** | Serverless containers | Hosts both API and web services with auto-scaling |
+| **Cloud Build** | CI/CD | Builds Docker images on push to main |
+| **Container Registry** | Image storage | Stores versioned Docker images |
+| **Secret Manager** | Secrets | Securely stores API keys |
+| **Workload Identity** | Auth | Keyless authentication from GitHub Actions |
+
+### Cloud Run Configuration
+
+| Setting | API | Web |
+|---------|-----|-----|
+| Memory | 512Mi | 512Mi |
+| CPU | 1 | 1 |
+| Min instances | 0 (scale to zero) | 0 |
+| Max instances | 2 | 2 |
+| Port | 8080 | 3000 |
+
+### Deployment Flow
+
+1. Push to `main` branch triggers GitHub Actions
+2. Workload Identity Federation authenticates to GCP (no service account keys)
+3. Cloud Build creates Docker images for API and web
+4. Images pushed to Container Registry with commit SHA tags
+5. Cloud Run services updated with new images
+6. Traffic automatically routes to new revision
 
 ## Contributing
 
