@@ -10,10 +10,12 @@ import (
 //go:embed tickers.json
 var tickersJSON []byte
 
-// Ticker represents a stock ticker with its company name.
+// Ticker represents a stock or ETF ticker with metadata.
 type Ticker struct {
-	Symbol string `json:"ticker"`
-	Name   string `json:"name"`
+	Symbol   string `json:"ticker"`
+	Name     string `json:"name"`
+	Exchange string `json:"exchange,omitempty"`
+	Type     string `json:"type,omitempty"` // "stock" or "etf"
 }
 
 // Result is returned by the search endpoint.
@@ -21,6 +23,7 @@ type Result struct {
 	Ticker   string `json:"ticker"`
 	Name     string `json:"name"`
 	Exchange string `json:"exchange"`
+	Type     string `json:"type,omitempty"`
 }
 
 // Index holds the searchable ticker data.
@@ -31,6 +34,8 @@ type Index struct {
 type tickerEntry struct {
 	Ticker    string
 	Name      string
+	Exchange  string
+	Type      string
 	SearchKey string // lowercase ticker + name for matching
 }
 
@@ -43,9 +48,19 @@ func NewIndex() (*Index, error) {
 
 	entries := make([]tickerEntry, len(tickers))
 	for i, t := range tickers {
+		exchange := t.Exchange
+		if exchange == "" {
+			exchange = "US"
+		}
+		tickerType := t.Type
+		if tickerType == "" {
+			tickerType = "stock"
+		}
 		entries[i] = tickerEntry{
 			Ticker:    t.Symbol,
 			Name:      t.Name,
+			Exchange:  exchange,
+			Type:      tickerType,
 			SearchKey: strings.ToLower(t.Symbol + " " + t.Name),
 		}
 	}
@@ -69,7 +84,7 @@ func (idx *Index) Search(query string, limit int) []Result {
 	// First pass: exact ticker match (highest priority)
 	for _, t := range idx.tickers {
 		if strings.ToLower(t.Ticker) == query {
-			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: "US"})
+			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: t.Exchange, Type: t.Type})
 			break
 		}
 	}
@@ -80,7 +95,7 @@ func (idx *Index) Search(query string, limit int) []Result {
 			break
 		}
 		if strings.HasPrefix(strings.ToLower(t.Ticker), query) && !containsTicker(results, t.Ticker) {
-			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: "US"})
+			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: t.Exchange, Type: t.Type})
 		}
 	}
 
@@ -90,7 +105,7 @@ func (idx *Index) Search(query string, limit int) []Result {
 			break
 		}
 		if strings.Contains(t.SearchKey, query) && !containsTicker(results, t.Ticker) {
-			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: "US"})
+			results = append(results, Result{Ticker: t.Ticker, Name: t.Name, Exchange: t.Exchange, Type: t.Type})
 		}
 	}
 

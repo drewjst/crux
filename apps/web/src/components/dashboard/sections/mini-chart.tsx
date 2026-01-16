@@ -17,19 +17,96 @@ interface MiniChartProps {
  * TradingView expects format like "NASDAQ:AAPL" or "NYSE:IBM".
  */
 function formatTradingViewSymbol(ticker: string, exchange?: string): string {
-  if (!exchange) {
-    return ticker;
-  }
-  // Normalize exchange names to TradingView format
+  const upperExchange = (exchange || '').toUpperCase();
+
+  // Map various exchange names to TradingView format
   const exchangeMap: Record<string, string> = {
+    // NASDAQ variants
     NASDAQ: 'NASDAQ',
+    'NASDAQ GLOBAL SELECT MARKET': 'NASDAQ',
+    'NASDAQ GLOBAL MARKET': 'NASDAQ',
+    'NASDAQ CAPITAL MARKET': 'NASDAQ',
+    NGS: 'NASDAQ',
+    NGM: 'NASDAQ',
+    NMS: 'NASDAQ',
+    // NYSE variants
     NYSE: 'NYSE',
+    'NEW YORK STOCK EXCHANGE': 'NYSE',
+    NYQ: 'NYSE',
+    // AMEX variants
     AMEX: 'AMEX',
     'NYSE ARCA': 'AMEX',
     'NYSE MKT': 'AMEX',
+    'NYSE AMERICAN': 'AMEX',
+    ARCA: 'AMEX',
+    PCX: 'AMEX',
+    // BATS
+    BATS: 'BATS',
+    BZX: 'BATS',
   };
-  const tvExchange = exchangeMap[exchange.toUpperCase()] || exchange.toUpperCase();
+
+  // Try to find a matching exchange
+  let tvExchange = exchangeMap[upperExchange];
+
+  // If no exact match, try partial matching for common patterns
+  if (!tvExchange) {
+    if (upperExchange.includes('NASDAQ')) {
+      tvExchange = 'NASDAQ';
+    } else if (upperExchange.includes('NYSE') || upperExchange.includes('NEW YORK')) {
+      tvExchange = 'NYSE';
+    } else if (upperExchange.includes('AMEX') || upperExchange.includes('AMERICAN')) {
+      tvExchange = 'AMEX';
+    } else {
+      // Default to NASDAQ for unknown US exchanges
+      tvExchange = 'NASDAQ';
+    }
+  }
+
   return `${tvExchange}:${ticker}`;
+}
+
+/**
+ * Formats a TradingView symbols page URL.
+ * Returns URL like "https://www.tradingview.com/symbols/NASDAQ-AAPL/"
+ */
+function formatTradingViewSymbolsUrl(ticker: string, exchange?: string): string {
+  const upperExchange = (exchange || '').toUpperCase();
+
+  const exchangeMap: Record<string, string> = {
+    NASDAQ: 'NASDAQ',
+    'NASDAQ GLOBAL SELECT MARKET': 'NASDAQ',
+    'NASDAQ GLOBAL MARKET': 'NASDAQ',
+    'NASDAQ CAPITAL MARKET': 'NASDAQ',
+    NGS: 'NASDAQ',
+    NGM: 'NASDAQ',
+    NMS: 'NASDAQ',
+    NYSE: 'NYSE',
+    'NEW YORK STOCK EXCHANGE': 'NYSE',
+    NYQ: 'NYSE',
+    AMEX: 'AMEX',
+    'NYSE ARCA': 'AMEX',
+    'NYSE MKT': 'AMEX',
+    'NYSE AMERICAN': 'AMEX',
+    ARCA: 'AMEX',
+    PCX: 'AMEX',
+    BATS: 'BATS',
+    BZX: 'BATS',
+  };
+
+  let tvExchange = exchangeMap[upperExchange];
+  if (!tvExchange) {
+    if (upperExchange.includes('NASDAQ')) {
+      tvExchange = 'NASDAQ';
+    } else if (upperExchange.includes('NYSE') || upperExchange.includes('NEW YORK')) {
+      tvExchange = 'NYSE';
+    } else if (upperExchange.includes('AMEX') || upperExchange.includes('AMERICAN')) {
+      tvExchange = 'AMEX';
+    } else {
+      tvExchange = 'NASDAQ';
+    }
+  }
+
+  return `https://www.tradingview.com/symbols/${tvExchange}-${ticker}/`;
 }
 
 function MiniChartComponent({
@@ -51,6 +128,7 @@ function MiniChartComponent({
     container.innerHTML = '';
 
     const formattedSymbol = formatTradingViewSymbol(symbol, exchange);
+    const symbolsUrl = formatTradingViewSymbolsUrl(symbol, exchange);
 
     // Create the widget container
     const widgetContainer = document.createElement('div');
@@ -62,8 +140,6 @@ function MiniChartComponent({
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
     script.type = 'text/javascript';
     script.async = true;
-    // Note: TradingView widget auto-appends ?tvwidgetsymbol=SYMBOL to largeChartUrl
-    // So we just provide the base URL without symbol parameter
     script.innerHTML = JSON.stringify({
       symbol: formattedSymbol,
       width: '100%',
@@ -73,7 +149,7 @@ function MiniChartComponent({
       colorTheme: colorTheme,
       isTransparent: false,
       autosize: false,
-      largeChartUrl: 'https://www.tradingview.com/chart/',
+      largeChartUrl: symbolsUrl,
       noTimeScale: false,
       chartOnly: chartOnly,
     });

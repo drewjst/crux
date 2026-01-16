@@ -745,3 +745,80 @@ func min(a, b, c int) int {
 	}
 	return c
 }
+
+// IsETF checks if a ticker is an ETF by attempting to fetch ETF info.
+func (r *Repository) IsETF(ctx context.Context, ticker string) (bool, error) {
+	info, err := r.client.GetETFInfo(ctx, ticker)
+	if err != nil {
+		return false, nil // Treat errors as "not an ETF"
+	}
+	return info != nil && info.ExpenseRatio > 0, nil
+}
+
+// GetETFData retrieves complete ETF data (info, holdings, sectors).
+func (r *Repository) GetETFData(ctx context.Context, ticker string) (*stock.ETFData, error) {
+	info, err := r.client.GetETFInfo(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching ETF info: %w", err)
+	}
+	if info == nil {
+		return nil, fmt.Errorf("no ETF info found for %s", ticker)
+	}
+
+	// Fetch holdings (non-fatal if fails)
+	holdings, _ := r.client.GetETFHoldings(ctx, ticker)
+
+	// Fetch sector weightings (non-fatal if fails)
+	sectors, _ := r.client.GetETFSectorWeightings(ctx, ticker)
+
+	return &stock.ETFData{
+		ExpenseRatio:  info.ExpenseRatio,
+		AUM:           int64(info.AUM),
+		InceptionDate: info.InceptionDate,
+		Holdings:      mapETFHoldings(holdings),
+		SectorWeights: mapSectorWeightings(sectors),
+	}, nil
+}
+
+// mapETFHoldings transforms FMP ETF holdings to domain type.
+func mapETFHoldings(holdings []ETFHolding) []stock.ETFHolding {
+	if len(holdings) == 0 {
+		return []stock.ETFHolding{}
+	}
+
+	// Limit to top 10 holdings
+	limit := 10
+	if len(holdings) < limit {
+		limit = len(holdings)
+	}
+
+	result := make([]stock.ETFHolding, limit)
+	for i := 0; i < limit; i++ {
+		result[i] = stock.ETFHolding{
+			Ticker:        holdings[i].Asset,
+			Name:          holdings[i].Name,
+			Shares:        holdings[i].Shares,
+			WeightPercent: holdings[i].WeightPercentage,
+			MarketValue:   int64(holdings[i].MarketValue),
+		}
+	}
+	return result
+}
+
+// mapSectorWeightings transforms FMP sector weightings to domain type.
+func mapSectorWeightings(sectors []ETFSectorWeighting) []stock.ETFSectorWeight {
+	if len(sectors) == 0 {
+		return []stock.ETFSectorWeight{}
+	}
+
+	result := make([]stock.ETFSectorWeight, len(sectors))
+	for i, s := range sectors {
+		// Parse weight from string (e.g., "28.50%" -> 28.50)
+		weight, _ := strconv.ParseFloat(strings.TrimSuffix(s.WeightPercentage, "%"), 64)
+		result[i] = stock.ETFSectorWeight{
+			Sector:        s.Sector,
+			WeightPercent: weight,
+		}
+	}
+	return result
+}

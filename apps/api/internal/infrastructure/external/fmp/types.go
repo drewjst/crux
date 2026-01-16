@@ -251,3 +251,30 @@ type DCF struct {
 	DCF        float64 `json:"dcf"`
 	StockPrice float64 `json:"stockPrice"`
 }
+
+// ETFInfo represents the FMP ETF information response.
+type ETFInfo struct {
+	Symbol        string  `json:"symbol"`
+	Name          string  `json:"name"`
+	ExpenseRatio  float64 `json:"expenseRatio"`
+	AUM           float64 `json:"aum"`
+	InceptionDate string  `json:"inceptionDate"`
+	Description   string  `json:"description"`
+	AssetClass    string  `json:"assetClass"`
+	Exchange      string  `json:"exchange"`
+}
+
+// ETFHolding represents a single holding in an ETF.
+type ETFHolding struct {
+	Asset            string  `json:"asset"`
+	Name             string  `json:"name"`
+	Shares           float64 `json:"shares"`
+	WeightPercentage float64 `json:"weightPercentage"`
+	MarketValue      float64 `json:"marketValue"`
+}
+
+// ETFSectorWeighting represents sector allocation in an ETF.
+type ETFSectorWeighting struct {
+	Sector           string `json:"sector"`
+	WeightPercentage string `json:"weightPercentage"`
+}

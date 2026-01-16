@@ -224,6 +224,46 @@ func (c *Client) GetDCF(ctx context.Context, ticker string) (*DCF, error) {
 	return &dcfData[0], nil
 }
 
+// GetETFInfo retrieves ETF information (expense ratio, AUM, etc.).
+func (c *Client) GetETFInfo(ctx context.Context, ticker string) (*ETFInfo, error) {
+	url := fmt.Sprintf("%s/etf/info?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var info []ETFInfo
+	if err := c.get(ctx, url, &info); err != nil {
+		return nil, fmt.Errorf("fetching ETF info: %w", err)
+	}
+
+	if len(info) == 0 {
+		return nil, nil
+	}
+
+	return &info[0], nil
+}
+
+// GetETFHoldings retrieves top holdings of an ETF.
+func (c *Client) GetETFHoldings(ctx context.Context, ticker string) ([]ETFHolding, error) {
+	url := fmt.Sprintf("%s/etf/holder?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var holdings []ETFHolding
+	if err := c.get(ctx, url, &holdings); err != nil {
+		return nil, fmt.Errorf("fetching ETF holdings: %w", err)
+	}
+
+	return holdings, nil
+}
+
+// GetETFSectorWeightings retrieves sector breakdown of an ETF.
+func (c *Client) GetETFSectorWeightings(ctx context.Context, ticker string) ([]ETFSectorWeighting, error) {
+	url := fmt.Sprintf("%s/etf/sector-weightings?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var sectors []ETFSectorWeighting
+	if err := c.get(ctx, url, &sectors); err != nil {
+		return nil, fmt.Errorf("fetching ETF sector weightings: %w", err)
+	}
+
+	return sectors, nil
+}
+
 // get makes an HTTP GET request and unmarshals the response.
 func (c *Client) get(ctx context.Context, url string, dest any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

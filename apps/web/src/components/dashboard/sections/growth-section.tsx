@@ -29,6 +29,7 @@ function MetricBox({ title, value, subtitle, positive }: MetricBoxProps) {
 
 export function GrowthSection({ data }: GrowthSectionProps) {
   const { financials } = data;
+  if (!financials) return null;
 
   const revenueGrowth = financials.revenueGrowthYoY;
   const grossMargin = financials.grossMargin;

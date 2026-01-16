@@ -117,6 +117,7 @@ function EfficiencyMetricRow({
 
 export function EfficiencySection({ data }: EfficiencySectionProps) {
   const { efficiency } = data;
+  if (!efficiency) return null;
 
   const metrics: MetricConfig[] = [
     {

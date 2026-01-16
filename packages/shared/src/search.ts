@@ -17,6 +17,8 @@ export interface TickerSearchResult {
   name: string;
   /** Stock exchange where the ticker is listed (e.g., "NASDAQ", "NYSE") */
   exchange: string;
+  /** Asset type: "stock" or "etf" */
+  type?: string;
   /** GICS sector classification, if available */
   sector?: string;
 }

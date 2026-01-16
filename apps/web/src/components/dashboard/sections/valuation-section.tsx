@@ -17,6 +17,7 @@ interface ValuationSectionProps {
 
 export function ValuationSection({ data }: ValuationSectionProps) {
   const { valuation } = data;
+  if (!valuation) return null;
 
   const rows = [
     { metric: 'P/E Ratio', current: valuation.pe.value, sector: valuation.pe.sectorMedian },

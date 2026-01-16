@@ -472,6 +472,62 @@ export interface DataMeta {
 }
 
 // =============================================================================
+// Asset Type
+// =============================================================================
+
+/**
+ * Discriminator for stock vs ETF responses.
+ * Determines which view to render and which fields are populated.
+ */
+export type AssetType = 'stock' | 'etf';
+
+// =============================================================================
+// ETF-Specific Types
+// =============================================================================
+
+/**
+ * A single holding within an ETF portfolio.
+ */
+export interface ETFHolding {
+  /** Ticker symbol of the holding */
+  ticker: string;
+  /** Company/security name */
+  name: string;
+  /** Number of shares held */
+  shares: number;
+  /** Weight as percentage of total ETF (e.g., 7.5 for 7.5%) */
+  weightPercent: number;
+  /** Market value in USD */
+  marketValue: number;
+}
+
+/**
+ * Sector allocation within an ETF.
+ */
+export interface ETFSectorWeight {
+  /** Sector name (e.g., "Technology", "Healthcare") */
+  sector: string;
+  /** Weight as percentage (e.g., 28.5 for 28.5%) */
+  weightPercent: number;
+}
+
+/**
+ * ETF-specific data not applicable to individual stocks.
+ */
+export interface ETFData {
+  /** Annual expense ratio as percentage (e.g., 0.03 for 0.03%) */
+  expenseRatio: number;
+  /** Assets under management in USD */
+  aum: number;
+  /** Fund inception date (ISO 8601) */
+  inceptionDate: string;
+  /** Top holdings by weight */
+  holdings: ETFHolding[];
+  /** Sector allocation breakdown */
+  sectorWeights: ETFSectorWeight[];
+}
+
+// =============================================================================
 // API Response
 // =============================================================================
 
@@ -481,30 +537,38 @@ export interface DataMeta {
  * This is the primary API response containing all data needed
  * to render the stock detail view. It combines real-time market data
  * with fundamental analysis, scoring systems, and ownership data.
+ *
+ * For ETFs (assetType === 'etf'), stock-specific fields (scores, valuation,
+ * holdings, insiderActivity, financials, efficiency) will be null/undefined,
+ * and etfData will be populated instead.
  */
 export interface StockDetailResponse {
-  /** Basic company information */
+  /** Asset type discriminator - determines which view to render */
+  assetType: AssetType;
+  /** Basic company/fund information */
   company: Company;
   /** Real-time market quote */
   quote: Quote;
   /** Price performance over time periods */
   performance: Performance;
-  /** Aggregated scoring (Piotroski, Rule of 40, Altman Z) */
-  scores: Scores;
+  /** Aggregated scoring (only for stocks) */
+  scores?: Scores;
   /** Actionable signals and flags */
   signals: Signal[];
-  /** Valuation metrics with sector context */
-  valuation: Valuation;
-  /** Institutional ownership data */
-  holdings: Holdings;
+  /** Valuation metrics with sector context (only for stocks) */
+  valuation?: Valuation;
+  /** Institutional ownership data (only for stocks) */
+  holdings?: Holdings;
   /** Recent insider transactions */
   insiderTrades: InsiderTrade[];
-  /** Aggregated insider activity (90 days) */
-  insiderActivity: InsiderActivity;
-  /** Key financial metrics */
-  financials: Financials;
-  /** Efficiency metrics with sector comparisons */
-  efficiency: Efficiency;
+  /** Aggregated insider activity (only for stocks) */
+  insiderActivity?: InsiderActivity;
+  /** Key financial metrics (only for stocks) */
+  financials?: Financials;
+  /** Efficiency metrics with sector comparisons (only for stocks) */
+  efficiency?: Efficiency;
+  /** ETF-specific data (only for ETFs) */
+  etfData?: ETFData;
   /** Data freshness timestamps */
   meta: DataMeta;
 }

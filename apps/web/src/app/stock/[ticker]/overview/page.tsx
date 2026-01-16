@@ -223,7 +223,7 @@ function CompanyOverviewSection({ data }: { data: StockDetailResponse }) {
         </div>
         <div>
           <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Gross Margin</div>
-          <div className="text-sm font-medium font-mono">{(financials.grossMargin * 100).toFixed(1)}%</div>
+          <div className="text-sm font-medium font-mono">{financials ? `${(financials.grossMargin * 100).toFixed(1)}%` : 'N/A'}</div>
         </div>
       </div>
     </SectionCard>
@@ -251,14 +251,14 @@ function KeyStatisticsSection({ data }: { data: StockDetailResponse }) {
     { label: 'Volume', value: formatVolume(quote.volume) },
     { label: '52W High', value: `$${quote.fiftyTwoWeekHigh.toFixed(2)}` },
     { label: '52W Low', value: `$${quote.fiftyTwoWeekLow.toFixed(2)}` },
-    { label: 'P/E Ratio', value: valuation.pe.value ? valuation.pe.value.toFixed(1) : 'N/A' },
-    { label: 'Forward P/E', value: valuation.forwardPe.value ? valuation.forwardPe.value.toFixed(1) : 'N/A' },
-    { label: 'PEG Ratio', value: valuation.peg.value ? valuation.peg.value.toFixed(2) : 'N/A' },
-    { label: 'EV/EBITDA', value: valuation.evToEbitda.value ? valuation.evToEbitda.value.toFixed(1) : 'N/A' },
-    { label: 'ROE', value: `${(financials.roe * 100).toFixed(1)}%` },
-    { label: 'ROIC', value: `${(financials.roic * 100).toFixed(1)}%` },
-    { label: 'Debt/Equity', value: financials.debtToEquity.toFixed(2) },
-    { label: 'Current Ratio', value: financials.currentRatio.toFixed(2) },
+    { label: 'P/E Ratio', value: valuation?.pe.value ? valuation.pe.value.toFixed(1) : 'N/A' },
+    { label: 'Forward P/E', value: valuation?.forwardPe.value ? valuation.forwardPe.value.toFixed(1) : 'N/A' },
+    { label: 'PEG Ratio', value: valuation?.peg.value ? valuation.peg.value.toFixed(2) : 'N/A' },
+    { label: 'EV/EBITDA', value: valuation?.evToEbitda.value ? valuation.evToEbitda.value.toFixed(1) : 'N/A' },
+    { label: 'ROE', value: financials ? `${(financials.roe * 100).toFixed(1)}%` : 'N/A' },
+    { label: 'ROIC', value: financials ? `${(financials.roic * 100).toFixed(1)}%` : 'N/A' },
+    { label: 'Debt/Equity', value: financials ? financials.debtToEquity.toFixed(2) : 'N/A' },
+    { label: 'Current Ratio', value: financials ? financials.currentRatio.toFixed(2) : 'N/A' },
   ];
 
   return (

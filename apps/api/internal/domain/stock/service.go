@@ -27,6 +27,8 @@ type Repository interface {
 	GetInsiderActivity(ctx context.Context, ticker string) (*InsiderActivity, error)
 	GetDCF(ctx context.Context, ticker string) (*DCFValuation, error)
 	Search(ctx context.Context, query string, limit int) ([]SearchResult, error)
+	IsETF(ctx context.Context, ticker string) (bool, error)
+	GetETFData(ctx context.Context, ticker string) (*ETFData, error)
 }
 
 // Cache defines the caching interface.
@@ -52,17 +54,19 @@ func NewService(repo Repository, cache Cache) *Service {
 
 // StockDetailResponse is the complete response for GET /api/stock/{ticker}.
 type StockDetailResponse struct {
+	AssetType       AssetType        `json:"assetType"`
 	Company         Company          `json:"company"`
 	Quote           Quote            `json:"quote"`
 	Performance     Performance      `json:"performance"`
-	Scores          Scores           `json:"scores"`
+	Scores          *Scores          `json:"scores,omitempty"`
 	Signals         []signals.Signal `json:"signals"`
-	Valuation       Valuation        `json:"valuation"`
-	Holdings        Holdings         `json:"holdings"`
+	Valuation       *Valuation       `json:"valuation,omitempty"`
+	Holdings        *Holdings        `json:"holdings,omitempty"`
 	InsiderTrades   []InsiderTrade   `json:"insiderTrades"`
-	InsiderActivity InsiderActivity  `json:"insiderActivity"`
-	Financials      Financials       `json:"financials"`
-	Efficiency      Efficiency       `json:"efficiency"`
+	InsiderActivity *InsiderActivity `json:"insiderActivity,omitempty"`
+	Financials      *Financials      `json:"financials,omitempty"`
+	Efficiency      *Efficiency      `json:"efficiency,omitempty"`
+	ETFData         *ETFData         `json:"etfData,omitempty"`
 	Meta            DataMeta         `json:"meta"`
 }
 
@@ -76,6 +80,59 @@ type Scores struct {
 
 // GetStockDetail retrieves comprehensive stock data for a ticker.
 func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDetailResponse, error) {
+	// Check if ticker is an ETF
+	isETF, _ := s.repo.IsETF(ctx, ticker)
+	if isETF {
+		return s.getETFDetail(ctx, ticker)
+	}
+
+	return s.getStockDetail(ctx, ticker)
+}
+
+// getETFDetail retrieves ETF-specific data.
+func (s *Service) getETFDetail(ctx context.Context, ticker string) (*StockDetailResponse, error) {
+	company, err := s.repo.GetCompany(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching company for %s: %w", ticker, err)
+	}
+	if company == nil {
+		return nil, ErrTickerNotFound
+	}
+
+	quote, err := s.repo.GetQuote(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching quote for %s: %w", ticker, err)
+	}
+
+	performance, err := s.repo.GetPerformance(ctx, ticker, quote.Price, quote.FiftyTwoWeekHigh)
+	if err != nil {
+		return nil, fmt.Errorf("fetching performance for %s: %w", ticker, err)
+	}
+
+	etfData, err := s.repo.GetETFData(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching ETF data for %s: %w", ticker, err)
+	}
+
+	return &StockDetailResponse{
+		AssetType:     AssetTypeETF,
+		Company:       *company,
+		Quote:         *quote,
+		Performance:   *performance,
+		Signals:       []signals.Signal{},
+		InsiderTrades: []InsiderTrade{},
+		ETFData:       etfData,
+		Meta: DataMeta{
+			FundamentalsAsOf: "N/A",
+			HoldingsAsOf:     etfData.InceptionDate,
+			PriceAsOf:        quote.AsOf.Format(time.RFC3339),
+			GeneratedAt:      time.Now().UTC(),
+		},
+	}, nil
+}
+
+// getStockDetail retrieves comprehensive stock data for a ticker.
+func (s *Service) getStockDetail(ctx context.Context, ticker string) (*StockDetailResponse, error) {
 	company, err := s.repo.GetCompany(ctx, ticker)
 	if err != nil {
 		return nil, fmt.Errorf("fetching company for %s: %w", ticker, err)
@@ -152,17 +209,18 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 	}
 
 	return &StockDetailResponse{
+		AssetType:       AssetTypeStock,
 		Company:         *company,
 		Quote:           *quote,
 		Performance:     *performance,
-		Scores:          stockScores,
+		Scores:          &stockScores,
 		Signals:         signalList,
-		Valuation:       *valuation,
-		Holdings:        *holdings,
+		Valuation:       valuation,
+		Holdings:        holdings,
 		InsiderTrades:   insiderTrades,
-		InsiderActivity: *insiderActivity,
-		Financials:      *financials,
-		Efficiency:      *efficiency,
+		InsiderActivity: insiderActivity,
+		Financials:      financials,
+		Efficiency:      efficiency,
 		Meta: DataMeta{
 			FundamentalsAsOf: fundamentalsDate,
 			HoldingsAsOf:     "N/A",

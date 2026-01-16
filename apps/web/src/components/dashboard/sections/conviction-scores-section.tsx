@@ -89,6 +89,7 @@ const getDCFStatus = (assessment: string): 'positive' | 'neutral' | 'negative' =
 
 function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps) {
   const { scores } = data;
+  if (!scores) return null;
 
   return (
     <SectionCard title="Financial Health Scores">

@@ -147,3 +147,35 @@ type DCFValuation struct {
 	DifferencePercent float64 `json:"differencePercent"`
 	Assessment        string  `json:"assessment"` // "Undervalued", "Fairly Valued", "Overvalued"
 }
+
+// AssetType distinguishes between stocks and ETFs.
+type AssetType string
+
+const (
+	AssetTypeStock AssetType = "stock"
+	AssetTypeETF   AssetType = "etf"
+)
+
+// ETFHolding represents a single holding within an ETF portfolio.
+type ETFHolding struct {
+	Ticker        string  `json:"ticker"`
+	Name          string  `json:"name"`
+	Shares        float64 `json:"shares"`
+	WeightPercent float64 `json:"weightPercent"`
+	MarketValue   int64   `json:"marketValue"`
+}
+
+// ETFSectorWeight represents a sector allocation within an ETF.
+type ETFSectorWeight struct {
+	Sector        string  `json:"sector"`
+	WeightPercent float64 `json:"weightPercent"`
+}
+
+// ETFData contains ETF-specific information not applicable to individual stocks.
+type ETFData struct {
+	ExpenseRatio  float64           `json:"expenseRatio"`
+	AUM           int64             `json:"aum"`
+	InceptionDate string            `json:"inceptionDate"`
+	Holdings      []ETFHolding      `json:"holdings"`
+	SectorWeights []ETFSectorWeight `json:"sectorWeights"`
+}

@@ -10,6 +10,7 @@ interface SmartMoneySectionProps {
 
 export function SmartMoneySection({ data }: SmartMoneySectionProps) {
   const { holdings, insiderActivity } = data;
+  if (!holdings) return null;
 
   const formatValue = (val: number) => {
     const absVal = Math.abs(val);

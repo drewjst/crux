@@ -9,6 +9,7 @@ import {
   ConvictionScoresSection,
   DashboardDivider,
 } from './sections';
+import { ETFView } from './etf-view';
 
 // Skeleton for loading sections
 const SectionSkeleton = () => (
@@ -88,6 +89,12 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
     );
   }
 
+  // Render ETF view for ETFs
+  if (data.assetType === 'etf') {
+    return <ETFView data={data} />;
+  }
+
+  // Stock view
   return (
     <div className="w-full max-w-4xl mx-auto space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <HeaderSection data={data} />

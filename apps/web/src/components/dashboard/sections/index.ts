@@ -8,3 +8,6 @@ export { ValuationSection } from './valuation-section';
 export { EfficiencySection } from './efficiency-section';
 export { SmartMoneySection } from './smart-money-section';
 export { FooterSection } from './footer-section';
+export { ETFOverviewSection } from './etf-overview-section';
+export { HoldingsTableSection } from './holdings-table-section';
+export { SectorBreakdownSection } from './sector-breakdown-section';
