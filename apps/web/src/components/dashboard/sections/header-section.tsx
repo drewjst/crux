@@ -3,15 +3,26 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { ShareButton } from '@/components/ui/share-button';
 import { MiniChart } from './mini-chart';
 import type { StockDetailResponse } from '@recon/shared';
+
+function getPiotroskiGrade(score: number): string {
+  if (score >= 7) return 'Strong';
+  if (score >= 4) return 'Moderate';
+  return 'Weak';
+}
 
 interface HeaderSectionProps {
   data: StockDetailResponse;
 }
 
 export function HeaderSection({ data }: HeaderSectionProps) {
-  const { company, quote, performance } = data;
+  const { company, quote, performance, scores } = data;
+
+  const piotroskiScore = scores?.piotroski.score ?? 0;
+  const grade = getPiotroskiGrade(piotroskiScore);
+  const shareText = `${company.ticker} scores ${grade} on Cruxit - Piotroski: ${piotroskiScore}/9`;
 
   const performanceMetrics = [
     { label: '1D', value: performance.day1Change },
@@ -55,10 +66,18 @@ export function HeaderSection({ data }: HeaderSectionProps) {
                 <span className="truncate">{company.industry}</span>
               </div>
             </div>
-            {/* Clickable indicator - always visible on mobile */}
-            <div className="flex items-center gap-1 text-xs text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-              <span className="hidden sm:inline">Details</span>
-              <ChevronRight className="h-4 w-4" />
+            {/* Share button and clickable indicator */}
+            <div className="flex items-center gap-1 shrink-0">
+              <ShareButton
+                ticker={company.ticker}
+                text={shareText}
+                size="icon"
+                className="h-8 w-8 opacity-70 hover:opacity-100"
+              />
+              <div className="flex items-center gap-1 text-xs text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <span className="hidden sm:inline">Details</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
             </div>
           </div>
 

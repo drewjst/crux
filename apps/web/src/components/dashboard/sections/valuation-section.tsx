@@ -18,8 +18,15 @@ interface ValuationSectionProps {
 }
 
 export function ValuationSection({ data }: ValuationSectionProps) {
-  const { valuation } = data;
+  const { company, valuation } = data;
   if (!valuation) return null;
+
+  // Build share text with P/E comparison
+  const pe = valuation.pe.value;
+  const sectorPe = valuation.pe.sectorMedian;
+  const shareText = pe && sectorPe
+    ? `${company.ticker} trades at ${pe.toFixed(1)}x P/E vs sector median ${sectorPe.toFixed(1)}x`
+    : `${company.ticker} valuation analysis on Cruxit`;
 
   const rows = [
     {
@@ -62,7 +69,7 @@ export function ValuationSection({ data }: ValuationSectionProps) {
   const validRows = rows.filter((row) => row.current !== null);
 
   return (
-    <SectionCard title="Valuation">
+    <SectionCard title="Valuation" shareTicker={company.ticker} shareText={shareText}>
       {validRows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Valuation data not available.</p>
       ) : (

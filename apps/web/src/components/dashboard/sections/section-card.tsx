@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShareButton } from '@/components/ui/share-button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,27 +16,48 @@ interface SectionCardProps {
   children: React.ReactNode;
   className?: string;
   defaultOpen?: boolean;
+  /** Ticker for share functionality. If provided, shows share button */
+  shareTicker?: string;
+  /** Custom share text. Required if shareTicker is provided */
+  shareText?: string;
 }
 
-export function SectionCard({ title, children, className, defaultOpen = true }: SectionCardProps) {
+export function SectionCard({
+  title,
+  children,
+  className,
+  defaultOpen = true,
+  shareTicker,
+  shareText,
+}: SectionCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <Card className={cn('bg-card/50 backdrop-blur-sm', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="pb-3">
-          <CollapsibleTrigger className="flex w-full items-center justify-between group cursor-pointer">
-            <CardTitle className="text-xs uppercase text-primary font-semibold tracking-widest">
-              {title}
-            </CardTitle>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform duration-200',
-                'group-hover:text-foreground',
-                isOpen && 'rotate-180'
-              )}
-            />
-          </CollapsibleTrigger>
+          <div className="flex w-full items-center justify-between">
+            <CollapsibleTrigger className="flex flex-1 items-center justify-between group cursor-pointer">
+              <CardTitle className="text-xs uppercase text-primary font-semibold tracking-widest">
+                {title}
+              </CardTitle>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                  'group-hover:text-foreground',
+                  isOpen && 'rotate-180'
+                )}
+              />
+            </CollapsibleTrigger>
+            {shareTicker && shareText && (
+              <ShareButton
+                ticker={shareTicker}
+                text={shareText}
+                size="icon"
+                className="h-6 w-6 ml-2 opacity-50 hover:opacity-100"
+              />
+            )}
+          </div>
         </CardHeader>
         <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
           <CardContent>{children}</CardContent>

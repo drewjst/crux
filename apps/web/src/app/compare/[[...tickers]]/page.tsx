@@ -1,15 +1,18 @@
 'use client';
 
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { Loader2, GitCompare, Plus, X, Search } from 'lucide-react';
 import { CompareView } from '@/components/compare/compare-view';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ShareButton } from '@/components/ui/share-button';
 import { useSearch } from '@/hooks/use-search';
 import { cn } from '@/lib/utils';
 import { COMPARE_LIMITS } from '@/lib/constants';
+
+const BASE_URL = 'https://cruxit.finance';
 
 const { MIN_TICKERS, MAX_TICKERS } = COMPARE_LIMITS;
 
@@ -132,10 +135,22 @@ function StockPicker({ onSelect, placeholder = 'Search ticker...' }: StockPicker
 
 function CompareContent() {
   const router = useRouter();
+  const params = useParams();
   const searchParams = useSearchParams();
   const tickersParam = searchParams.get('tickers');
 
+  // Get tickers from path params (for /compare/AAPL/MSFT URLs)
+  const pathTickers = params.tickers as string[] | undefined;
+
   const [tickers, setTickers] = useState<string[]>(() => {
+    // First check path params (from shared links)
+    if (pathTickers && pathTickers.length > 0) {
+      return pathTickers
+        .map((t) => t.trim().toUpperCase())
+        .filter(Boolean)
+        .slice(0, MAX_TICKERS);
+    }
+    // Then check query params
     if (tickersParam) {
       return tickersParam
         .split(',')
@@ -146,12 +161,17 @@ function CompareContent() {
     return [];
   });
 
-  // Sync URL when tickers change
+  // Sync URL when tickers change (use query params for the interactive UI)
   useEffect(() => {
     const newUrl = tickers.length > 0 ? `/compare?tickers=${tickers.join(',')}` : '/compare';
-    const currentUrl = tickersParam ? `/compare?tickers=${tickersParam}` : '/compare';
-    if (newUrl !== currentUrl) {
-      router.replace(newUrl, { scroll: false });
+    const currentPath = window.location.pathname + window.location.search;
+
+    // Only update if we're not already at the right URL
+    if (!currentPath.startsWith('/compare?') || tickersParam !== tickers.join(',')) {
+      // Use replace to avoid polluting history when user adds/removes tickers
+      if (tickers.length > 0 || tickersParam) {
+        router.replace(newUrl, { scroll: false });
+      }
     }
   }, [tickers, tickersParam, router]);
 
@@ -171,9 +191,19 @@ function CompareContent() {
   return (
     <div className="max-w-7xl mx-auto py-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <GitCompare className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Compare Stocks</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <GitCompare className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Compare Stocks</h1>
+        </div>
+        {tickers.length >= MIN_TICKERS && (
+          <ShareButton
+            ticker={tickers[0]}
+            text={`Comparing ${tickers.join(' vs ')} on Cruxit`}
+            url={`${BASE_URL}/compare/${tickers.join('/')}`}
+            size="sm"
+          />
+        )}
       </div>
 
       {/* Stock Selection Grid */}

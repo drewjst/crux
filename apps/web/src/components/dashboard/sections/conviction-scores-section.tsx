@@ -88,11 +88,18 @@ const getDCFStatus = (assessment: string): 'positive' | 'neutral' | 'negative' =
 };
 
 function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps) {
-  const { scores } = data;
+  const { company, scores } = data;
   if (!scores) return null;
 
+  const ruleOf40Emoji = scores.ruleOf40.passed ? '✓' : '✗';
+  const shareText = `${company.ticker} Piotroski: ${scores.piotroski.score}/9, Rule of 40: ${scores.ruleOf40.score.toFixed(0)}% ${ruleOf40Emoji}`;
+
   return (
-    <SectionCard title="Financial Health Scores">
+    <SectionCard
+      title="Financial Health Scores"
+      shareTicker={company.ticker}
+      shareText={shareText}
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <ScoreBox
           label="Piotroski"

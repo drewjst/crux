@@ -1,0 +1,96 @@
+import { Metadata } from 'next';
+import { StockDashboard } from '@/components/dashboard/stock-dashboard';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const BASE_URL = 'https://cruxit.finance';
+
+interface StockData {
+  company: { ticker: string; name: string; sector: string };
+  scores?: {
+    piotroski: { score: number };
+    ruleOf40: { score: number; passed: boolean };
+    altmanZ: { score: number; zone: string };
+  };
+}
+
+function getOverallGrade(scores: StockData['scores']): string {
+  if (!scores) return 'N/A';
+
+  const piotroski = scores.piotroski.score;
+  const ruleOf40Passed = scores.ruleOf40.passed;
+  const altmanZone = scores.altmanZ.zone;
+
+  let points = 0;
+  if (piotroski >= 7) points += 2;
+  else if (piotroski >= 4) points += 1;
+  if (ruleOf40Passed) points += 1;
+  if (altmanZone === 'safe') points += 2;
+  else if (altmanZone === 'gray') points += 1;
+
+  if (points >= 5) return 'A';
+  if (points >= 4) return 'B';
+  if (points >= 3) return 'C';
+  if (points >= 2) return 'D';
+  return 'F';
+}
+
+async function getStockData(ticker: string): Promise<StockData | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/stock/${ticker.toUpperCase()}`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+interface PageProps {
+  params: { ticker: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const ticker = params.ticker.toUpperCase();
+  const data = await getStockData(ticker);
+
+  const companyName = data?.company.name ?? ticker;
+  const grade = getOverallGrade(data?.scores);
+  const piotroski = data?.scores?.piotroski.score ?? 0;
+  const ruleOf40 = data?.scores?.ruleOf40.score ?? 0;
+
+  const title = `${ticker} Stock Analysis | Cruxit`;
+  const description = `${companyName} scores ${grade}. Piotroski: ${piotroski}/9, Rule of 40: ${ruleOf40.toFixed(0)}%`;
+
+  return {
+    metadataBase: new URL(BASE_URL),
+    title,
+    description,
+    openGraph: {
+      title: `${ticker} Analysis | Cruxit`,
+      description: `${companyName} fundamental analysis - Grade: ${grade}`,
+      url: `${BASE_URL}/stock/${ticker}`,
+      siteName: 'Cruxit',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${ticker} Analysis | Cruxit`,
+      description: `Piotroski: ${piotroski}/9 • Rule of 40: ${ruleOf40.toFixed(0)}% • Grade: ${grade}`,
+    },
+  };
+}
+
+export default function StockPage({ params }: PageProps) {
+  const ticker = params.ticker.toUpperCase();
+
+  return (
+    <div className="min-h-screen px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col min-h-screen">
+        <div className="py-8 flex-1">
+          <StockDashboard ticker={ticker} />
+        </div>
+      </div>
+    </div>
+  );
+}
