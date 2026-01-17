@@ -113,7 +113,7 @@ func getLatestNetIncome(e *FundamentalsResponse) float64 {
 		return 0
 	}
 	latest := e.Financials.IncomeStatement.Yearly[dates[0]]
-	return latest.NetIncome
+	return float64(latest.NetIncome)
 }
 
 // calculateFCFMetrics calculates FCF TTM and YoY growth from cash flow statements.
@@ -125,18 +125,18 @@ func calculateFCFMetrics(e *FundamentalsResponse) (fcfTTM, fcfGrowth float64) {
 
 	// Get most recent FCF
 	latest := e.Financials.CashFlow.Yearly[dates[0]]
-	fcfTTM = latest.FreeCashFlow
+	fcfTTM = float64(latest.FreeCashFlow)
 	if fcfTTM == 0 && latest.OperatingCashFlow != 0 {
 		// Calculate from OCF - CapEx if not directly provided
-		fcfTTM = latest.OperatingCashFlow - abs64(latest.CapitalExpenditures)
+		fcfTTM = float64(latest.OperatingCashFlow) - abs64(float64(latest.CapitalExpenditures))
 	}
 
 	// Calculate YoY growth if we have prior year data
 	if len(dates) >= 2 {
 		prior := e.Financials.CashFlow.Yearly[dates[1]]
-		priorFCF := prior.FreeCashFlow
+		priorFCF := float64(prior.FreeCashFlow)
 		if priorFCF == 0 && prior.OperatingCashFlow != 0 {
-			priorFCF = prior.OperatingCashFlow - abs64(prior.CapitalExpenditures)
+			priorFCF = float64(prior.OperatingCashFlow) - abs64(float64(prior.CapitalExpenditures))
 		}
 		if priorFCF != 0 {
 			fcfGrowth = ((fcfTTM - priorFCF) / abs64(priorFCF)) * 100
@@ -264,8 +264,8 @@ func mapInstitutionalHolders(e *FundamentalsResponse) []models.InstitutionalHold
 	return result
 }
 
-// mapInsiderTrades converts EODHD InsiderTransactions to internal InsiderTrade models.
-func mapInsiderTrades(trades []InsiderTransaction, days int) []models.InsiderTrade {
+// mapInsiderTrades converts EODHD InsiderTransactions (map) to internal InsiderTrade models.
+func mapInsiderTrades(trades map[string]InsiderTransaction, days int) []models.InsiderTrade {
 	cutoff := time.Now().AddDate(0, 0, -days)
 	result := make([]models.InsiderTrade, 0)
 

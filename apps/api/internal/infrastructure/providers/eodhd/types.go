@@ -1,15 +1,54 @@
 package eodhd
 
+import (
+	"encoding/json"
+	"strconv"
+)
+
+// FlexFloat is a float64 that can be unmarshaled from either a JSON number or string.
+// EODHD API sometimes returns financial values as strings like "364980000000.00".
+type FlexFloat float64
+
+// UnmarshalJSON implements json.Unmarshaler for FlexFloat.
+func (f *FlexFloat) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal as a number first
+	var num float64
+	if err := json.Unmarshal(data, &num); err == nil {
+		*f = FlexFloat(num)
+		return nil
+	}
+
+	// Try to unmarshal as a string
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+
+	// Empty string means 0
+	if str == "" {
+		*f = 0
+		return nil
+	}
+
+	// Parse the string as a float
+	num, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return err
+	}
+	*f = FlexFloat(num)
+	return nil
+}
+
 // FundamentalsResponse represents the full response from /api/fundamentals/{ticker}.{exchange}
 type FundamentalsResponse struct {
-	General             General              `json:"General"`
-	Highlights          Highlights           `json:"Highlights"`
-	Valuation           Valuation            `json:"Valuation"`
-	SharesStats         SharesStats          `json:"SharesStats"`
-	Technicals          Technicals           `json:"Technicals"`
-	Holders             Holders              `json:"Holders"`
-	InsiderTransactions []InsiderTransaction `json:"InsiderTransactions"`
-	Financials          Financials           `json:"Financials"`
+	General             General                        `json:"General"`
+	Highlights          Highlights                     `json:"Highlights"`
+	Valuation           Valuation                      `json:"Valuation"`
+	SharesStats         SharesStats                    `json:"SharesStats"`
+	Technicals          Technicals                     `json:"Technicals"`
+	Holders             Holders                        `json:"Holders"`
+	InsiderTransactions map[string]InsiderTransaction  `json:"InsiderTransactions"`
+	Financials          Financials                     `json:"Financials"`
 }
 
 // General contains company profile information.
@@ -112,8 +151,8 @@ type Technicals struct {
 
 // Holders contains institutional and fund holder information.
 type Holders struct {
-	Institutions []InstitutionalHolder `json:"Institutions"`
-	Funds        []InstitutionalHolder `json:"Funds"`
+	Institutions map[string]InstitutionalHolder `json:"Institutions"`
+	Funds        map[string]InstitutionalHolder `json:"Funds"`
 }
 
 // InstitutionalHolder represents a holder (institution or fund).
@@ -157,40 +196,41 @@ type FinancialStatementSet struct {
 
 // FinancialPeriod represents a single period's financial data.
 // Fields vary by statement type (balance sheet, income, cash flow).
+// Uses FlexFloat to handle EODHD returning values as strings or numbers.
 type FinancialPeriod struct {
 	Date           string `json:"date"`
 	FilingDate     string `json:"filing_date"`
 	CurrencySymbol string `json:"currency_symbol"`
 
 	// Income Statement fields
-	TotalRevenue          float64 `json:"totalRevenue"`
-	GrossProfit           float64 `json:"grossProfit"`
-	OperatingIncome       float64 `json:"operatingIncome"`
-	NetIncome             float64 `json:"netIncome"`
-	NetIncomeCommonShares float64 `json:"netIncomeApplicableToCommonShares"`
-	EBITDA                float64 `json:"ebitda"`
-	CostOfRevenue         float64 `json:"costOfRevenue"`
+	TotalRevenue          FlexFloat `json:"totalRevenue"`
+	GrossProfit           FlexFloat `json:"grossProfit"`
+	OperatingIncome       FlexFloat `json:"operatingIncome"`
+	NetIncome             FlexFloat `json:"netIncome"`
+	NetIncomeCommonShares FlexFloat `json:"netIncomeApplicableToCommonShares"`
+	EBITDA                FlexFloat `json:"ebitda"`
+	CostOfRevenue         FlexFloat `json:"costOfRevenue"`
 
 	// Balance Sheet fields
-	TotalAssets             float64 `json:"totalAssets"`
-	TotalCurrentAssets      float64 `json:"totalCurrentAssets"`
-	TotalLiabilities        float64 `json:"totalLiab"`
-	TotalCurrentLiabilities float64 `json:"totalCurrentLiabilities"`
-	TotalStockholderEquity  float64 `json:"totalStockholderEquity"`
-	Cash                    float64 `json:"cash"`
-	CashAndShortTermInv     float64 `json:"cashAndShortTermInvestments"`
-	ShortTermDebt           float64 `json:"shortTermDebt"`
-	LongTermDebt            float64 `json:"longTermDebt"`
-	TotalDebt               float64 `json:"shortLongTermDebt"`
-	Inventory               float64 `json:"inventory"`
+	TotalAssets             FlexFloat `json:"totalAssets"`
+	TotalCurrentAssets      FlexFloat `json:"totalCurrentAssets"`
+	TotalLiabilities        FlexFloat `json:"totalLiab"`
+	TotalCurrentLiabilities FlexFloat `json:"totalCurrentLiabilities"`
+	TotalStockholderEquity  FlexFloat `json:"totalStockholderEquity"`
+	Cash                    FlexFloat `json:"cash"`
+	CashAndShortTermInv     FlexFloat `json:"cashAndShortTermInvestments"`
+	ShortTermDebt           FlexFloat `json:"shortTermDebt"`
+	LongTermDebt            FlexFloat `json:"longTermDebt"`
+	TotalDebt               FlexFloat `json:"shortLongTermDebt"`
+	Inventory               FlexFloat `json:"inventory"`
 
 	// Cash Flow fields
-	OperatingCashFlow    float64 `json:"totalCashFromOperatingActivities"`
-	CapitalExpenditures  float64 `json:"capitalExpenditures"`
-	FreeCashFlow         float64 `json:"freeCashFlow"`
-	CashFromInvestingAct float64 `json:"totalCashflowsFromInvestingActivities"`
-	CashFromFinancingAct float64 `json:"totalCashFromFinancingActivities"`
-	DividendsPaid        float64 `json:"dividendsPaid"`
+	OperatingCashFlow    FlexFloat `json:"totalCashFromOperatingActivities"`
+	CapitalExpenditures  FlexFloat `json:"capitalExpenditures"`
+	FreeCashFlow         FlexFloat `json:"freeCashFlow"`
+	CashFromInvestingAct FlexFloat `json:"totalCashflowsFromInvestingActivities"`
+	CashFromFinancingAct FlexFloat `json:"totalCashFromFinancingActivities"`
+	DividendsPaid        FlexFloat `json:"dividendsPaid"`
 }
 
 // QuoteResponse represents the response from real-time quote endpoint.
