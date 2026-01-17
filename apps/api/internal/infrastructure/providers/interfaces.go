@@ -15,6 +15,7 @@ type FundamentalsProvider interface {
 	GetInstitutionalHolders(ctx context.Context, ticker string) ([]models.InstitutionalHolder, error)
 	GetInsiderTrades(ctx context.Context, ticker string, days int) ([]models.InsiderTrade, error)
 	GetDCF(ctx context.Context, ticker string) (*models.DCF, error)
+	GetIndustryAverages(ctx context.Context, industry string) (*models.IndustryAverages, error)
 }
 
 // QuoteProvider provides real-time and historical price data.

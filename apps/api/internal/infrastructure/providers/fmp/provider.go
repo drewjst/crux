@@ -209,6 +209,18 @@ func (p *Provider) Search(ctx context.Context, query string, limit int) ([]model
 	return mapped, nil
 }
 
+// GetIndustryAverages implements FundamentalsProvider.
+// Note: FMP has limited industry average data. This implementation returns nil
+// when data is not available. Future enhancement: compute from sector peers.
+func (p *Provider) GetIndustryAverages(ctx context.Context, industry string) (*models.IndustryAverages, error) {
+	// FMP doesn't have a direct industry averages endpoint.
+	// Future implementation options:
+	// 1. Use FMP's sector PE ratio endpoint for basic valuation data
+	// 2. Fetch peer companies and compute averages manually
+	// 3. Integrate with a different data source that provides industry benchmarks
+	return nil, nil
+}
+
 // getMostRecentFilingQuarter returns the most recent quarter with complete 13F filings.
 func getMostRecentFilingQuarter() (year int, quarter int) {
 	now := time.Now()

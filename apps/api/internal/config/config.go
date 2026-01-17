@@ -7,21 +7,25 @@ import (
 )
 
 type Config struct {
-	Port           string
-	Env            string
-	FMPAPIKey      string
-	PolygonAPIKey  string
-	DatabaseURL    string
-	AllowedOrigins []string
+	Port                string
+	Env                 string
+	FMPAPIKey           string
+	EODHDAPIKey         string
+	FundamentalsProvider string // "eodhd" (default) or "fmp"
+	PolygonAPIKey       string
+	DatabaseURL         string
+	AllowedOrigins      []string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:          getEnv("PORT", "8080"),
-		Env:           getEnv("ENV", "development"),
-		FMPAPIKey:     os.Getenv("FMP_API_KEY"),
-		PolygonAPIKey: os.Getenv("POLYGON_API_KEY"),
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		Port:                 getEnv("PORT", "8080"),
+		Env:                  getEnv("ENV", "development"),
+		FMPAPIKey:            os.Getenv("FMP_API_KEY"),
+		EODHDAPIKey:          os.Getenv("EODHD_API_KEY"),
+		FundamentalsProvider: getEnv("FUNDAMENTALS_PROVIDER", "eodhd"),
+		PolygonAPIKey:        os.Getenv("POLYGON_API_KEY"),
+		DatabaseURL:          os.Getenv("DATABASE_URL"),
 	}
 
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
@@ -36,8 +40,16 @@ func Load() (*Config, error) {
 		}
 	}
 
-	if cfg.FMPAPIKey == "" {
-		return nil, fmt.Errorf("FMP_API_KEY environment variable is required")
+	// Validate required API keys based on selected provider
+	switch strings.ToLower(cfg.FundamentalsProvider) {
+	case "fmp":
+		if cfg.FMPAPIKey == "" {
+			return nil, fmt.Errorf("FMP_API_KEY environment variable is required when FUNDAMENTALS_PROVIDER=fmp")
+		}
+	default: // "eodhd" or empty (default)
+		if cfg.EODHDAPIKey == "" {
+			return nil, fmt.Errorf("EODHD_API_KEY environment variable is required")
+		}
 	}
 
 	if cfg.PolygonAPIKey == "" {

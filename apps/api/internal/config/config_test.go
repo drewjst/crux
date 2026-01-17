@@ -8,15 +8,18 @@ import (
 
 func TestLoad_AllowedOrigins(t *testing.T) {
 	// Save current env vars and restore after test
-	originalAPIKey := os.Getenv("FMP_API_KEY")
+	originalEODHDKey := os.Getenv("EODHD_API_KEY")
+	originalPolygonKey := os.Getenv("POLYGON_API_KEY")
 	originalOrigins := os.Getenv("ALLOWED_ORIGINS")
 	defer func() {
-		os.Setenv("FMP_API_KEY", originalAPIKey)
+		os.Setenv("EODHD_API_KEY", originalEODHDKey)
+		os.Setenv("POLYGON_API_KEY", originalPolygonKey)
 		os.Setenv("ALLOWED_ORIGINS", originalOrigins)
 	}()
 
-	// Ensure API key is set so Load() doesn't fail
-	os.Setenv("FMP_API_KEY", "test-key")
+	// Ensure required API keys are set so Load() doesn't fail
+	os.Setenv("EODHD_API_KEY", "test-key")
+	os.Setenv("POLYGON_API_KEY", "test-key")
 
 	tests := []struct {
 		name            string

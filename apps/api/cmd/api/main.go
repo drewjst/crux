@@ -19,7 +19,7 @@ import (
 	"github.com/drewjst/recon/apps/api/internal/infrastructure/db"
 	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/fmp"
 	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/polygon"
-	fmpprovider "github.com/drewjst/recon/apps/api/internal/infrastructure/providers/fmp"
+	"github.com/drewjst/recon/apps/api/internal/infrastructure/providers"
 )
 
 func main() {
@@ -68,18 +68,26 @@ func run() error {
 		APIKey: cfg.FMPAPIKey,
 	})
 
-	// Initialize stock service
+	// Initialize stock service with configured provider
 	var stockService *stock.Service
 	if cacheRepo != nil {
-		// Use new provider-based service with caching
-		fmpProvider := fmpprovider.NewProvider(cfg.FMPAPIKey)
+		// Create provider based on config
+		providerCfg := providers.Config{
+			Provider:    providers.ParseProviderType(cfg.FundamentalsProvider),
+			FMPAPIKey:   cfg.FMPAPIKey,
+			EODHDAPIKey: cfg.EODHDAPIKey,
+		}
+		dataProvider, err := providers.NewFullProvider(providerCfg)
+		if err != nil {
+			return err
+		}
 		stockService = stock.NewCachedService(
-			fmpProvider,
-			fmpProvider,
+			dataProvider,
+			dataProvider,
 			cacheRepo,
 			stock.DefaultServiceConfig(),
 		)
-		slog.Info("stock service initialized with caching")
+		slog.Info("stock service initialized with caching", "provider", cfg.FundamentalsProvider)
 	} else {
 		// Use legacy FMP repository
 		repo := fmp.NewRepository(fmpClient)
