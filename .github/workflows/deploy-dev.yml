@@ -47,7 +47,8 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --set-secrets=FMP_API_KEY=fmp-api-key:latest,POLYGON_API_KEY=polygon-api-key:latest \
+            --add-cloudsql-instances=recon-484118:us-central1:cruxit-db \
+            --set-secrets=FMP_API_KEY=fmp-api-key:latest,POLYGON_API_KEY=polygon-api-key:latest,DATABASE_URL=database-url:latest \
             --set-env-vars=ALLOWED_ORIGINS=https://recon-web-dev-273165967255.us-central1.run.app \
             --memory 512Mi \
             --cpu 1 \
