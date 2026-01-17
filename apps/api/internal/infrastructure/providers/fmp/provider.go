@@ -178,6 +178,22 @@ func (p *Provider) GetHistoricalPrices(ctx context.Context, ticker string, days 
 	return result, nil
 }
 
+// GetDCF implements FundamentalsProvider.
+func (p *Provider) GetDCF(ctx context.Context, ticker string) (*models.DCF, error) {
+	dcf, err := p.client.GetDCF(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching DCF: %w", err)
+	}
+	if dcf == nil {
+		return nil, nil
+	}
+	return &models.DCF{
+		Ticker:     dcf.Symbol,
+		DCFValue:   dcf.DCF,
+		StockPrice: dcf.StockPrice,
+	}, nil
+}
+
 // Search implements SearchProvider.
 func (p *Provider) Search(ctx context.Context, query string, limit int) ([]models.SearchResult, error) {
 	results, err := p.client.SearchTicker(ctx, query, limit)

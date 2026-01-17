@@ -203,15 +203,17 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 // fetchAndBuildResponse fetches data from providers and builds the response.
 func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*StockDetailResponse, error) {
 	var (
-		company  *models.Company
-		quote    *models.Quote
-		ratios   *models.Ratios
-		holders  []models.InstitutionalHolder
-		trades   []models.InsiderTrade
-		prices   []models.PriceBar
+		company    *models.Company
+		quote      *models.Quote
+		ratios     *models.Ratios
+		financials []models.Financials
+		holders    []models.InstitutionalHolder
+		trades     []models.InsiderTrade
+		prices     []models.PriceBar
+		dcf        *models.DCF
 	)
 
-	// Phase 1: Fetch base data in parallel
+	// Fetch all data in parallel
 	g, gctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
@@ -246,6 +248,15 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 
 	g.Go(func() error {
 		var err error
+		financials, err = s.fundamentals.GetFinancials(gctx, ticker, 2)
+		if err != nil {
+			slog.Warn("failed to fetch financials", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
 		holders, err = s.fundamentals.GetInstitutionalHolders(gctx, ticker)
 		if err != nil {
 			slog.Warn("failed to fetch holders", "ticker", ticker, "error", err)
@@ -271,12 +282,21 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		return nil
 	})
 
+	g.Go(func() error {
+		var err error
+		dcf, err = s.fundamentals.GetDCF(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch DCF", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
 	// Build response from fetched data
-	return s.buildResponseFromProviders(company, quote, ratios, holders, trades, prices), nil
+	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, trades, prices, dcf), nil
 }
 
 // buildResponseFromProviders constructs the response from provider data.
@@ -284,9 +304,11 @@ func (s *Service) buildResponseFromProviders(
 	company *models.Company,
 	quote *models.Quote,
 	ratios *models.Ratios,
+	financialStatements []models.Financials,
 	holders []models.InstitutionalHolder,
 	trades []models.InsiderTrade,
 	prices []models.PriceBar,
+	dcf *models.DCF,
 ) *StockDetailResponse {
 	// Convert provider models to domain types
 	domainCompany := convertCompanyFromModel(company)
@@ -311,12 +333,31 @@ func (s *Service) buildResponseFromProviders(
 	profitability := calculateProfitability(ratios, company.Sector)
 	financialHealth := calculateFinancialHealth(ratios, company.Sector)
 
+	// Convert financials to score data and calculate scores
+	financialData := convertToScoreData(financialStatements, quote.Price, quote.MarketCap)
+	stockScores := s.calculateScoresFromData(financialData, dcf)
+
+	// Generate signals
+	signalData := &signals.StockData{
+		Financials:      convertFinancialsForSignals(financials),
+		InsiderActivity: convertInsiderActivityForSignals(insiderActivity),
+	}
+	generator := signals.NewGenerator()
+	signalList := generator.GenerateAll(signalData, stockScores.Piotroski, stockScores.AltmanZ)
+
+	// Determine fundamentals date
+	fundamentalsDate := "TTM"
+	if len(financialStatements) > 0 && financialStatements[0].FiscalYear > 0 {
+		fundamentalsDate = fmt.Sprintf("%d", financialStatements[0].FiscalYear)
+	}
+
 	return &StockDetailResponse{
 		AssetType:       AssetTypeStock,
 		Company:         domainCompany,
 		Quote:           domainQuote,
 		Performance:     performance,
-		Signals:         []signals.Signal{},
+		Scores:          &stockScores,
+		Signals:         signalList,
 		Valuation:       valuation,
 		Holdings:        holdings,
 		InsiderTrades:   insiderTrades,
@@ -325,7 +366,7 @@ func (s *Service) buildResponseFromProviders(
 		Profitability:   profitability,
 		FinancialHealth: financialHealth,
 		Meta: DataMeta{
-			FundamentalsAsOf: "TTM",
+			FundamentalsAsOf: fundamentalsDate,
 			HoldingsAsOf:     "Latest 13F",
 			PriceAsOf:        quote.AsOf.Format(time.RFC3339),
 			GeneratedAt:      time.Now().UTC(),
@@ -1025,6 +1066,94 @@ func convertInsiderActivityForSignals(i *InsiderActivity) *signals.InsiderActivi
 		BuyCount90d:  i.BuyCount90d,
 		SellCount90d: i.SellCount90d,
 		NetValue90d:  i.NetValue90d,
+	}
+}
+
+// convertFinancialsForSignals converts *Financials to *signals.FinancialsData.
+func convertFinancialsForSignals(f *Financials) *signals.FinancialsData {
+	if f == nil {
+		return nil
+	}
+	return &signals.FinancialsData{
+		RevenueGrowthYoY: f.RevenueGrowthYoY,
+		OperatingMargin:  f.OperatingMargin,
+		DebtToEquity:     f.DebtToEquity,
+		ROIC:             f.ROIC,
+	}
+}
+
+// convertToScoreData converts provider financials to score calculation format.
+func convertToScoreData(financials []models.Financials, price float64, marketCap int64) []scores.FinancialData {
+	result := make([]scores.FinancialData, 0, len(financials))
+
+	for _, f := range financials {
+		result = append(result, scores.FinancialData{
+			Revenue:            float64(f.Revenue),
+			GrossProfit:        float64(f.GrossProfit),
+			OperatingIncome:    float64(f.OperatingIncome),
+			NetIncome:          float64(f.NetIncome),
+			EBIT:               float64(f.OperatingIncome), // Use operating income as EBIT proxy
+			EPS:                f.EPS,
+			TotalAssets:        float64(f.TotalAssets),
+			TotalLiabilities:   float64(f.TotalLiabilities),
+			CurrentAssets:      float64(f.Cash),  // Simplified
+			CurrentLiabilities: float64(f.Debt),  // Simplified
+			LongTermDebt:       float64(f.Debt),
+			ShareholdersEquity: float64(f.TotalEquity),
+			OperatingCashFlow:  float64(f.OperatingCashFlow),
+			FreeCashFlow:       float64(f.FreeCashFlow),
+			MarketCap:          float64(marketCap),
+			StockPrice:         price,
+			FiscalYear:         f.FiscalYear,
+		})
+	}
+
+	return result
+}
+
+// calculateScoresFromData calculates all financial scores from the data.
+func (s *Service) calculateScoresFromData(data []scores.FinancialData, dcf *models.DCF) Scores {
+	var piotroskiResult scores.PiotroskiResult
+	var ruleOf40Result scores.RuleOf40Result
+	var altmanZResult scores.AltmanZResult
+
+	if len(data) >= 2 {
+		piotroskiResult = scores.CalculatePiotroskiScore(data[0], data[1])
+		ruleOf40Result = scores.CalculateRuleOf40WithGrowth(data[0], data[1])
+	} else if len(data) == 1 {
+		piotroskiResult = scores.CalculatePiotroskiScore(data[0], scores.FinancialData{})
+		ruleOf40Result = scores.CalculateRuleOf40(data[0])
+	}
+
+	if len(data) >= 1 {
+		altmanZResult = scores.CalculateAltmanZScore(data[0])
+	}
+
+	dcfValuation := DCFValuation{}
+	if dcf != nil {
+		diffPercent := 0.0
+		if dcf.StockPrice > 0 {
+			diffPercent = ((dcf.DCFValue - dcf.StockPrice) / dcf.StockPrice) * 100
+		}
+		assessment := "Fairly Valued"
+		if diffPercent > 15 {
+			assessment = "Undervalued"
+		} else if diffPercent < -15 {
+			assessment = "Overvalued"
+		}
+		dcfValuation = DCFValuation{
+			IntrinsicValue:    dcf.DCFValue,
+			CurrentPrice:      dcf.StockPrice,
+			DifferencePercent: diffPercent,
+			Assessment:        assessment,
+		}
+	}
+
+	return Scores{
+		Piotroski:    piotroskiResult,
+		RuleOf40:     ruleOf40Result,
+		AltmanZ:      altmanZResult,
+		DCFValuation: dcfValuation,
 	}
 }
 
