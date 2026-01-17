@@ -48,7 +48,7 @@ export function ShareButton({
   ...props
 }: ShareButtonProps) {
   const shareText = text ?? `Check out ${ticker} analysis on Cruxit`;
-  const sharePageUrl = url ?? `${BASE_URL}/stock/${ticker}`;
+  const sharePageUrl = url ?? `${BASE_URL}/?ticker=${ticker}`;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
