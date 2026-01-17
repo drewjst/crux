@@ -18,6 +18,10 @@ type FundamentalsProvider interface {
 	GetIndustryAverages(ctx context.Context, industry string) (*models.IndustryAverages, error)
 	GetTechnicalMetrics(ctx context.Context, ticker string) (*models.TechnicalMetrics, error)
 	GetShortInterest(ctx context.Context, ticker string) (*models.ShortInterest, error)
+
+	// ETF-specific methods
+	IsETF(ctx context.Context, ticker string) (bool, error)
+	GetETFData(ctx context.Context, ticker string) (*models.ETFData, error)
 }
 
 // QuoteProvider provides real-time and historical price data.

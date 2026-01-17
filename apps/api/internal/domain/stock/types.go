@@ -199,6 +199,7 @@ const (
 type ETFHolding struct {
 	Ticker        string  `json:"ticker"`
 	Name          string  `json:"name"`
+	Sector        string  `json:"sector,omitempty"`
 	Shares        float64 `json:"shares"`
 	WeightPercent float64 `json:"weightPercent"`
 	MarketValue   int64   `json:"marketValue"`
@@ -210,11 +211,49 @@ type ETFSectorWeight struct {
 	WeightPercent float64 `json:"weightPercent"`
 }
 
+// ETFRegionWeight represents geographic allocation within an ETF.
+type ETFRegionWeight struct {
+	Region        string  `json:"region"`
+	WeightPercent float64 `json:"weightPercent"`
+}
+
+// ETFMarketCap represents market cap distribution of ETF holdings.
+type ETFMarketCap struct {
+	Mega   float64 `json:"mega"`
+	Big    float64 `json:"big"`
+	Medium float64 `json:"medium"`
+	Small  float64 `json:"small"`
+	Micro  float64 `json:"micro"`
+}
+
+// ETFValuations represents aggregate valuation metrics for ETF holdings.
+type ETFValuations struct {
+	PE            float64 `json:"pe"`
+	PB            float64 `json:"pb"`
+	PS            float64 `json:"ps"`
+	PCF           float64 `json:"pcf"`
+	DividendYield float64 `json:"dividendYield"`
+}
+
+// ETFPerformance represents historical performance of an ETF.
+type ETFPerformance struct {
+	YTD float64 `json:"ytd"`
+	Y1  float64 `json:"y1"`
+	Y3  float64 `json:"y3"`
+	Y5  float64 `json:"y5"`
+	Y10 float64 `json:"y10,omitempty"`
+}
+
 // ETFData contains ETF-specific information not applicable to individual stocks.
 type ETFData struct {
-	ExpenseRatio  float64           `json:"expenseRatio"`
-	AUM           int64             `json:"aum"`
-	InceptionDate string            `json:"inceptionDate"`
-	Holdings      []ETFHolding      `json:"holdings"`
-	SectorWeights []ETFSectorWeight `json:"sectorWeights"`
+	ExpenseRatio       float64            `json:"expenseRatio"`
+	AUM                int64              `json:"aum"`
+	Yield              float64            `json:"yield"`
+	InceptionDate      string             `json:"inceptionDate"`
+	Holdings           []ETFHolding       `json:"holdings"`
+	SectorWeights      []ETFSectorWeight  `json:"sectorWeights"`
+	Regions            []ETFRegionWeight  `json:"regions,omitempty"`
+	MarketCapBreakdown *ETFMarketCap      `json:"marketCapBreakdown,omitempty"`
+	Valuations         *ETFValuations     `json:"valuations,omitempty"`
+	Performance        *ETFPerformance    `json:"performance,omitempty"`
 }

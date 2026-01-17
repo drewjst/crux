@@ -458,3 +458,169 @@ func mapShortInterest(e *FundamentalsResponse) *models.ShortInterest {
 		ShortPercentShares:    e.SharesStats.ShortPercentOutstanding,
 	}
 }
+
+// =============================================================================
+// ETF Mapper Functions
+// =============================================================================
+
+// mapETFData converts EODHD ETF data to internal ETFData model.
+func mapETFData(etf *ETFData) *models.ETFData {
+	if etf == nil {
+		return nil
+	}
+
+	return &models.ETFData{
+		ExpenseRatio:       float64(etf.NetExpenseRatio),
+		AUM:                int64(etf.TotalAssets),
+		Yield:              float64(etf.Yield),
+		InceptionDate:      etf.InceptionDate,
+		Holdings:           mapETFHoldings(etf.Holdings),
+		SectorWeights:      mapETFSectorWeights(etf.SectorWeights),
+		Regions:            mapETFRegions(etf.WorldRegions),
+		MarketCapBreakdown: mapETFMarketCap(etf.MarketCapitalisation),
+		Valuations:         mapETFValuations(etf.ValuationsRatesPortfolio),
+		Performance:        mapETFPerformance(etf.MorningStar),
+	}
+}
+
+// mapETFHoldings converts EODHD Holdings map to sorted slice of ETFHolding.
+func mapETFHoldings(holdings map[string]ETFHoldingData) []models.ETFHolding {
+	if len(holdings) == 0 {
+		return nil
+	}
+
+	result := make([]models.ETFHolding, 0, len(holdings))
+	for _, h := range holdings {
+		result = append(result, models.ETFHolding{
+			Ticker:        h.Code,
+			Name:          h.Name,
+			Sector:        h.Sector,
+			WeightPercent: float64(h.AssetsPercent),
+		})
+	}
+
+	// Sort by weight descending
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].WeightPercent > result[j].WeightPercent
+	})
+
+	// Return top 10 holdings
+	if len(result) > 10 {
+		return result[:10]
+	}
+	return result
+}
+
+// mapETFSectorWeights converts EODHD sector weights map to slice.
+func mapETFSectorWeights(sectors map[string]ETFSectorWeight) []models.ETFSectorWeight {
+	if len(sectors) == 0 {
+		return nil
+	}
+
+	result := make([]models.ETFSectorWeight, 0, len(sectors))
+	for name, s := range sectors {
+		result = append(result, models.ETFSectorWeight{
+			Sector:        name,
+			WeightPercent: float64(s.EquityPercent),
+		})
+	}
+
+	// Sort by weight descending
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].WeightPercent > result[j].WeightPercent
+	})
+
+	return result
+}
+
+// mapETFRegions converts EODHD regions map to slice.
+func mapETFRegions(regions map[string]ETFRegionWeight) []models.ETFRegionWeight {
+	if len(regions) == 0 {
+		return nil
+	}
+
+	result := make([]models.ETFRegionWeight, 0, len(regions))
+	for name, r := range regions {
+		result = append(result, models.ETFRegionWeight{
+			Region:        name,
+			WeightPercent: float64(r.EquityPercent),
+		})
+	}
+
+	// Sort by weight descending
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].WeightPercent > result[j].WeightPercent
+	})
+
+	return result
+}
+
+// mapETFMarketCap converts EODHD market cap breakdown.
+func mapETFMarketCap(mc ETFMarketCapBreakdown) *models.ETFMarketCap {
+	// Return nil if all zeros (no data)
+	if mc.Mega == 0 && mc.Big == 0 && mc.Medium == 0 && mc.Small == 0 && mc.Micro == 0 {
+		return nil
+	}
+
+	return &models.ETFMarketCap{
+		Mega:   float64(mc.Mega),
+		Big:    float64(mc.Big),
+		Medium: float64(mc.Medium),
+		Small:  float64(mc.Small),
+		Micro:  float64(mc.Micro),
+	}
+}
+
+// mapETFValuations converts EODHD valuation rates.
+func mapETFValuations(v ETFValuationsRates) *models.ETFValuations {
+	// Return nil if all zeros (no data)
+	if v.PriceProspectiveEarnings == 0 && v.PriceBook == 0 && v.PriceSales == 0 && v.PriceCashFlow == 0 {
+		return nil
+	}
+
+	return &models.ETFValuations{
+		PE:            float64(v.PriceProspectiveEarnings),
+		PB:            float64(v.PriceBook),
+		PS:            float64(v.PriceSales),
+		PCF:           float64(v.PriceCashFlow),
+		DividendYield: float64(v.DividendYieldFactor),
+	}
+}
+
+// mapETFPerformance converts EODHD MorningStar performance data.
+func mapETFPerformance(ms map[string]interface{}) *models.ETFPerformance {
+	if len(ms) == 0 {
+		return nil
+	}
+
+	getFloat := func(key string) float64 {
+		if v, ok := ms[key]; ok {
+			switch val := v.(type) {
+			case float64:
+				return val
+			case int:
+				return float64(val)
+			case string:
+				if f, err := strconv.ParseFloat(val, 64); err == nil {
+					return f
+				}
+			}
+		}
+		return 0
+	}
+
+	perf := &models.ETFPerformance{
+		YTD: getFloat("Year_to_Date"),
+		Y1:  getFloat("1y_Return"),
+		Y3:  getFloat("3y_Return"),
+		Y5:  getFloat("5y_Return"),
+		Y10: getFloat("10y_Return"),
+	}
+
+	// Return nil if all zeros (no data)
+	if perf.YTD == 0 && perf.Y1 == 0 && perf.Y3 == 0 && perf.Y5 == 0 {
+		return nil
+	}
+
+	return perf
+}

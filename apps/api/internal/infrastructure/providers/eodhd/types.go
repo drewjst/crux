@@ -41,14 +41,15 @@ func (f *FlexFloat) UnmarshalJSON(data []byte) error {
 
 // FundamentalsResponse represents the full response from /api/fundamentals/{ticker}.{exchange}
 type FundamentalsResponse struct {
-	General             General                        `json:"General"`
-	Highlights          Highlights                     `json:"Highlights"`
-	Valuation           Valuation                      `json:"Valuation"`
-	SharesStats         SharesStats                    `json:"SharesStats"`
-	Technicals          Technicals                     `json:"Technicals"`
-	Holders             Holders                        `json:"Holders"`
-	InsiderTransactions map[string]InsiderTransaction  `json:"InsiderTransactions"`
-	Financials          Financials                     `json:"Financials"`
+	General             General                       `json:"General"`
+	Highlights          Highlights                    `json:"Highlights"`
+	Valuation           Valuation                     `json:"Valuation"`
+	SharesStats         SharesStats                   `json:"SharesStats"`
+	Technicals          Technicals                    `json:"Technicals"`
+	Holders             Holders                       `json:"Holders"`
+	InsiderTransactions map[string]InsiderTransaction `json:"InsiderTransactions"`
+	Financials          Financials                    `json:"Financials"`
+	ETFData             *ETFData                      `json:"ETF_Data,omitempty"`
 }
 
 // General contains company profile information.
@@ -284,4 +285,66 @@ type InsiderTransactionResponse struct {
 	TransactionAcquiredDisposed string  `json:"transactionAcquiredDisposed"`
 	PostTransactionAmount       float64 `json:"postTransactionAmount"`
 	SECLink                     string  `json:"secLink"`
+}
+
+// =============================================================================
+// ETF-Specific Types
+// =============================================================================
+
+// ETFData represents ETF-specific data from EODHD fundamentals endpoint.
+// This data is only present when the ticker is an ETF.
+// Note: Many fields use FlexFloat because EODHD sometimes returns them as strings.
+type ETFData struct {
+	ISIN                     string                         `json:"ISIN"`
+	CompanyURL               string                         `json:"Company_URL"`
+	NetExpenseRatio          FlexFloat                      `json:"Net_Expense_Ratio"`
+	TotalAssets              FlexFloat                      `json:"Total_Assets"`
+	Yield                    FlexFloat                      `json:"Yield"`
+	InceptionDate            string                         `json:"Inception_Date"`
+	Holdings                 map[string]ETFHoldingData      `json:"Holdings"`
+	SectorWeights            map[string]ETFSectorWeight     `json:"Sector_Weights"`
+	WorldRegions             map[string]ETFRegionWeight     `json:"World_Regions"`
+	MarketCapitalisation     ETFMarketCapBreakdown          `json:"Market_Capitalisation"`
+	ValuationsRatesPortfolio ETFValuationsRates             `json:"Valuations_Rates_Portfolio"`
+	MorningStar              map[string]interface{}         `json:"MorningStar"`
+}
+
+// ETFHoldingData represents a single holding within an ETF portfolio.
+type ETFHoldingData struct {
+	Code          string    `json:"Code"`
+	Name          string    `json:"Name"`
+	Sector        string    `json:"Sector"`
+	Industry      string    `json:"Industry"`
+	Country       string    `json:"Country"`
+	AssetsPercent FlexFloat `json:"Assets_%"`
+}
+
+// ETFSectorWeight represents sector allocation within an ETF.
+type ETFSectorWeight struct {
+	EquityPercent      FlexFloat `json:"Equity_%"`
+	RelativeToCategory FlexFloat `json:"Relative_to_Category"`
+}
+
+// ETFRegionWeight represents geographic allocation within an ETF.
+type ETFRegionWeight struct {
+	EquityPercent      FlexFloat `json:"Equity_%"`
+	RelativeToCategory FlexFloat `json:"Relative_to_Category"`
+}
+
+// ETFMarketCapBreakdown represents market cap distribution of ETF holdings.
+type ETFMarketCapBreakdown struct {
+	Mega   FlexFloat `json:"Mega"`
+	Big    FlexFloat `json:"Big"`
+	Medium FlexFloat `json:"Medium"`
+	Small  FlexFloat `json:"Small"`
+	Micro  FlexFloat `json:"Micro"`
+}
+
+// ETFValuationsRates represents aggregate valuation metrics for ETF holdings.
+type ETFValuationsRates struct {
+	PriceProspectiveEarnings FlexFloat `json:"Price/Prospective Earnings"`
+	PriceBook                FlexFloat `json:"Price/Book"`
+	PriceSales               FlexFloat `json:"Price/Sales"`
+	PriceCashFlow            FlexFloat `json:"Price/Cash Flow"`
+	DividendYieldFactor      FlexFloat `json:"Dividend-Yield Factor"`
 }

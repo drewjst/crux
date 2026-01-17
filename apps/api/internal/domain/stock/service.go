@@ -219,6 +219,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		dcf              *models.DCF
 		technicalMetrics *models.TechnicalMetrics
 		shortInterest    *models.ShortInterest
+		etfData          *models.ETFData
 	)
 
 	// Fetch all data in parallel
@@ -317,11 +318,26 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		return nil
 	})
 
+	// Fetch ETF data (will be nil for non-ETFs)
+	g.Go(func() error {
+		var err error
+		etfData, err = s.fundamentals.GetETFData(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch ETF data", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
-	// Build response from fetched data
+	// If ETF data is present, build ETF response
+	if etfData != nil {
+		return s.buildETFResponseFromProviders(company, quote, prices, etfData), nil
+	}
+
+	// Build stock response from fetched data
 	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, trades, prices, dcf, technicalMetrics, shortInterest), nil
 }
 
@@ -405,6 +421,124 @@ func (s *Service) buildResponseFromProviders(
 			PriceAsOf:        quote.AsOf.Format(time.RFC3339),
 			GeneratedAt:      time.Now().UTC(),
 		},
+	}
+}
+
+// buildETFResponseFromProviders constructs an ETF response from provider data.
+func (s *Service) buildETFResponseFromProviders(
+	company *models.Company,
+	quote *models.Quote,
+	prices []models.PriceBar,
+	etfData *models.ETFData,
+) *StockDetailResponse {
+	domainCompany := convertCompanyFromModel(company)
+	domainQuote := convertQuoteFromModel(quote)
+
+	// Calculate performance from historical prices
+	performance := calculatePerformance(prices, quote.Price, quote.High)
+
+	// Convert ETF data from provider model to domain type
+	etf := convertETFDataFromModel(etfData)
+
+	return &StockDetailResponse{
+		AssetType:     AssetTypeETF,
+		Company:       domainCompany,
+		Quote:         domainQuote,
+		Performance:   performance,
+		Signals:       []signals.Signal{},
+		InsiderTrades: []InsiderTrade{},
+		ETFData:       etf,
+		Meta: DataMeta{
+			FundamentalsAsOf: "N/A",
+			HoldingsAsOf:     etf.InceptionDate,
+			PriceAsOf:        quote.AsOf.Format(time.RFC3339),
+			GeneratedAt:      time.Now().UTC(),
+		},
+	}
+}
+
+// convertETFDataFromModel converts provider ETFData to domain ETFData.
+func convertETFDataFromModel(m *models.ETFData) *ETFData {
+	if m == nil {
+		return nil
+	}
+
+	// Convert holdings
+	holdings := make([]ETFHolding, 0, len(m.Holdings))
+	for _, h := range m.Holdings {
+		holdings = append(holdings, ETFHolding{
+			Ticker:        h.Ticker,
+			Name:          h.Name,
+			Sector:        h.Sector,
+			WeightPercent: h.WeightPercent,
+		})
+	}
+
+	// Convert sector weights
+	sectorWeights := make([]ETFSectorWeight, 0, len(m.SectorWeights))
+	for _, s := range m.SectorWeights {
+		sectorWeights = append(sectorWeights, ETFSectorWeight{
+			Sector:        s.Sector,
+			WeightPercent: s.WeightPercent,
+		})
+	}
+
+	// Convert regions
+	regions := make([]ETFRegionWeight, 0, len(m.Regions))
+	for _, r := range m.Regions {
+		regions = append(regions, ETFRegionWeight{
+			Region:        r.Region,
+			WeightPercent: r.WeightPercent,
+		})
+	}
+
+	// Convert market cap breakdown
+	var marketCapBreakdown *ETFMarketCap
+	if m.MarketCapBreakdown != nil {
+		marketCapBreakdown = &ETFMarketCap{
+			Mega:   m.MarketCapBreakdown.Mega,
+			Big:    m.MarketCapBreakdown.Big,
+			Medium: m.MarketCapBreakdown.Medium,
+			Small:  m.MarketCapBreakdown.Small,
+			Micro:  m.MarketCapBreakdown.Micro,
+		}
+	}
+
+	// Convert valuations
+	var valuations *ETFValuations
+	if m.Valuations != nil {
+		valuations = &ETFValuations{
+			PE:            m.Valuations.PE,
+			PB:            m.Valuations.PB,
+			PS:            m.Valuations.PS,
+			PCF:           m.Valuations.PCF,
+			DividendYield: m.Valuations.DividendYield,
+		}
+	}
+
+	// Convert performance
+	var performance *ETFPerformance
+	if m.Performance != nil {
+		performance = &ETFPerformance{
+			YTD: m.Performance.YTD,
+			Y1:  m.Performance.Y1,
+			Y3:  m.Performance.Y3,
+			Y5:  m.Performance.Y5,
+			Y10: m.Performance.Y10,
+		}
+	}
+
+	return &ETFData{
+		ExpenseRatio:       m.ExpenseRatio,
+		AUM:                m.AUM,
+		Yield:              m.Yield,
+		InceptionDate:      m.InceptionDate,
+		Holdings:           holdings,
+		SectorWeights:      sectorWeights,
+		Regions:            regions,
+		MarketCapBreakdown: marketCapBreakdown,
+		Valuations:         valuations,
+		Performance:        performance,
 	}
 }
 

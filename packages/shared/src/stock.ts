@@ -566,6 +566,8 @@ export interface ETFHolding {
   ticker: string;
   /** Company/security name */
   name: string;
+  /** Sector classification of the holding */
+  sector?: string;
   /** Number of shares held */
   shares: number;
   /** Weight as percentage of total ETF (e.g., 7.5 for 7.5%) */
@@ -585,6 +587,64 @@ export interface ETFSectorWeight {
 }
 
 /**
+ * Geographic allocation within an ETF.
+ */
+export interface ETFRegionWeight {
+  /** Region name (e.g., "North America", "Europe Developed") */
+  region: string;
+  /** Weight as percentage (e.g., 65.0 for 65%) */
+  weightPercent: number;
+}
+
+/**
+ * Market cap distribution of ETF holdings.
+ */
+export interface ETFMarketCap {
+  /** Mega cap holdings percentage (>$200B) */
+  mega: number;
+  /** Big cap holdings percentage ($10B-$200B) */
+  big: number;
+  /** Medium cap holdings percentage ($2B-$10B) */
+  medium: number;
+  /** Small cap holdings percentage ($300M-$2B) */
+  small: number;
+  /** Micro cap holdings percentage (<$300M) */
+  micro: number;
+}
+
+/**
+ * Aggregate valuation metrics for ETF holdings.
+ */
+export interface ETFValuations {
+  /** Weighted average Price/Earnings ratio of holdings */
+  pe: number;
+  /** Weighted average Price/Book ratio of holdings */
+  pb: number;
+  /** Weighted average Price/Sales ratio of holdings */
+  ps: number;
+  /** Weighted average Price/Cash Flow ratio of holdings */
+  pcf: number;
+  /** Dividend yield of the ETF */
+  dividendYield: number;
+}
+
+/**
+ * Historical performance of an ETF.
+ */
+export interface ETFPerformance {
+  /** Year-to-date return percentage */
+  ytd: number;
+  /** 1-year return percentage */
+  y1: number;
+  /** 3-year annualized return percentage */
+  y3: number;
+  /** 5-year annualized return percentage */
+  y5: number;
+  /** 10-year annualized return percentage (optional, may not be available for newer ETFs) */
+  y10?: number;
+}
+
+/**
  * ETF-specific data not applicable to individual stocks.
  */
 export interface ETFData {
@@ -592,12 +652,22 @@ export interface ETFData {
   expenseRatio: number;
   /** Assets under management in USD */
   aum: number;
+  /** Distribution yield percentage */
+  yield: number;
   /** Fund inception date (ISO 8601) */
   inceptionDate: string;
   /** Top holdings by weight */
   holdings: ETFHolding[];
   /** Sector allocation breakdown */
   sectorWeights: ETFSectorWeight[];
+  /** Geographic allocation breakdown */
+  regions?: ETFRegionWeight[];
+  /** Market cap distribution */
+  marketCapBreakdown?: ETFMarketCap;
+  /** Aggregate valuation metrics */
+  valuations?: ETFValuations;
+  /** Historical performance */
+  performance?: ETFPerformance;
 }
 
 // =============================================================================

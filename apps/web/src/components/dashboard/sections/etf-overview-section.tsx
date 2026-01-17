@@ -63,14 +63,14 @@ function ETFOverviewSectionComponent({ data }: ETFOverviewSectionProps) {
       description: 'Assets Under Management',
     },
     {
+      label: 'Yield',
+      value: etfData.yield ? `${etfData.yield.toFixed(2)}%` : 'N/A',
+      description: 'Distribution Yield',
+    },
+    {
       label: 'Inception',
       value: formatDate(etfData.inceptionDate),
       description: 'Fund Start Date',
-    },
-    {
-      label: 'Holdings',
-      value: String(etfData.holdings.length),
-      description: 'Top Holdings Shown',
     },
   ];
 

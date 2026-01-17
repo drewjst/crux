@@ -219,3 +219,28 @@ func (p *Provider) GetShortInterest(ctx context.Context, ticker string) (*models
 	}
 	return mapShortInterest(fundamentals), nil
 }
+
+// IsETF checks if a ticker is an ETF based on the presence of ETF_Data in fundamentals.
+func (p *Provider) IsETF(ctx context.Context, ticker string) (bool, error) {
+	fundamentals, err := p.getFundamentals(ctx, ticker)
+	if err != nil {
+		return false, fmt.Errorf("checking if ETF: %w", err)
+	}
+	if fundamentals == nil {
+		return false, nil
+	}
+	return fundamentals.ETFData != nil, nil
+}
+
+// GetETFData returns ETF-specific data for a ticker.
+// Returns nil if the ticker is not an ETF.
+func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFData, error) {
+	fundamentals, err := p.getFundamentals(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching ETF data: %w", err)
+	}
+	if fundamentals == nil || fundamentals.ETFData == nil {
+		return nil, nil
+	}
+	return mapETFData(fundamentals.ETFData), nil
+}

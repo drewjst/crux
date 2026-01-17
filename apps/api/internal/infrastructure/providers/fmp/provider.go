@@ -236,6 +236,21 @@ func (p *Provider) GetShortInterest(ctx context.Context, ticker string) (*models
 	return nil, nil
 }
 
+// IsETF implements FundamentalsProvider.
+// Note: FMP has limited ETF support. This implementation returns false.
+func (p *Provider) IsETF(ctx context.Context, ticker string) (bool, error) {
+	// FMP doesn't provide ETF detection in the same way as EODHD.
+	// Return false to indicate non-ETF (stock path will be used).
+	return false, nil
+}
+
+// GetETFData implements FundamentalsProvider.
+// Note: FMP doesn't provide ETF-specific data. Returns nil.
+func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFData, error) {
+	// FMP doesn't have ETF-specific data in the format we need.
+	return nil, nil
+}
+
 // getMostRecentFilingQuarter returns the most recent quarter with complete 13F filings.
 func getMostRecentFilingQuarter() (year int, quarter int) {
 	now := time.Now()
