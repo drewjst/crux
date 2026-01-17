@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"github.com/drewjst/recon/apps/api/internal/domain/search"
 	"github.com/drewjst/recon/apps/api/internal/domain/stock"
 	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/fmp"
+	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/polygon"
 )
 
 func main() {
@@ -52,18 +52,16 @@ func run() error {
 	// Initialize stock service (no cache for MVP)
 	stockService := stock.NewService(repo, nil)
 
-	// Initialize search index with embedded ticker data
-	searchIndex, err := search.NewIndex()
-	if err != nil {
-		return fmt.Errorf("initializing search index: %w", err)
-	}
-	slog.Info("search index initialized")
+	// Initialize Polygon client and search service
+	polygonClient := polygon.NewClient(cfg.PolygonAPIKey)
+	polygonSearcher := search.NewPolygonSearcher(polygonClient)
+	slog.Info("polygon search initialized")
 
 	// Initialize router
 	router := api.NewRouter(api.RouterDeps{
-		StockService:   stockService,
-		SearchIndex:    searchIndex,
-		AllowedOrigins: cfg.AllowedOrigins,
+		StockService:    stockService,
+		PolygonSearcher: polygonSearcher,
+		AllowedOrigins:  cfg.AllowedOrigins,
 	})
 
 	// Create server

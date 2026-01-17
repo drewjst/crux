@@ -12,9 +12,9 @@ import (
 
 // RouterDeps contains all dependencies needed by the router.
 type RouterDeps struct {
-	StockService   *stock.Service
-	SearchIndex    *search.Index
-	AllowedOrigins []string
+	StockService    *stock.Service
+	PolygonSearcher *search.PolygonSearcher
+	AllowedOrigins  []string
 }
 
 // NewRouter creates and configures the Chi router with all routes and middleware.
@@ -35,7 +35,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	// API routes
 	r.Route("/api", func(r chi.Router) {
 		stockHandler := handlers.NewStockHandler(deps.StockService)
-		searchHandler := handlers.NewSearchHandler(deps.SearchIndex)
+		searchHandler := handlers.NewSearchHandler(deps.PolygonSearcher)
 
 		r.Get("/stock/{ticker}", stockHandler.GetStock)
 		r.Get("/search", searchHandler.Search)

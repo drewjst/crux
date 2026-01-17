@@ -10,14 +10,16 @@ type Config struct {
 	Port           string
 	Env            string
 	FMPAPIKey      string
+	PolygonAPIKey  string
 	AllowedOrigins []string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:      getEnv("PORT", "8080"),
-		Env:       getEnv("ENV", "development"),
-		FMPAPIKey: os.Getenv("FMP_API_KEY"),
+		Port:          getEnv("PORT", "8080"),
+		Env:           getEnv("ENV", "development"),
+		FMPAPIKey:     os.Getenv("FMP_API_KEY"),
+		PolygonAPIKey: os.Getenv("POLYGON_API_KEY"),
 	}
 
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
@@ -34,6 +36,10 @@ func Load() (*Config, error) {
 
 	if cfg.FMPAPIKey == "" {
 		return nil, fmt.Errorf("FMP_API_KEY environment variable is required")
+	}
+
+	if cfg.PolygonAPIKey == "" {
+		return nil, fmt.Errorf("POLYGON_API_KEY environment variable is required")
 	}
 
 	return cfg, nil

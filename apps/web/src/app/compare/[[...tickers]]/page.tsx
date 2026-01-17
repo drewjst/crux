@@ -81,7 +81,7 @@ function StockPicker({ onSelect, placeholder = 'Search ticker...' }: StockPicker
 
   useEffect(() => {
     setSelectedIndex(-1);
-    if (query.length >= 1) {
+    if (query.length >= 2) {
       setIsOpen(true);
     }
   }, [query]);
@@ -97,7 +97,7 @@ function StockPicker({ onSelect, placeholder = 'Search ticker...' }: StockPicker
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 1 && setIsOpen(true)}
+          onFocus={() => query.length >= 2 && setIsOpen(true)}
           className="pl-10 h-10"
         />
         {isLoading && (
@@ -119,7 +119,14 @@ function StockPicker({ onSelect, placeholder = 'Search ticker...' }: StockPicker
                     index === selectedIndex && 'bg-accent'
                   )}
                 >
-                  <span className="font-medium">{result.ticker}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{result.ticker}</span>
+                    {result.type === 'etf' && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+                        ETF
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-sm text-muted-foreground truncate ml-2 max-w-[150px]">
                     {result.name}
                   </span>

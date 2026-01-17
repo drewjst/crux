@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useSearch } from '@/hooks/use-search';
 import { cn } from '@/lib/utils';
 
@@ -78,7 +79,7 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
 
   useEffect(() => {
     setSelectedIndex(-1);
-    if (query.length >= 1) {
+    if (query.length >= 2) {
       setIsOpen(true);
     }
   }, [query]);
@@ -101,7 +102,7 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 1 && setIsOpen(true)}
+          onFocus={() => query.length >= 2 && setIsOpen(true)}
           autoFocus={autoFocus}
           className={cn(
             'pl-10 pr-24',
@@ -139,7 +140,14 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
                     index === selectedIndex && 'bg-accent'
                   )}
                 >
-                  <span className="font-medium">{result.ticker}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{result.ticker}</span>
+                    {result.type === 'etf' && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+                        ETF
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-sm text-muted-foreground truncate ml-2 max-w-[200px]">
                     {result.name}
                   </span>

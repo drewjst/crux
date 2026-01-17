@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -14,12 +15,12 @@ const (
 
 // SearchHandler handles ticker search requests.
 type SearchHandler struct {
-	index *search.Index
+	searcher *search.PolygonSearcher
 }
 
-// NewSearchHandler creates a new search handler with the given search index.
-func NewSearchHandler(index *search.Index) *SearchHandler {
-	return &SearchHandler{index: index}
+// NewSearchHandler creates a new search handler with the given Polygon searcher.
+func NewSearchHandler(searcher *search.PolygonSearcher) *SearchHandler {
+	return &SearchHandler{searcher: searcher}
 }
 
 // SearchResponse represents the search API response.
@@ -39,7 +40,12 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	limit := parseLimit(r.URL.Query().Get("limit"))
 
-	results := h.index.Search(query, limit)
+	results, err := h.searcher.Search(r.Context(), query, limit)
+	if err != nil {
+		slog.Error("search failed", "query", query, "error", err)
+		writeError(w, http.StatusInternalServerError, ErrCodeInternalError, "Search failed")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, SearchResponse{
 		Results: results,

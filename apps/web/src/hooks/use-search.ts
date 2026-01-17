@@ -21,15 +21,15 @@ export function useSearch() {
   const { data, isLoading, error } = useQuery<SearchResponse>({
     queryKey: ['search', debouncedQuery],
     queryFn: () => searchTickers(debouncedQuery),
-    enabled: debouncedQuery.length >= 1,
-    staleTime: 30 * 1000, // 30 seconds
+    enabled: debouncedQuery.length >= 2, // Require 2 chars to reduce noise
+    staleTime: 60 * 1000, // 1 minute cache
   });
 
   return {
     query,
     setQuery,
     results: data?.results || [],
-    isLoading: isLoading && debouncedQuery.length >= 1,
+    isLoading: isLoading && debouncedQuery.length >= 2,
     error,
   };
 }
