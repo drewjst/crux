@@ -127,10 +127,28 @@ func mapRatiosTTM(fmpRatios *RatiosTTM, fmpMetrics *KeyMetricsTTM) *models.Ratio
 		PB:         fmpRatios.PriceToBookRatioTTM,
 		PS:         fmpRatios.PriceToSalesRatioTTM,
 		PriceToFCF: fmpRatios.PriceToFreeCashFlowRatioTTM,
+
+		// Profitability (TTM) - FMP returns as decimals, convert to percentages
+		GrossMargin:     fmpRatios.GrossProfitMarginTTM * 100,
+		OperatingMargin: fmpRatios.OperatingProfitMarginTTM * 100,
+		NetMargin:       fmpRatios.NetProfitMarginTTM * 100,
+
+		// Efficiency (TTM)
+		AssetTurnover:     fmpRatios.AssetTurnoverTTM,
+		InventoryTurnover: fmpRatios.InventoryTurnoverTTM,
+
+		// Solvency (TTM)
+		DebtToEquity:     fmpRatios.DebtToEquityRatioTTM,
+		CurrentRatio:     fmpRatios.CurrentRatioTTM,
+		QuickRatio:       fmpRatios.QuickRatioTTM,
+		InterestCoverage: fmpRatios.InterestCoverageRatioTTM,
 	}
 
 	if fmpMetrics != nil {
 		ratios.EVToEBITDA = fmpMetrics.EVToEBITDATTM
+		ratios.ROA = fmpMetrics.ReturnOnAssetsTTM * 100
+		ratios.ROE = fmpMetrics.ReturnOnEquityTTM * 100
+		ratios.ROIC = fmpMetrics.ReturnOnInvestedCapitalTTM * 100
 	}
 
 	return ratios

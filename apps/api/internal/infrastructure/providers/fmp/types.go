@@ -234,14 +234,29 @@ type RatiosTTM struct {
 	PriceToSalesRatioTTM          float64 `json:"priceToSalesRatioTTM"`
 	PriceToFreeCashFlowRatioTTM   float64 `json:"priceToFreeCashFlowRatioTTM"`
 	DividendYieldTTM              float64 `json:"dividendYieldTTM"`
+	// Profitability
+	GrossProfitMarginTTM     float64 `json:"grossProfitMarginTTM"`
+	OperatingProfitMarginTTM float64 `json:"operatingProfitMarginTTM"`
+	NetProfitMarginTTM       float64 `json:"netProfitMarginTTM"`
+	// Efficiency
+	AssetTurnoverTTM     float64 `json:"assetTurnoverTTM"`
+	InventoryTurnoverTTM float64 `json:"inventoryTurnoverTTM"`
+	// Solvency
+	DebtToEquityRatioTTM  float64 `json:"debtToEquityRatioTTM"`
+	CurrentRatioTTM       float64 `json:"currentRatioTTM"`
+	QuickRatioTTM         float64 `json:"quickRatioTTM"`
+	InterestCoverageRatioTTM float64 `json:"interestCoverageTTM"`
 }
 
 // KeyMetricsTTM represents trailing twelve month key metrics from FMP API.
 type KeyMetricsTTM struct {
-	Symbol        string  `json:"symbol"`
-	EVToEBITDATTM float64 `json:"evToEBITDATTM"`
-	EVToSalesTTM  float64 `json:"evToSalesTTM"`
-	MarketCap     float64 `json:"marketCap"`
+	Symbol                      string  `json:"symbol"`
+	EVToEBITDATTM               float64 `json:"evToEBITDATTM"`
+	EVToSalesTTM                float64 `json:"evToSalesTTM"`
+	MarketCap                   float64 `json:"marketCap"`
+	ReturnOnAssetsTTM           float64 `json:"roaTTM"`
+	ReturnOnEquityTTM           float64 `json:"roeTTM"`
+	ReturnOnInvestedCapitalTTM  float64 `json:"roicTTM"`
 }
 
 // DCF represents the FMP discounted cash flow response.
