@@ -10,15 +10,31 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ETFHoldingsFallback provides ETF holdings data when FMP returns empty.
+// This is used to fall back to EODHD for ETF holdings (FMP requires premium tier).
+type ETFHoldingsFallback interface {
+	GetETFData(ctx context.Context, ticker string) (*models.ETFData, error)
+}
+
 // Provider implements the provider interfaces using FMP API.
 type Provider struct {
-	client *Client
+	client          *Client
+	etfHoldingsFallback ETFHoldingsFallback
 }
 
 // NewProvider creates a new FMP provider.
 func NewProvider(apiKey string) *Provider {
 	return &Provider{
 		client: NewClient(Config{APIKey: apiKey}),
+	}
+}
+
+// NewProviderWithFallback creates an FMP provider with an ETF holdings fallback.
+// The fallback is used when FMP returns empty holdings (requires premium tier).
+func NewProviderWithFallback(apiKey string, fallback ETFHoldingsFallback) *Provider {
+	return &Provider{
+		client:          NewClient(Config{APIKey: apiKey}),
+		etfHoldingsFallback: fallback,
 	}
 }
 
@@ -332,25 +348,45 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 		return nil, nil
 	}
 
-	// Log ETF data for debugging
-	slog.Info("FMP ETF data fetched",
-		"ticker", ticker,
-		"info.ExpenseRatio", info.ExpenseRatio,
-		"info.AssetsUnderManagement", info.AssetsUnderManagement,
-		"info.NAV", info.NAV,
-		"info.HoldingsCount", info.HoldingsCount,
-		"info.Domicile", info.Domicile,
-		"info.AvgVolume", info.AvgVolume,
-		"info.InceptionDate", info.InceptionDate,
-		"info.Website", info.Website,
-		"info.ETFCompany", info.ETFCompany,
-		"holdingsArrayLen", len(holdings),
-		"profileBeta", func() float64 { if profile != nil { return profile.Beta }; return 0 }(),
-		"profileVolAvg", func() float64 { if profile != nil { return profile.VolAvg }; return 0 }(),
-		"profileMarketCap", func() float64 { if profile != nil { return profile.MarketCap }; return 0 }(),
-	)
+	// Build base ETF data from FMP
+	etfData := mapETFData(info, holdings, sectors, profile)
 
-	return mapETFData(info, holdings, sectors, profile), nil
+	// If FMP returned empty holdings and we have a fallback, use it
+	if len(holdings) == 0 && p.etfHoldingsFallback != nil {
+		slog.Info("FMP ETF holdings empty, using fallback provider", "ticker", ticker)
+		fallbackData, err := p.etfHoldingsFallback.GetETFData(ctx, ticker)
+		if err != nil {
+			slog.Warn("ETF holdings fallback failed", "ticker", ticker, "error", err)
+		} else if fallbackData != nil {
+			// Merge fallback holdings into FMP data
+			etfData.Holdings = fallbackData.Holdings
+			etfData.HoldingsCount = fallbackData.HoldingsCount
+			// Also use fallback sector weights if FMP returned empty
+			if len(sectors) == 0 && len(fallbackData.SectorWeights) > 0 {
+				etfData.SectorWeights = fallbackData.SectorWeights
+			}
+			// Use fallback regions and market cap breakdown if available
+			if len(etfData.Regions) == 0 && len(fallbackData.Regions) > 0 {
+				etfData.Regions = fallbackData.Regions
+			}
+			if etfData.MarketCapBreakdown == nil && fallbackData.MarketCapBreakdown != nil {
+				etfData.MarketCapBreakdown = fallbackData.MarketCapBreakdown
+			}
+			if etfData.Valuations == nil && fallbackData.Valuations != nil {
+				etfData.Valuations = fallbackData.Valuations
+			}
+			if etfData.Performance == nil && fallbackData.Performance != nil {
+				etfData.Performance = fallbackData.Performance
+			}
+			slog.Info("ETF holdings merged from fallback",
+				"ticker", ticker,
+				"holdingsCount", len(etfData.Holdings),
+				"sectorWeightsCount", len(etfData.SectorWeights),
+			)
+		}
+	}
+
+	return etfData, nil
 }
 
 // GetAnalystEstimates implements FundamentalsProvider.

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -241,8 +242,9 @@ func (c *Client) GetETFInfo(ctx context.Context, ticker string) (*ETFInfo, error
 }
 
 // GetETFHoldings retrieves top holdings of an ETF.
+// Note: This endpoint requires a premium FMP subscription tier.
 func (c *Client) GetETFHoldings(ctx context.Context, ticker string) ([]ETFHolding, error) {
-	url := fmt.Sprintf("%s/etf/holder?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+	url := fmt.Sprintf("%s/etf/holdings?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
 
 	var holdings []ETFHolding
 	if err := c.get(ctx, url, &holdings); err != nil {
@@ -340,7 +342,13 @@ func (c *Client) get(ctx context.Context, url string, dest any) error {
 		return fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+	// Read body for debugging
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if err := json.Unmarshal(body, dest); err != nil {
 		return fmt.Errorf("decoding response: %w", err)
 	}
 
