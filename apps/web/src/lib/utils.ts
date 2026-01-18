@@ -58,3 +58,29 @@ export function formatRelativeTime(date: string | Date): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return formatDate(date);
 }
+
+// eslint-disable-next-line
+export function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  wait: number
+): T & { cancel: () => void } {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<T>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return debounced as T & { cancel: () => void };
+}

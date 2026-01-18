@@ -52,3 +52,8 @@ apps/api/api
 tmp/
 temp/
 .cache/
+
+# Package Managers
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
