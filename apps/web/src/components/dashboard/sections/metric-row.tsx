@@ -40,6 +40,10 @@ function formatValue(value: number | null | undefined, format: MetricFormat): st
       const sign = value > 0 && Math.abs(value) > 0.001 ? '+' : '';
       return `${sign}${pctValue.toFixed(2)}%`;
     case 'ratio':
+      // For ratios like P/E, PEG, EV/EBITDA, 0 or negative means N/A (e.g., unprofitable companies)
+      if (value <= 0) {
+        return '--';
+      }
       return value.toFixed(2);
     case 'currency':
       if (Math.abs(value) >= 1e12) {
