@@ -1,7 +1,6 @@
 package fmp
 
 import (
-	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -118,12 +117,6 @@ func mapRatios(fmpRatios *Ratios, fmpMetrics *KeyMetrics) *models.Ratios {
 
 // mapRatiosTTM converts FMP TTM ratios and metrics to internal Ratios model.
 func mapRatiosTTM(fmpRatios *RatiosTTM, fmpMetrics *KeyMetricsTTM) *models.Ratios {
-	slog.Info("mapRatiosTTM called",
-		"symbol", fmpRatios.Symbol,
-		"inputPriceToFCF", fmpRatios.PriceToFreeCashFlowRatioTTM,
-		"inputPE", fmpRatios.PriceToEarningsRatioTTM,
-	)
-
 	ratios := &models.Ratios{
 		Ticker: fmpRatios.Symbol,
 		AsOf:   time.Now(),

@@ -383,13 +383,6 @@ func (s *Service) buildResponseFromProviders(
 	financials := convertFinancialsFromRatios(ratios)
 
 	// Build valuation
-	if ratios != nil {
-		slog.Info("service building valuation",
-			"ticker", company.Ticker,
-			"ratios.PriceToFCF", ratios.PriceToFCF,
-			"ratios.PE", ratios.PE,
-		)
-	}
 	valuation := convertValuationFromRatios(ratios, company.Sector)
 
 	// Calculate sector metrics
