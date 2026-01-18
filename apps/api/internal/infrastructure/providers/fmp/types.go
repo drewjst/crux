@@ -270,18 +270,19 @@ type DCF struct {
 // ETFInfo represents the FMP ETF information response.
 // From GET /stable/etf/info?symbol={ticker}
 type ETFInfo struct {
-	Symbol        string  `json:"symbol"`
-	Name          string  `json:"name"`
-	ExpenseRatio  float64 `json:"expenseRatio"`
-	AUM           float64 `json:"aum"`
-	NetAssets     float64 `json:"netAssets"`
-	NAV           float64 `json:"nav"`
-	InceptionDate string  `json:"inceptionDate"`
-	Domicile      string  `json:"domicile"`
-	Description   string  `json:"description"`
-	AssetClass    string  `json:"assetClass"`
-	Exchange      string  `json:"exchange"`
-	AvgVolume     int64   `json:"avgVolume"`
+	Symbol                 string  `json:"symbol"`
+	Name                   string  `json:"name"`
+	ExpenseRatio           float64 `json:"expenseRatio"`           // Already as decimal (0.0945 = 9.45%)
+	AssetsUnderManagement  float64 `json:"assetsUnderManagement"`  // AUM in USD
+	NAV                    float64 `json:"nav"`
+	HoldingsCount          int     `json:"holdingsCount"`
+	AvgVolume              int64   `json:"avgVolume"`
+	InceptionDate          string  `json:"inceptionDate"`
+	Domicile               string  `json:"domicile"`
+	Website                string  `json:"website"`
+	ETFCompany             string  `json:"etfCompany"`
+	Description            string  `json:"description"`
+	AssetClass             string  `json:"assetClass"`
 }
 
 // ETFHolding represents a single holding in an ETF.

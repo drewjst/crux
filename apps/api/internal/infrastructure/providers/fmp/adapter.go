@@ -257,11 +257,8 @@ func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighti
 		})
 	}
 
-	// Determine AUM: prefer netAssets, fall back to aum, then MarketCap from profile
-	aum := int64(info.NetAssets)
-	if aum == 0 {
-		aum = int64(info.AUM)
-	}
+	// AUM from ETF info, fall back to profile MarketCap
+	aum := int64(info.AssetsUnderManagement)
 	if aum == 0 && profile != nil {
 		aum = int64(profile.MarketCap)
 	}
@@ -278,15 +275,23 @@ func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighti
 		avgVolume = int64(profile.VolAvg)
 	}
 
+	// Use holdingsCount from API if available, otherwise count from holdings array
+	holdingsCount := info.HoldingsCount
+	if holdingsCount == 0 {
+		holdingsCount = len(holdings)
+	}
+
 	return &models.ETFData{
-		ExpenseRatio:  info.ExpenseRatio * 100, // Convert to percentage (0.0009 -> 0.09)
+		ExpenseRatio:  info.ExpenseRatio * 100, // Convert to percentage (0.0945 -> 9.45)
 		AUM:           aum,
 		NAV:           info.NAV,
 		AvgVolume:     avgVolume,
 		Beta:          beta,
-		HoldingsCount: len(holdings),
+		HoldingsCount: holdingsCount,
 		Domicile:      info.Domicile,
 		InceptionDate: info.InceptionDate,
+		Website:       info.Website,
+		ETFCompany:    info.ETFCompany,
 		Holdings:      modelHoldings,
 		SectorWeights: sectorWeights,
 	}

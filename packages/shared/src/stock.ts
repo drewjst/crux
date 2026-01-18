@@ -648,7 +648,7 @@ export interface ETFPerformance {
  * ETF-specific data not applicable to individual stocks.
  */
 export interface ETFData {
-  /** Annual expense ratio as percentage (e.g., 0.09 for 0.09%) */
+  /** Annual expense ratio as percentage (e.g., 9.45 for 9.45%) */
   expenseRatio: number;
   /** Assets under management / Net assets in USD */
   aum: number;
@@ -664,6 +664,10 @@ export interface ETFData {
   domicile: string;
   /** Fund inception date (ISO 8601) */
   inceptionDate: string;
+  /** Link to fund provider website */
+  website?: string;
+  /** Fund company name (e.g., "SPDR", "Vanguard") */
+  etfCompany?: string;
   /** Top holdings by weight */
   holdings: ETFHolding[];
   /** Sector allocation breakdown */

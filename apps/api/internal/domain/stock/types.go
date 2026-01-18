@@ -254,6 +254,8 @@ type ETFData struct {
 	HoldingsCount      int                `json:"holdingsCount"`
 	Domicile           string             `json:"domicile"`
 	InceptionDate      string             `json:"inceptionDate"`
+	Website            string             `json:"website,omitempty"`
+	ETFCompany         string             `json:"etfCompany,omitempty"`
 	Holdings           []ETFHolding       `json:"holdings"`
 	SectorWeights      []ETFSectorWeight  `json:"sectorWeights"`
 	Regions            []ETFRegionWeight  `json:"regions,omitempty"`

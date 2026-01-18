@@ -11,6 +11,8 @@ type ETFData struct {
 	HoldingsCount      int
 	Domicile           string
 	InceptionDate      string
+	Website            string // Link to fund provider
+	ETFCompany         string // Fund company name (e.g., "SPDR", "Vanguard")
 	Holdings           []ETFHolding
 	SectorWeights      []ETFSectorWeight
 	Regions            []ETFRegionWeight

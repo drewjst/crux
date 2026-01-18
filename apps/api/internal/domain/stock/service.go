@@ -550,6 +550,8 @@ func convertETFDataFromModel(m *models.ETFData) *ETFData {
 		HoldingsCount:      m.HoldingsCount,
 		Domicile:           m.Domicile,
 		InceptionDate:      m.InceptionDate,
+		Website:            m.Website,
+		ETFCompany:         m.ETFCompany,
 		Holdings:           holdings,
 		SectorWeights:      sectorWeights,
 		Regions:            regions,

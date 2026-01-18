@@ -328,6 +328,22 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 		return nil, nil
 	}
 
+	// Debug log ETF data
+	slog.Debug("ETF data fetched",
+		"ticker", ticker,
+		"info.ExpenseRatio", info.ExpenseRatio,
+		"info.AssetsUnderManagement", info.AssetsUnderManagement,
+		"info.NAV", info.NAV,
+		"info.HoldingsCount", info.HoldingsCount,
+		"info.Domicile", info.Domicile,
+		"info.AvgVolume", info.AvgVolume,
+		"info.InceptionDate", info.InceptionDate,
+		"holdingsArrayLen", len(holdings),
+		"profileBeta", func() float64 { if profile != nil { return profile.Beta }; return 0 }(),
+		"profileVolAvg", func() float64 { if profile != nil { return profile.VolAvg }; return 0 }(),
+		"profileMarketCap", func() float64 { if profile != nil { return profile.MarketCap }; return 0 }(),
+	)
+
 	return mapETFData(info, holdings, sectors, profile), nil
 }
 
