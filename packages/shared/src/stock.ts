@@ -671,6 +671,63 @@ export interface ETFData {
 }
 
 // =============================================================================
+// Analyst Estimates
+// =============================================================================
+
+/**
+ * Analyst estimates, ratings, and price targets.
+ *
+ * This data is primarily available when using the FMP provider.
+ * Contains Wall Street analyst consensus data for buy/sell ratings,
+ * price targets, and EPS/revenue forecasts.
+ */
+export interface AnalystEstimates {
+  // Consensus Rating
+  /** Consensus rating label (e.g., "Strong Buy", "Buy", "Hold", "Sell", "Strong Sell") */
+  rating: string;
+  /** Rating score from 1.0 (Strong Sell) to 5.0 (Strong Buy) */
+  ratingScore: number;
+  /** Total number of analysts covering this stock */
+  analystCount: number;
+  /** Number of Strong Buy ratings */
+  strongBuyCount: number;
+  /** Number of Buy ratings */
+  buyCount: number;
+  /** Number of Hold ratings */
+  holdCount: number;
+  /** Number of Sell ratings */
+  sellCount: number;
+  /** Number of Strong Sell ratings */
+  strongSellCount: number;
+
+  // Price Targets
+  /** Highest analyst price target */
+  priceTargetHigh: number;
+  /** Lowest analyst price target */
+  priceTargetLow: number;
+  /** Average (consensus) price target */
+  priceTargetAverage: number;
+  /** Median price target */
+  priceTargetMedian?: number;
+
+  // EPS Estimates
+  /** Estimated EPS for current fiscal year */
+  epsEstimateCurrentYear: number;
+  /** Estimated EPS for next fiscal year */
+  epsEstimateNextYear: number;
+  /** Projected EPS growth percentage (next year vs current year) */
+  epsGrowthNextYear: number;
+
+  // Revenue Estimates
+  /** Estimated revenue for current fiscal year */
+  revenueEstimateCurrentYear: number;
+  /** Estimated revenue for next fiscal year */
+  revenueEstimateNextYear: number;
+  /** Projected revenue growth percentage (next year vs current year) */
+  revenueGrowthNextYear: number;
+}
+
+// =============================================================================
 // API Response
 // =============================================================================
 
@@ -716,6 +773,8 @@ export interface StockDetailResponse {
   growth?: Growth;
   /** Earnings quality metrics with sector comparisons (only for stocks) */
   earningsQuality?: EarningsQuality;
+  /** Analyst estimates, ratings, and price targets (only for stocks, primarily FMP provider) */
+  analystEstimates?: AnalystEstimates;
   /** ETF-specific data (only for ETFs) */
   etfData?: ETFData;
   /** Data freshness timestamps */

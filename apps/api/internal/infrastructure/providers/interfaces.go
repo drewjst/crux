@@ -19,6 +19,9 @@ type FundamentalsProvider interface {
 	GetTechnicalMetrics(ctx context.Context, ticker string) (*models.TechnicalMetrics, error)
 	GetShortInterest(ctx context.Context, ticker string) (*models.ShortInterest, error)
 
+	// Analyst estimates (FMP provides this, EODHD returns nil)
+	GetAnalystEstimates(ctx context.Context, ticker string) (*models.AnalystEstimates, error)
+
 	// ETF-specific methods
 	IsETF(ctx context.Context, ticker string) (bool, error)
 	GetETFData(ctx context.Context, ticker string) (*models.ETFData, error)

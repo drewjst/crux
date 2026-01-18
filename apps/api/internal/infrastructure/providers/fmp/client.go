@@ -278,6 +278,47 @@ func (c *Client) GetInstitutionalHolders(ctx context.Context, ticker string, yea
 	return holders, nil
 }
 
+// GetAnalystRecommendations retrieves analyst buy/hold/sell ratings.
+func (c *Client) GetAnalystRecommendations(ctx context.Context, ticker string) ([]AnalystRecommendation, error) {
+	url := fmt.Sprintf("%s/analyst-stock-recommendations?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var recommendations []AnalystRecommendation
+	if err := c.get(ctx, url, &recommendations); err != nil {
+		return nil, fmt.Errorf("fetching analyst recommendations: %w", err)
+	}
+
+	return recommendations, nil
+}
+
+// GetPriceTargetConsensus retrieves analyst price target consensus.
+func (c *Client) GetPriceTargetConsensus(ctx context.Context, ticker string) (*PriceTargetConsensus, error) {
+	url := fmt.Sprintf("%s/price-target-consensus?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var targets []PriceTargetConsensus
+	if err := c.get(ctx, url, &targets); err != nil {
+		return nil, fmt.Errorf("fetching price target consensus: %w", err)
+	}
+
+	if len(targets) == 0 {
+		return nil, nil
+	}
+
+	return &targets[0], nil
+}
+
+// GetAnalystEstimates retrieves EPS and revenue estimates.
+func (c *Client) GetAnalystEstimates(ctx context.Context, ticker string, period string, limit int) ([]AnalystEstimate, error) {
+	url := fmt.Sprintf("%s/analyst-estimates?symbol=%s&period=%s&limit=%d&apikey=%s",
+		c.baseURL, ticker, period, limit, c.apiKey)
+
+	var estimates []AnalystEstimate
+	if err := c.get(ctx, url, &estimates); err != nil {
+		return nil, fmt.Errorf("fetching analyst estimates: %w", err)
+	}
+
+	return estimates, nil
+}
+
 // get makes an HTTP GET request and unmarshals the response.
 func (c *Client) get(ctx context.Context, url string, dest any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

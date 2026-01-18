@@ -257,3 +257,33 @@ type ETFData struct {
 	Valuations         *ETFValuations     `json:"valuations,omitempty"`
 	Performance        *ETFPerformance    `json:"performance,omitempty"`
 }
+
+// AnalystEstimates contains analyst ratings, price targets, and EPS/revenue estimates.
+// This data is primarily available when using the FMP provider.
+type AnalystEstimates struct {
+	// Consensus Rating
+	Rating          string  `json:"rating"`
+	RatingScore     float64 `json:"ratingScore"`
+	AnalystCount    int     `json:"analystCount"`
+	StrongBuyCount  int     `json:"strongBuyCount"`
+	BuyCount        int     `json:"buyCount"`
+	HoldCount       int     `json:"holdCount"`
+	SellCount       int     `json:"sellCount"`
+	StrongSellCount int     `json:"strongSellCount"`
+
+	// Price Targets
+	PriceTargetHigh    float64 `json:"priceTargetHigh"`
+	PriceTargetLow     float64 `json:"priceTargetLow"`
+	PriceTargetAverage float64 `json:"priceTargetAverage"`
+	PriceTargetMedian  float64 `json:"priceTargetMedian,omitempty"`
+
+	// EPS Estimates
+	EPSEstimateCurrentY float64 `json:"epsEstimateCurrentYear"`
+	EPSEstimateNextY    float64 `json:"epsEstimateNextYear"`
+	EPSGrowthNextY      float64 `json:"epsGrowthNextYear"`
+
+	// Revenue Estimates
+	RevenueEstimateCurrentY float64 `json:"revenueEstimateCurrentYear"`
+	RevenueEstimateNextY    float64 `json:"revenueEstimateNextYear"`
+	RevenueGrowthNextY      float64 `json:"revenueGrowthNextYear"`
+}

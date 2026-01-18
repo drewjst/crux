@@ -225,3 +225,114 @@ func parseYear(date string) (int, error) {
 	}
 	return strconv.Atoi(parts[0])
 }
+
+// mapETFData converts FMP ETF data to internal ETFData model.
+func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighting) *models.ETFData {
+	if info == nil {
+		return nil
+	}
+
+	// Map holdings (top 10)
+	modelHoldings := make([]models.ETFHolding, 0, len(holdings))
+	for i, h := range holdings {
+		if i >= 10 {
+			break
+		}
+		modelHoldings = append(modelHoldings, models.ETFHolding{
+			Ticker:        h.Asset,
+			Name:          h.Name,
+			WeightPercent: h.WeightPercentage,
+		})
+	}
+
+	// Map sector weights
+	sectorWeights := make([]models.ETFSectorWeight, 0, len(sectors))
+	for _, s := range sectors {
+		// FMP returns weight as string like "15.23%", parse it
+		weightStr := strings.TrimSuffix(s.WeightPercentage, "%")
+		weight, _ := strconv.ParseFloat(weightStr, 64)
+		sectorWeights = append(sectorWeights, models.ETFSectorWeight{
+			Sector:        s.Sector,
+			WeightPercent: weight,
+		})
+	}
+
+	return &models.ETFData{
+		ExpenseRatio:  info.ExpenseRatio,
+		AUM:           int64(info.AUM),
+		InceptionDate: info.InceptionDate,
+		Holdings:      modelHoldings,
+		SectorWeights: sectorWeights,
+	}
+}
+
+// mapAnalystEstimates converts FMP analyst data to internal AnalystEstimates model.
+func mapAnalystEstimates(ticker string, recs []AnalystRecommendation, targets *PriceTargetConsensus, estimates []AnalystEstimate) *models.AnalystEstimates {
+	result := &models.AnalystEstimates{
+		Ticker: ticker,
+		AsOf:   time.Now(),
+	}
+
+	// Map recommendations (most recent)
+	if len(recs) > 0 {
+		rec := recs[0]
+		result.StrongBuyCount = rec.AnalystRatingsStrongBuy
+		result.BuyCount = rec.AnalystRatingsBuy
+		result.HoldCount = rec.AnalystRatingsHold
+		result.SellCount = rec.AnalystRatingsSell
+		result.StrongSellCount = rec.AnalystRatingsStrongSell
+
+		result.AnalystCount = rec.AnalystRatingsStrongBuy + rec.AnalystRatingsBuy +
+			rec.AnalystRatingsHold + rec.AnalystRatingsSell + rec.AnalystRatingsStrongSell
+
+		// Calculate rating score (weighted average: Strong Buy=5, Buy=4, Hold=3, Sell=2, Strong Sell=1)
+		if result.AnalystCount > 0 {
+			total := float64(rec.AnalystRatingsStrongBuy*5 + rec.AnalystRatingsBuy*4 +
+				rec.AnalystRatingsHold*3 + rec.AnalystRatingsSell*2 + rec.AnalystRatingsStrongSell*1)
+			result.RatingScore = total / float64(result.AnalystCount)
+
+			// Determine consensus rating based on score
+			switch {
+			case result.RatingScore >= 4.5:
+				result.Rating = "Strong Buy"
+			case result.RatingScore >= 3.5:
+				result.Rating = "Buy"
+			case result.RatingScore >= 2.5:
+				result.Rating = "Hold"
+			case result.RatingScore >= 1.5:
+				result.Rating = "Sell"
+			default:
+				result.Rating = "Strong Sell"
+			}
+		}
+	}
+
+	// Map price targets
+	if targets != nil {
+		result.PriceTargetHigh = targets.TargetHigh
+		result.PriceTargetLow = targets.TargetLow
+		result.PriceTargetAverage = targets.TargetConsensus
+		result.PriceTargetMedian = targets.TargetMedian
+	}
+
+	// Map estimates (find current and next year)
+	// FMP returns estimates sorted by date, most recent first
+	if len(estimates) >= 1 {
+		result.EPSEstimateCurrentY = estimates[0].EstimatedEpsAvg
+		result.RevenueEstimateCurrentY = estimates[0].EstimatedRevenueAvg
+	}
+	if len(estimates) >= 2 {
+		result.EPSEstimateNextY = estimates[1].EstimatedEpsAvg
+		result.RevenueEstimateNextY = estimates[1].EstimatedRevenueAvg
+
+		// Calculate growth rates
+		if result.EPSEstimateCurrentY != 0 {
+			result.EPSGrowthNextY = ((result.EPSEstimateNextY - result.EPSEstimateCurrentY) / result.EPSEstimateCurrentY) * 100
+		}
+		if result.RevenueEstimateCurrentY != 0 {
+			result.RevenueGrowthNextY = ((result.RevenueEstimateNextY - result.RevenueEstimateCurrentY) / result.RevenueEstimateCurrentY) * 100
+		}
+	}
+
+	return result
+}

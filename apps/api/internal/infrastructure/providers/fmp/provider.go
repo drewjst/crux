@@ -3,9 +3,11 @@ package fmp
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"golang.org/x/sync/errgroup"
 )
 
 // Provider implements the provider interfaces using FMP API.
@@ -222,11 +224,34 @@ func (p *Provider) GetIndustryAverages(ctx context.Context, industry string) (*m
 }
 
 // GetTechnicalMetrics implements FundamentalsProvider.
-// Note: FMP doesn't provide this data in the same format. Returns nil.
+// Extracts technical metrics from Quote (MA50, MA200) and CompanyProfile (Beta).
 func (p *Provider) GetTechnicalMetrics(ctx context.Context, ticker string) (*models.TechnicalMetrics, error) {
-	// FMP doesn't have a dedicated technical metrics endpoint that matches our model.
-	// Future: could fetch from FMP's technical indicator endpoints if needed.
-	return nil, nil
+	// Get quote for moving averages
+	quote, err := p.client.GetQuote(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching quote for technical metrics: %w", err)
+	}
+	if quote == nil {
+		return nil, nil
+	}
+
+	// Get company profile for beta
+	profile, err := p.client.GetCompanyProfile(ctx, ticker)
+	if err != nil {
+		slog.Warn("failed to fetch profile for beta", "ticker", ticker, "error", err)
+	}
+
+	beta := 0.0
+	if profile != nil {
+		beta = profile.Beta
+	}
+
+	return &models.TechnicalMetrics{
+		Ticker:   ticker,
+		Beta:     beta,
+		MA50Day:  quote.PriceAvg50,
+		MA200Day: quote.PriceAvg200,
+	}, nil
 }
 
 // GetShortInterest implements FundamentalsProvider.
@@ -237,18 +262,111 @@ func (p *Provider) GetShortInterest(ctx context.Context, ticker string) (*models
 }
 
 // IsETF implements FundamentalsProvider.
-// Note: FMP has limited ETF support. This implementation returns false.
+// Checks if the ticker is an ETF by attempting to fetch ETF info.
 func (p *Provider) IsETF(ctx context.Context, ticker string) (bool, error) {
-	// FMP doesn't provide ETF detection in the same way as EODHD.
-	// Return false to indicate non-ETF (stock path will be used).
-	return false, nil
+	info, err := p.client.GetETFInfo(ctx, ticker)
+	if err != nil {
+		// Not an error - just means it's likely not an ETF or API issue
+		slog.Debug("ETF info check failed", "ticker", ticker, "error", err)
+		return false, nil
+	}
+	return info != nil && info.Symbol != "", nil
 }
 
 // GetETFData implements FundamentalsProvider.
-// Note: FMP doesn't provide ETF-specific data. Returns nil.
+// Fetches ETF info, holdings, and sector weightings from FMP.
 func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFData, error) {
-	// FMP doesn't have ETF-specific data in the format we need.
-	return nil, nil
+	var info *ETFInfo
+	var holdings []ETFHolding
+	var sectors []ETFSectorWeighting
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		info, err = p.client.GetETFInfo(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch ETF info", "ticker", ticker, "error", err)
+		}
+		return nil // Don't fail the group on individual errors
+	})
+
+	g.Go(func() error {
+		var err error
+		holdings, err = p.client.GetETFHoldings(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch ETF holdings", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		sectors, err = p.client.GetETFSectorWeightings(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch ETF sector weightings", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("fetching ETF data: %w", err)
+	}
+
+	// If no ETF info, this isn't an ETF
+	if info == nil {
+		return nil, nil
+	}
+
+	return mapETFData(info, holdings, sectors), nil
+}
+
+// GetAnalystEstimates implements FundamentalsProvider.
+// Fetches analyst ratings, price targets, and EPS/revenue estimates from FMP.
+func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*models.AnalystEstimates, error) {
+	var recs []AnalystRecommendation
+	var targets *PriceTargetConsensus
+	var estimates []AnalystEstimate
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		recs, err = p.client.GetAnalystRecommendations(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch analyst recommendations", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		targets, err = p.client.GetPriceTargetConsensus(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch price targets", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		estimates, err = p.client.GetAnalystEstimates(gctx, ticker, "annual", 4)
+		if err != nil {
+			slog.Debug("failed to fetch analyst estimates", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("fetching analyst estimates: %w", err)
+	}
+
+	// If no data at all, return nil
+	if len(recs) == 0 && targets == nil && len(estimates) == 0 {
+		return nil, nil
+	}
+
+	return mapAnalystEstimates(ticker, recs, targets, estimates), nil
 }
 
 // getMostRecentFilingQuarter returns the most recent quarter with complete 13F filings.

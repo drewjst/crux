@@ -244,3 +244,10 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 	}
 	return mapETFData(fundamentals.ETFData), nil
 }
+
+// GetAnalystEstimates returns analyst estimates and ratings.
+// EODHD has limited analyst data, so this returns nil.
+// Use FMP provider for analyst estimates.
+func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*models.AnalystEstimates, error) {
+	return nil, nil
+}

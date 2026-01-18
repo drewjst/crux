@@ -32,14 +32,15 @@ type FullProvider interface {
 }
 
 // NewFullProvider creates a provider that implements all interfaces.
+// Defaults to FMP provider if no provider is specified.
 func NewFullProvider(cfg Config) (FullProvider, error) {
 	switch cfg.Provider {
-	case ProviderTypeFMP:
+	case ProviderTypeFMP, "":
 		if cfg.FMPAPIKey == "" {
 			return nil, fmt.Errorf("FMP_API_KEY is required when using FMP provider")
 		}
 		return fmp.NewProvider(cfg.FMPAPIKey), nil
-	case ProviderTypeEODHD, "":
+	case ProviderTypeEODHD:
 		if cfg.EODHDAPIKey == "" {
 			return nil, fmt.Errorf("EODHD_API_KEY is required when using EODHD provider")
 		}
@@ -50,14 +51,14 @@ func NewFullProvider(cfg Config) (FullProvider, error) {
 }
 
 // ParseProviderType converts a string to ProviderType.
-// Defaults to EODHD if empty or unrecognized.
+// Defaults to FMP if empty or unrecognized.
 func ParseProviderType(s string) ProviderType {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "fmp":
+	case "fmp", "":
 		return ProviderTypeFMP
-	case "eodhd", "":
+	case "eodhd":
 		return ProviderTypeEODHD
 	default:
-		return ProviderTypeEODHD
+		return ProviderTypeFMP
 	}
 }

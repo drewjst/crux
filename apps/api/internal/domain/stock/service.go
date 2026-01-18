@@ -125,6 +125,7 @@ type StockDetailResponse struct {
 	EarningsQuality  *EarningsQuality  `json:"earningsQuality,omitempty"`
 	TechnicalMetrics *TechnicalMetrics `json:"technicalMetrics,omitempty"`
 	ShortInterest    *ShortInterest    `json:"shortInterest,omitempty"`
+	AnalystEstimates *AnalystEstimates `json:"analystEstimates,omitempty"`
 	ETFData          *ETFData          `json:"etfData,omitempty"`
 	Meta             DataMeta          `json:"meta"`
 }
@@ -219,6 +220,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		dcf              *models.DCF
 		technicalMetrics *models.TechnicalMetrics
 		shortInterest    *models.ShortInterest
+		analystEstimates *models.AnalystEstimates
 		etfData          *models.ETFData
 	)
 
@@ -318,6 +320,15 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		return nil
 	})
 
+	g.Go(func() error {
+		var err error
+		analystEstimates, err = s.fundamentals.GetAnalystEstimates(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch analyst estimates", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
 	// Fetch ETF data (will be nil for non-ETFs)
 	g.Go(func() error {
 		var err error
@@ -338,7 +349,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 	}
 
 	// Build stock response from fetched data
-	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, trades, prices, dcf, technicalMetrics, shortInterest), nil
+	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, trades, prices, dcf, technicalMetrics, shortInterest, analystEstimates), nil
 }
 
 // buildResponseFromProviders constructs the response from provider data.
@@ -353,6 +364,7 @@ func (s *Service) buildResponseFromProviders(
 	dcf *models.DCF,
 	technicalMetrics *models.TechnicalMetrics,
 	shortInterest *models.ShortInterest,
+	analystEstimates *models.AnalystEstimates,
 ) *StockDetailResponse {
 	// Convert provider models to domain types
 	domainCompany := convertCompanyFromModel(company)
@@ -415,6 +427,7 @@ func (s *Service) buildResponseFromProviders(
 		EarningsQuality:  earningsQuality,
 		TechnicalMetrics: convertTechnicalMetricsFromModel(technicalMetrics),
 		ShortInterest:    convertShortInterestFromModel(shortInterest),
+		AnalystEstimates: convertAnalystEstimatesFromModel(analystEstimates),
 		Meta: DataMeta{
 			FundamentalsAsOf: fundamentalsDate,
 			HoldingsAsOf:     "Latest 13F",
@@ -666,6 +679,32 @@ func convertShortInterestFromModel(m *models.ShortInterest) *ShortInterest {
 		ShortRatio:            m.ShortRatio,
 		ShortPercentFloat:     m.ShortPercentFloat,
 		ShortPercentShares:    m.ShortPercentShares,
+	}
+}
+
+func convertAnalystEstimatesFromModel(m *models.AnalystEstimates) *AnalystEstimates {
+	if m == nil {
+		return nil
+	}
+	return &AnalystEstimates{
+		Rating:                  m.Rating,
+		RatingScore:             m.RatingScore,
+		AnalystCount:            m.AnalystCount,
+		StrongBuyCount:          m.StrongBuyCount,
+		BuyCount:                m.BuyCount,
+		HoldCount:               m.HoldCount,
+		SellCount:               m.SellCount,
+		StrongSellCount:         m.StrongSellCount,
+		PriceTargetHigh:         m.PriceTargetHigh,
+		PriceTargetLow:          m.PriceTargetLow,
+		PriceTargetAverage:      m.PriceTargetAverage,
+		PriceTargetMedian:       m.PriceTargetMedian,
+		EPSEstimateCurrentY:     m.EPSEstimateCurrentY,
+		EPSEstimateNextY:        m.EPSEstimateNextY,
+		EPSGrowthNextY:          m.EPSGrowthNextY,
+		RevenueEstimateCurrentY: m.RevenueEstimateCurrentY,
+		RevenueEstimateNextY:    m.RevenueEstimateNextY,
+		RevenueGrowthNextY:      m.RevenueGrowthNextY,
 	}
 }
 

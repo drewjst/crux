@@ -311,3 +311,41 @@ type InstitutionalOwnershipHolder struct {
 	OwnershipPercent   float64 `json:"ownershipPercent,omitempty"`
 	LastOwnershipRatio float64 `json:"lastOwnershipRatio,omitempty"`
 }
+
+// =============================================================================
+// Analyst Estimates Types
+// =============================================================================
+
+// AnalystRecommendation represents FMP analyst recommendation response.
+type AnalystRecommendation struct {
+	Symbol                   string `json:"symbol"`
+	Date                     string `json:"date"`
+	AnalystRatingsBuy        int    `json:"analystRatingsbuy"`
+	AnalystRatingsHold       int    `json:"analystRatingsHold"`
+	AnalystRatingsSell       int    `json:"analystRatingsSell"`
+	AnalystRatingsStrongBuy  int    `json:"analystRatingsStrongBuy"`
+	AnalystRatingsStrongSell int    `json:"analystRatingsStrongSell"`
+}
+
+// PriceTargetConsensus represents FMP price target consensus response.
+type PriceTargetConsensus struct {
+	Symbol          string  `json:"symbol"`
+	TargetHigh      float64 `json:"targetHigh"`
+	TargetLow       float64 `json:"targetLow"`
+	TargetConsensus float64 `json:"targetConsensus"`
+	TargetMedian    float64 `json:"targetMedian"`
+}
+
+// AnalystEstimate represents FMP analyst estimates response for EPS and revenue.
+type AnalystEstimate struct {
+	Symbol                        string  `json:"symbol"`
+	Date                          string  `json:"date"`
+	EstimatedRevenueAvg           float64 `json:"estimatedRevenueAvg"`
+	EstimatedRevenueLow           float64 `json:"estimatedRevenueLow"`
+	EstimatedRevenueHigh          float64 `json:"estimatedRevenueHigh"`
+	EstimatedEpsAvg               float64 `json:"estimatedEpsAvg"`
+	EstimatedEpsLow               float64 `json:"estimatedEpsLow"`
+	EstimatedEpsHigh              float64 `json:"estimatedEpsHigh"`
+	NumberAnalystEstimatedRevenue int     `json:"numberAnalystEstimatedRevenue"`
+	NumberAnalystsEstimatedEps    int     `json:"numberAnalystsEstimatedEps"`
+}
