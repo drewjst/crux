@@ -70,25 +70,54 @@ func (p *Provider) GetFinancials(ctx context.Context, ticker string, periods int
 
 // GetRatios implements FundamentalsProvider.
 func (p *Provider) GetRatios(ctx context.Context, ticker string) (*models.Ratios, error) {
+	slog.Info("FMP GetRatios called", "ticker", ticker)
+
 	// Try TTM first for most current data
 	ratiosTTM, err := p.client.GetRatiosTTM(ctx, ticker)
-	if err == nil && len(ratiosTTM) > 0 {
+	if err != nil {
+		slog.Warn("FMP TTM ratios fetch failed, falling back to annual",
+			"ticker", ticker,
+			"error", err,
+		)
+	} else if len(ratiosTTM) == 0 {
+		slog.Warn("FMP TTM ratios returned empty array", "ticker", ticker)
+	} else {
 		metricsTTM, _ := p.client.GetKeyMetricsTTM(ctx, ticker)
 		var metrics *KeyMetricsTTM
 		if len(metricsTTM) > 0 {
 			metrics = &metricsTTM[0]
 		}
-		return mapRatiosTTM(&ratiosTTM[0], metrics), nil
+		slog.Info("FMP TTM ratios fetched",
+			"ticker", ticker,
+			"priceToFreeCashFlowRatioTTM", ratiosTTM[0].PriceToFreeCashFlowRatioTTM,
+			"pe", ratiosTTM[0].PriceToEarningsRatioTTM,
+		)
+		result := mapRatiosTTM(&ratiosTTM[0], metrics)
+		slog.Info("FMP mapped ratios",
+			"ticker", ticker,
+			"priceToFCF", result.PriceToFCF,
+			"pe", result.PE,
+		)
+		return result, nil
 	}
 
 	// Fall back to annual ratios
+	slog.Info("FMP falling back to annual ratios", "ticker", ticker)
 	ratios, err := p.client.GetRatios(ctx, ticker, 1)
 	if err != nil {
+		slog.Error("FMP annual ratios fetch failed", "ticker", ticker, "error", err)
 		return nil, fmt.Errorf("fetching ratios: %w", err)
 	}
 	if len(ratios) == 0 {
+		slog.Warn("FMP annual ratios returned empty array", "ticker", ticker)
 		return nil, nil
 	}
+
+	slog.Info("FMP annual ratios fetched",
+		"ticker", ticker,
+		"priceToFreeCashFlowRatio", ratios[0].PriceToFreeCashFlowRatio,
+		"pe", ratios[0].PriceToEarningsRatio,
+	)
 
 	metrics, _ := p.client.GetKeyMetrics(ctx, ticker, 1)
 	var keyMetrics *KeyMetrics

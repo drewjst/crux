@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -190,7 +191,16 @@ func (c *Client) GetRatiosTTM(ctx context.Context, ticker string) ([]RatiosTTM, 
 
 	var ratios []RatiosTTM
 	if err := c.get(ctx, url, &ratios); err != nil {
+		slog.Warn("FMP client GetRatiosTTM error", "ticker", ticker, "error", err)
 		return nil, fmt.Errorf("fetching TTM ratios: %w", err)
+	}
+
+	if len(ratios) > 0 {
+		slog.Info("FMP client GetRatiosTTM response",
+			"ticker", ticker,
+			"priceToFreeCashFlowRatioTTM", ratios[0].PriceToFreeCashFlowRatioTTM,
+			"priceToEarningsRatioTTM", ratios[0].PriceToEarningsRatioTTM,
+		)
 	}
 
 	return ratios, nil
