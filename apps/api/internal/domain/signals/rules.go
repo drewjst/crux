@@ -4,6 +4,41 @@ import (
 	"fmt"
 )
 
+// Signal threshold constants
+const (
+	// Piotroski F-Score thresholds
+	PiotroskiStrongScore = 7
+	PiotroskiWeakScore   = 3
+
+	// Altman Z-Score thresholds
+	AltmanSafeThreshold = 4.0
+
+	// Insider activity thresholds
+	InsiderBuyCountThreshold  = 3
+	InsiderBuyValueThreshold  = 100000
+	InsiderSellCountThreshold = 5
+	InsiderSellValueThreshold = -500000
+
+	// Growth and margin thresholds
+	HighGrowthThreshold = 20
+
+	// Leverage thresholds
+	HighDebtToEquityThreshold = 2.0
+
+	// ROIC thresholds
+	StrongROICThreshold = 20
+
+	// Short interest thresholds (percent of float)
+	LowShortInterestThreshold      = 5
+	ElevatedShortInterestThreshold = 10
+	VeryHighShortInterestThreshold = 20
+
+	// Days to cover thresholds
+	LowDaysToCoverThreshold      = 2
+	ModerateDaysToCoverThreshold = 5
+	HighDaysToCoverThreshold     = 10
+)
+
 // defaultRules returns the standard set of signal generation rules.
 func defaultRules() []Rule {
 	return []Rule{
@@ -33,7 +68,7 @@ func defaultRules() []Rule {
 type HighPiotroskiRule struct{}
 
 func (r *HighPiotroskiRule) Evaluate(ctx *RuleContext) *Signal {
-	if ctx.Piotroski.Score >= 7 {
+	if ctx.Piotroski.Score >= PiotroskiStrongScore {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryFundamental,
@@ -49,7 +84,7 @@ func (r *HighPiotroskiRule) Evaluate(ctx *RuleContext) *Signal {
 type LowPiotroskiRule struct{}
 
 func (r *LowPiotroskiRule) Evaluate(ctx *RuleContext) *Signal {
-	if ctx.Piotroski.Score <= 3 {
+	if ctx.Piotroski.Score <= PiotroskiWeakScore {
 		return &Signal{
 			Type:     SignalBearish,
 			Category: CategoryFundamental,
@@ -81,7 +116,7 @@ func (r *AltmanDistressRule) Evaluate(ctx *RuleContext) *Signal {
 type AltmanSafeRule struct{}
 
 func (r *AltmanSafeRule) Evaluate(ctx *RuleContext) *Signal {
-	if ctx.AltmanZ.Zone == "safe" && ctx.AltmanZ.Score > 4.0 {
+	if ctx.AltmanZ.Zone == "safe" && ctx.AltmanZ.Score > AltmanSafeThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryFundamental,
@@ -117,7 +152,7 @@ func (r *InsiderBuyingRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bullish if net buying and multiple buys
-	if ctx.InsiderActivity.BuyCount90d >= 3 && ctx.InsiderActivity.NetValue90d > 100000 {
+	if ctx.InsiderActivity.BuyCount90d >= InsiderBuyCountThreshold && ctx.InsiderActivity.NetValue90d > InsiderBuyValueThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryInsider,
@@ -137,7 +172,7 @@ func (r *InsiderSellingRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Warning if heavy selling
-	if ctx.InsiderActivity.SellCount90d >= 5 && ctx.InsiderActivity.NetValue90d < -500000 {
+	if ctx.InsiderActivity.SellCount90d >= InsiderSellCountThreshold && ctx.InsiderActivity.NetValue90d < InsiderSellValueThreshold {
 		return &Signal{
 			Type:     SignalWarning,
 			Category: CategoryInsider,
@@ -157,7 +192,7 @@ func (r *HighGrowthRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Strong growth > 20% YoY
-	if ctx.Financials.RevenueGrowthYoY > 20 {
+	if ctx.Financials.RevenueGrowthYoY > HighGrowthThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryFundamental,
@@ -197,7 +232,7 @@ func (r *HighDebtRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Warning if D/E > 2.0 (high leverage)
-	if ctx.Financials.DebtToEquity > 2.0 {
+	if ctx.Financials.DebtToEquity > HighDebtToEquityThreshold {
 		return &Signal{
 			Type:     SignalWarning,
 			Category: CategoryFundamental,
@@ -217,7 +252,7 @@ func (r *StrongROICRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bullish if ROIC > 20% (strong capital efficiency)
-	if ctx.Financials.ROIC > 20 {
+	if ctx.Financials.ROIC > StrongROICThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryFundamental,
@@ -240,7 +275,7 @@ func (r *LowShortInterestRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bullish if short interest < 5% of float
-	if ctx.ShortInterest.ShortPercentFloat < 5 {
+	if ctx.ShortInterest.ShortPercentFloat < LowShortInterestThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryTechnical,
@@ -260,7 +295,7 @@ func (r *ElevatedShortInterestRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bearish if short interest 10-20% of float
-	if ctx.ShortInterest.ShortPercentFloat >= 10 && ctx.ShortInterest.ShortPercentFloat < 20 {
+	if ctx.ShortInterest.ShortPercentFloat >= ElevatedShortInterestThreshold && ctx.ShortInterest.ShortPercentFloat < VeryHighShortInterestThreshold {
 		return &Signal{
 			Type:     SignalBearish,
 			Category: CategoryTechnical,
@@ -280,7 +315,7 @@ func (r *VeryHighShortInterestRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Warning if short interest > 20% of float (potential squeeze)
-	if ctx.ShortInterest.ShortPercentFloat >= 20 {
+	if ctx.ShortInterest.ShortPercentFloat >= VeryHighShortInterestThreshold {
 		return &Signal{
 			Type:     SignalWarning,
 			Category: CategoryTechnical,
@@ -300,7 +335,7 @@ func (r *LowDaysToCoverRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bullish if days to cover < 2 (minimal short pressure)
-	if ctx.ShortInterest.DaysToCover < 2 {
+	if ctx.ShortInterest.DaysToCover < LowDaysToCoverThreshold {
 		return &Signal{
 			Type:     SignalBullish,
 			Category: CategoryTechnical,
@@ -320,7 +355,7 @@ func (r *ModerateDaysToCoverRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Bearish if days to cover 5-10 (building pressure)
-	if ctx.ShortInterest.DaysToCover >= 5 && ctx.ShortInterest.DaysToCover < 10 {
+	if ctx.ShortInterest.DaysToCover >= ModerateDaysToCoverThreshold && ctx.ShortInterest.DaysToCover < HighDaysToCoverThreshold {
 		return &Signal{
 			Type:     SignalBearish,
 			Category: CategoryTechnical,
@@ -340,7 +375,7 @@ func (r *HighDaysToCoverRule) Evaluate(ctx *RuleContext) *Signal {
 		return nil
 	}
 	// Warning if days to cover > 10 (potential squeeze setup)
-	if ctx.ShortInterest.DaysToCover >= 10 {
+	if ctx.ShortInterest.DaysToCover >= HighDaysToCoverThreshold {
 		return &Signal{
 			Type:     SignalWarning,
 			Category: CategoryTechnical,

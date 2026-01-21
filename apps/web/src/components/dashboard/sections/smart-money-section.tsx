@@ -17,19 +17,18 @@ function formatShares(shares: number): string {
   return shares.toString();
 }
 
-function shortenFundName(name: string): string {
-  // Common abbreviations for long fund names
-  const maxLength = 20;
-  if (name.length <= maxLength) return name;
+const MAX_FUND_NAME_LENGTH = 20;
 
-  // Try to find a natural break point
-  const words = name.split(' ');
-  let shortened = '';
-  for (const word of words) {
-    if ((shortened + ' ' + word).length > maxLength) break;
-    shortened = shortened ? `${shortened} ${word}` : word;
-  }
-  return shortened || name.slice(0, maxLength);
+function shortenFundName(name: string): string {
+  if (name.length <= MAX_FUND_NAME_LENGTH) return name;
+
+  // Build shortened name by accumulating words that fit
+  const shortened = name.split(' ').reduce((acc, word) => {
+    const candidate = acc ? `${acc} ${word}` : word;
+    return candidate.length <= MAX_FUND_NAME_LENGTH ? candidate : acc;
+  }, '');
+
+  return shortened || name.slice(0, MAX_FUND_NAME_LENGTH);
 }
 
 interface HolderRowProps {
@@ -214,7 +213,7 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
       )}
 
       {/* Insider Activity */}
-      <div className={hasBuyersOrSellers ? 'pt-4 border-t border-border/30' : 'pt-4 border-t border-border/30'}>
+      <div className="pt-4 border-t border-border/30">
         <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
           Insider Activity (90d)
         </div>

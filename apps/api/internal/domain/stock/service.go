@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -446,29 +447,12 @@ func (s *Service) buildResponseFromProviders(
 	performance := calculatePerformance(prices, quote.Price, quote.High)
 
 	// Convert holdings
-	slog.Info("institutional data",
+	holdings := convertHoldingsFromModel(holders, institutionalSummary)
+	slog.Debug("institutional data",
 		"ticker", company.Ticker,
 		"holdersCount", len(holders),
-		"summaryPresent", institutionalSummary != nil,
+		"hasSentiment", holdings.Sentiment != nil,
 	)
-	if institutionalSummary != nil {
-		slog.Info("institutional summary",
-			"ownershipPercent", institutionalSummary.OwnershipPercent,
-			"investorsHolding", institutionalSummary.InvestorsHolding,
-		)
-	}
-	holdings := convertHoldingsFromModel(holders, institutionalSummary)
-	if holdings.Sentiment != nil {
-		slog.Info("holdings sentiment",
-			"ownershipPercent", holdings.Sentiment.OwnershipPercent,
-			"investorsHolding", holdings.Sentiment.InvestorsHolding,
-			"increased", holdings.Sentiment.InvestorsIncreased,
-			"decreased", holdings.Sentiment.InvestorsDecreased,
-			"held", holdings.Sentiment.InvestorsHeld,
-		)
-	} else {
-		slog.Warn("holdings sentiment is nil")
-	}
 
 	// Convert and aggregate insider trades
 	insiderTrades, insiderActivity := convertInsiderTradesFromModel(trades)
@@ -491,7 +475,7 @@ func (s *Service) buildResponseFromProviders(
 
 	// Generate signals
 	signalData := &signals.StockData{
-		Financials:      convertFinancialsForSignals(financials),
+		Financials:      convertFinancials(financials),
 		InsiderActivity: convertInsiderActivityForSignals(insiderActivity),
 		ShortInterest:   convertShortInterestForSignals(shortInterest),
 	}
@@ -805,24 +789,16 @@ func convertHoldingsFromModel(holders []models.InstitutionalHolder, summary *mod
 
 // sortHoldersByChangeDesc sorts holders by ChangePercent descending (highest first).
 func sortHoldersByChangeDesc(holders []InstitutionalHolder) {
-	for i := 0; i < len(holders)-1; i++ {
-		for j := i + 1; j < len(holders); j++ {
-			if holders[j].ChangePercent > holders[i].ChangePercent {
-				holders[i], holders[j] = holders[j], holders[i]
-			}
-		}
-	}
+	sort.Slice(holders, func(i, j int) bool {
+		return holders[i].ChangePercent > holders[j].ChangePercent
+	})
 }
 
 // sortHoldersByChangeAsc sorts holders by ChangePercent ascending (most negative first).
 func sortHoldersByChangeAsc(holders []InstitutionalHolder) {
-	for i := 0; i < len(holders)-1; i++ {
-		for j := i + 1; j < len(holders); j++ {
-			if holders[j].ChangePercent < holders[i].ChangePercent {
-				holders[i], holders[j] = holders[j], holders[i]
-			}
-		}
-	}
+	sort.Slice(holders, func(i, j int) bool {
+		return holders[i].ChangePercent < holders[j].ChangePercent
+	})
 }
 
 func convertInsiderTradesFromModel(trades []models.InsiderTrade) ([]InsiderTrade, *InsiderActivity) {
@@ -1755,19 +1731,6 @@ func convertInsiderActivityForSignals(i *InsiderActivity) *signals.InsiderActivi
 		BuyCount90d:  i.BuyCount90d,
 		SellCount90d: i.SellCount90d,
 		NetValue90d:  i.NetValue90d,
-	}
-}
-
-// convertFinancialsForSignals converts *Financials to *signals.FinancialsData.
-func convertFinancialsForSignals(f *Financials) *signals.FinancialsData {
-	if f == nil {
-		return nil
-	}
-	return &signals.FinancialsData{
-		RevenueGrowthYoY: f.RevenueGrowthYoY,
-		OperatingMargin:  f.OperatingMargin,
-		DebtToEquity:     f.DebtToEquity,
-		ROIC:             f.ROIC,
 	}
 }
 

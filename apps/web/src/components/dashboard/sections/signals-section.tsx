@@ -124,10 +124,14 @@ function SignalsSectionComponent({ data }: SignalsSectionProps) {
   const volatility = calculateVolatility(quote);
   const strength = calculateRelativeStrength(performance);
 
-  // Count fundamental signals from API
-  const fundamentalBullish = signals.filter((s) => s.type === 'bullish').length;
-  const fundamentalBearish = signals.filter((s) => s.type === 'bearish').length;
-  const fundamentalWarning = signals.filter((s) => s.type === 'warning').length;
+  // Categorize signals in a single pass
+  const signalsByType = signals.reduce(
+    (acc, s) => {
+      acc[s.type].push(s);
+      return acc;
+    },
+    { bullish: [], warning: [], bearish: [] } as Record<string, typeof signals>
+  );
 
   // Count technical signals
   const technicalIndicators = [momentum, trend, strength];
@@ -136,15 +140,15 @@ function SignalsSectionComponent({ data }: SignalsSectionProps) {
   const volatilityWarning = volatility.signal === 'warning' ? 1 : 0;
 
   // Combined counts
-  const totalBullish = fundamentalBullish + technicalBullish;
-  const totalBearish = fundamentalBearish + technicalBearish;
-  const totalWarning = fundamentalWarning + volatilityWarning;
+  const totalBullish = signalsByType.bullish.length + technicalBullish;
+  const totalBearish = signalsByType.bearish.length + technicalBearish;
+  const totalWarning = signalsByType.warning.length + volatilityWarning;
 
-  // Get top 3 signals
+  // Get top 3 signals (prioritized: bullish, warning, bearish)
   const topSignals = [
-    ...signals.filter((s) => s.type === 'bullish'),
-    ...signals.filter((s) => s.type === 'warning'),
-    ...signals.filter((s) => s.type === 'bearish'),
+    ...signalsByType.bullish,
+    ...signalsByType.warning,
+    ...signalsByType.bearish,
   ].slice(0, 3);
 
   // Analyst price target
