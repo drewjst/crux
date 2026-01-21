@@ -280,6 +280,24 @@ func (c *Client) GetInstitutionalHolders(ctx context.Context, ticker string, yea
 	return holders, nil
 }
 
+// GetInstitutionalPositionsSummary retrieves aggregated institutional ownership data.
+// Returns ownership percent, investor counts, and QoQ changes.
+func (c *Client) GetInstitutionalPositionsSummary(ctx context.Context, ticker string, year int, quarter int) (*InstitutionalPositionsSummary, error) {
+	url := fmt.Sprintf("%s/institutional-ownership/symbol-positions-summary?symbol=%s&year=%d&quarter=%d&apikey=%s",
+		c.baseURL, ticker, year, quarter, c.apiKey)
+
+	var summaries []InstitutionalPositionsSummary
+	if err := c.get(ctx, url, &summaries); err != nil {
+		return nil, fmt.Errorf("fetching institutional positions summary: %w", err)
+	}
+
+	if len(summaries) == 0 {
+		return nil, nil
+	}
+
+	return &summaries[0], nil
+}
+
 // GetGradesConsensus retrieves pre-aggregated analyst grades consensus.
 func (c *Client) GetGradesConsensus(ctx context.Context, ticker string) (*GradesConsensus, error) {
 	url := fmt.Sprintf("%s/grades-consensus?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)

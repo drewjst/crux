@@ -54,12 +54,30 @@ type InstitutionalHolder struct {
 	QuarterDate      string  `json:"quarterDate" db:"quarter_date"`
 }
 
+// InstitutionalSentiment contains aggregated institutional ownership sentiment.
+type InstitutionalSentiment struct {
+	OwnershipPercent       float64 `json:"ownershipPercent"`       // Total institutional ownership %
+	OwnershipPercentChange float64 `json:"ownershipPercentChange"` // QoQ change in ownership %
+	InvestorsHolding       int     `json:"investorsHolding"`       // Current number of holders
+	InvestorsIncreased     int     `json:"investorsIncreased"`     // Holders that increased
+	InvestorsDecreased     int     `json:"investorsDecreased"`     // Holders that decreased
+	InvestorsHeld          int     `json:"investorsHeld"`          // Holders unchanged
+}
+
 // Holdings contains aggregated institutional holdings data.
 type Holdings struct {
-	TopInstitutional        []InstitutionalHolder `json:"topInstitutional"`
-	TotalInstitutionalOwner float64               `json:"totalInstitutionalOwnership" db:"total_institutional_ownership"`
-	NetChangeShares         int64                 `json:"netChangeShares" db:"net_change_shares"`
-	NetChangeQuarters       int                   `json:"netChangeQuarters" db:"net_change_quarters"`
+	// Sentiment summary
+	Sentiment *InstitutionalSentiment `json:"sentiment,omitempty"`
+	// Top holders (legacy)
+	TopInstitutional []InstitutionalHolder `json:"topInstitutional"`
+	// Top buyers (positive change) - sorted by change %
+	TopBuyers []InstitutionalHolder `json:"topBuyers,omitempty"`
+	// Top sellers (negative change) - sorted by change %
+	TopSellers []InstitutionalHolder `json:"topSellers,omitempty"`
+	// Legacy fields
+	TotalInstitutionalOwner float64 `json:"totalInstitutionalOwnership" db:"total_institutional_ownership"`
+	NetChangeShares         int64   `json:"netChangeShares" db:"net_change_shares"`
+	NetChangeQuarters       int     `json:"netChangeQuarters" db:"net_change_quarters"`
 }
 
 // InsiderTrade represents a single insider transaction.

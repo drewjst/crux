@@ -28,6 +28,8 @@ var tickerPattern = regexp.MustCompile(`^[A-Z]{1,5}$`)
 
 // GetStock handles GET /api/stock/{ticker} requests.
 // Returns comprehensive stock data including scores, signals, and financials.
+// Query params:
+//   - refresh=true: Bypass cache and fetch fresh data
 func (h *StockHandler) GetStock(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := middleware.GetRequestID(ctx)
@@ -42,7 +44,13 @@ func (h *StockHandler) GetStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.GetStockDetail(ctx, ticker)
+	// Check for cache refresh flag
+	forceRefresh := r.URL.Query().Get("refresh") == "true"
+	if forceRefresh {
+		slog.Info("cache refresh requested", "ticker", ticker, "request_id", requestID)
+	}
+
+	result, err := h.service.GetStockDetailWithOptions(ctx, ticker, forceRefresh)
 	if err != nil {
 		if errors.Is(err, stock.ErrTickerNotFound) {
 			writeErrorWithDetails(w, http.StatusNotFound, ErrCodeTickerNotFound,

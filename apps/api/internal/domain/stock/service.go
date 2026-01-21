@@ -164,8 +164,21 @@ type stockData struct {
 	shortInterest    *ShortInterest
 }
 
+// InvalidateCache removes cached data for a ticker.
+func (s *Service) InvalidateCache(ticker string) error {
+	if s.cacheRepo == nil {
+		return nil
+	}
+	return s.cacheRepo.DeleteStock(ticker)
+}
+
 // GetStockDetail retrieves comprehensive stock data for a ticker.
 func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDetailResponse, error) {
+	return s.GetStockDetailWithOptions(ctx, ticker, false)
+}
+
+// GetStockDetailWithOptions retrieves stock data with optional cache bypass.
+func (s *Service) GetStockDetailWithOptions(ctx context.Context, ticker string, forceRefresh bool) (*StockDetailResponse, error) {
 	start := time.Now()
 
 	// Use legacy path if no providers configured
@@ -173,8 +186,17 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 		return s.getStockDetailLegacy(ctx, ticker)
 	}
 
+	// Invalidate cache if force refresh requested
+	if forceRefresh && s.cacheRepo != nil {
+		if err := s.cacheRepo.DeleteStock(ticker); err != nil {
+			slog.Warn("failed to invalidate cache", "ticker", ticker, "error", err)
+		} else {
+			slog.Info("cache invalidated", "ticker", ticker)
+		}
+	}
+
 	// Check cache first
-	if s.cacheRepo != nil {
+	if s.cacheRepo != nil && !forceRefresh {
 		cached, err := s.cacheRepo.GetStock(ticker)
 		if err == nil && time.Since(cached.UpdatedAt) < s.cacheTTL {
 			slog.Info("cache hit",
@@ -216,19 +238,20 @@ func (s *Service) GetStockDetail(ctx context.Context, ticker string) (*StockDeta
 // fetchAndBuildResponse fetches data from providers and builds the response.
 func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*StockDetailResponse, error) {
 	var (
-		company             *models.Company
-		quote               *models.Quote
-		ratios              *models.Ratios
-		financials          []models.Financials
-		holders             []models.InstitutionalHolder
-		trades              []models.InsiderTrade
-		prices              []models.PriceBar
-		dcf                 *models.DCF
-		technicalMetrics    *models.TechnicalMetrics
-		shortInterest       *models.ShortInterest
-		polygonShortInterst *polygon.ShortInterestResult
-		analystEstimates    *models.AnalystEstimates
-		etfData             *models.ETFData
+		company               *models.Company
+		quote                 *models.Quote
+		ratios                *models.Ratios
+		financials            []models.Financials
+		holders               []models.InstitutionalHolder
+		institutionalSummary  *models.InstitutionalSummary
+		trades                []models.InsiderTrade
+		prices                []models.PriceBar
+		dcf                   *models.DCF
+		technicalMetrics      *models.TechnicalMetrics
+		shortInterest         *models.ShortInterest
+		polygonShortInterst   *polygon.ShortInterestResult
+		analystEstimates      *models.AnalystEstimates
+		etfData               *models.ETFData
 	)
 
 	// Fetch all data in parallel
@@ -278,6 +301,15 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		holders, err = s.fundamentals.GetInstitutionalHolders(gctx, ticker)
 		if err != nil {
 			slog.Warn("failed to fetch holders", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		institutionalSummary, err = s.fundamentals.GetInstitutionalSummary(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch institutional summary", "ticker", ticker, "error", err)
 		}
 		return nil
 	})
@@ -388,7 +420,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 	}
 
 	// Build stock response from fetched data
-	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, trades, prices, dcf, technicalMetrics, shortInterest, analystEstimates), nil
+	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, institutionalSummary, trades, prices, dcf, technicalMetrics, shortInterest, analystEstimates), nil
 }
 
 // buildResponseFromProviders constructs the response from provider data.
@@ -398,6 +430,7 @@ func (s *Service) buildResponseFromProviders(
 	ratios *models.Ratios,
 	financialStatements []models.Financials,
 	holders []models.InstitutionalHolder,
+	institutionalSummary *models.InstitutionalSummary,
 	trades []models.InsiderTrade,
 	prices []models.PriceBar,
 	dcf *models.DCF,
@@ -413,7 +446,29 @@ func (s *Service) buildResponseFromProviders(
 	performance := calculatePerformance(prices, quote.Price, quote.High)
 
 	// Convert holdings
-	holdings := convertHoldingsFromModel(holders)
+	slog.Info("institutional data",
+		"ticker", company.Ticker,
+		"holdersCount", len(holders),
+		"summaryPresent", institutionalSummary != nil,
+	)
+	if institutionalSummary != nil {
+		slog.Info("institutional summary",
+			"ownershipPercent", institutionalSummary.OwnershipPercent,
+			"investorsHolding", institutionalSummary.InvestorsHolding,
+		)
+	}
+	holdings := convertHoldingsFromModel(holders, institutionalSummary)
+	if holdings.Sentiment != nil {
+		slog.Info("holdings sentiment",
+			"ownershipPercent", holdings.Sentiment.OwnershipPercent,
+			"investorsHolding", holdings.Sentiment.InvestorsHolding,
+			"increased", holdings.Sentiment.InvestorsIncreased,
+			"decreased", holdings.Sentiment.InvestorsDecreased,
+			"held", holdings.Sentiment.InvestorsHeld,
+		)
+	} else {
+		slog.Warn("holdings sentiment is nil")
+	}
 
 	// Convert and aggregate insider trades
 	insiderTrades, insiderActivity := convertInsiderTradesFromModel(trades)
@@ -654,25 +709,120 @@ func convertQuoteFromModel(m *models.Quote) Quote {
 	}
 }
 
-func convertHoldingsFromModel(holders []models.InstitutionalHolder) *Holdings {
+func convertHoldingsFromModel(holders []models.InstitutionalHolder, summary *models.InstitutionalSummary) *Holdings {
 	if len(holders) == 0 {
-		return &Holdings{TopInstitutional: []InstitutionalHolder{}}
+		return &Holdings{
+			TopInstitutional: []InstitutionalHolder{},
+			TopBuyers:        []InstitutionalHolder{},
+			TopSellers:       []InstitutionalHolder{},
+		}
 	}
 
-	top := make([]InstitutionalHolder, 0, len(holders))
+	// Convert all holders
+	all := make([]InstitutionalHolder, 0, len(holders))
+	buyers := make([]InstitutionalHolder, 0)
+	sellers := make([]InstitutionalHolder, 0)
+	increased, decreased, held := 0, 0, 0
+
 	for _, h := range holders {
-		top = append(top, InstitutionalHolder{
+		holder := InstitutionalHolder{
 			FundName:         h.Name,
+			FundCIK:          h.CIK,
 			Shares:           h.Shares,
 			Value:            h.Value,
 			PortfolioPercent: h.PercentOwned,
 			ChangeShares:     h.ChangeShares,
 			ChangePercent:    h.ChangePercent,
 			QuarterDate:      h.DateReported.Format("2006-Q1"),
-		})
+		}
+		all = append(all, holder)
+
+		// Classify as buyer, seller, or held
+		if h.ChangePercent > 0.5 { // > 0.5% increase
+			buyers = append(buyers, holder)
+			increased++
+		} else if h.ChangePercent < -0.5 { // > 0.5% decrease
+			sellers = append(sellers, holder)
+			decreased++
+		} else {
+			held++
+		}
 	}
 
-	return &Holdings{TopInstitutional: top}
+	// Sort buyers by change % descending
+	sortHoldersByChangeDesc(buyers)
+	// Sort sellers by change % ascending (most negative first)
+	sortHoldersByChangeAsc(sellers)
+
+	// Limit to top 3
+	if len(buyers) > 3 {
+		buyers = buyers[:3]
+	}
+	if len(sellers) > 3 {
+		sellers = sellers[:3]
+	}
+	// Limit top institutional to 5
+	topInst := all
+	if len(topInst) > 5 {
+		topInst = topInst[:5]
+	}
+
+	// Build sentiment from summary or calculate from holders
+	var sentiment *InstitutionalSentiment
+	if summary != nil && summary.OwnershipPercent > 0 {
+		sentiment = &InstitutionalSentiment{
+			OwnershipPercent:       summary.OwnershipPercent,
+			OwnershipPercentChange: summary.OwnershipPercentChange,
+			InvestorsHolding:       summary.InvestorsHolding,
+			InvestorsIncreased:     increased,
+			InvestorsDecreased:     decreased,
+			InvestorsHeld:          held,
+		}
+	} else if len(holders) > 0 {
+		// Calculate ownership from individual holder data
+		// Sum up individual ownership percentages
+		totalOwnership := 0.0
+		for _, h := range holders {
+			totalOwnership += h.PercentOwned
+		}
+
+		sentiment = &InstitutionalSentiment{
+			OwnershipPercent:   totalOwnership,
+			InvestorsHolding:   len(holders),
+			InvestorsIncreased: increased,
+			InvestorsDecreased: decreased,
+			InvestorsHeld:      held,
+		}
+	}
+
+	return &Holdings{
+		Sentiment:        sentiment,
+		TopInstitutional: topInst,
+		TopBuyers:        buyers,
+		TopSellers:       sellers,
+	}
+}
+
+// sortHoldersByChangeDesc sorts holders by ChangePercent descending (highest first).
+func sortHoldersByChangeDesc(holders []InstitutionalHolder) {
+	for i := 0; i < len(holders)-1; i++ {
+		for j := i + 1; j < len(holders); j++ {
+			if holders[j].ChangePercent > holders[i].ChangePercent {
+				holders[i], holders[j] = holders[j], holders[i]
+			}
+		}
+	}
+}
+
+// sortHoldersByChangeAsc sorts holders by ChangePercent ascending (most negative first).
+func sortHoldersByChangeAsc(holders []InstitutionalHolder) {
+	for i := 0; i < len(holders)-1; i++ {
+		for j := i + 1; j < len(holders); j++ {
+			if holders[j].ChangePercent < holders[i].ChangePercent {
+				holders[i], holders[j] = holders[j], holders[i]
+			}
+		}
+	}
 }
 
 func convertInsiderTradesFromModel(trades []models.InsiderTrade) ([]InsiderTrade, *InsiderActivity) {

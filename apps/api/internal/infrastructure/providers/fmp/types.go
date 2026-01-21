@@ -318,6 +318,22 @@ type InstitutionalOwnershipHolder struct {
 	LastOwnershipRatio float64 `json:"lastOwnershipRatio,omitempty"`
 }
 
+// InstitutionalPositionsSummary represents aggregated institutional ownership data.
+// From GET /stable/institutional-ownership/symbol-positions-summary
+type InstitutionalPositionsSummary struct {
+	Symbol               string  `json:"symbol"`
+	Year                 int     `json:"year"`
+	Quarter              int     `json:"quarter"`
+	InvestorsHolding     int     `json:"investorsHolding"`
+	LastInvestorsHolding int     `json:"lastInvestorsHolding"`
+	InvestorsHoldingChan int     `json:"investorsHoldingChange"`
+	TotalShares          int64   `json:"totalShares"`
+	LastTotalShares      int64   `json:"lastTotalShares"`
+	TotalSharesChange    int64   `json:"totalSharesChange"`
+	OwnershipPercent     float64 `json:"ownershipPercent"`
+	LastOwnershipPercent float64 `json:"lastOwnershipPercent"`
+}
+
 // =============================================================================
 // Analyst Estimates Types
 // =============================================================================

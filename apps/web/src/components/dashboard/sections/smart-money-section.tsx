@@ -1,18 +1,75 @@
 'use client';
 
 import { memo } from 'react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { SectionCard } from './section-card';
-import { Badge } from '@/components/ui/badge';
 import { formatCompactCurrency } from '@/lib/utils';
-import type { StockDetailResponse } from '@recon/shared';
+import type { StockDetailResponse, InstitutionalHolder } from '@recon/shared';
 
 interface SmartMoneySectionProps {
   data: StockDetailResponse;
 }
 
+function formatShares(shares: number): string {
+  if (shares >= 1e9) return `${(shares / 1e9).toFixed(1)}B`;
+  if (shares >= 1e6) return `${(shares / 1e6).toFixed(0)}M`;
+  if (shares >= 1e3) return `${(shares / 1e3).toFixed(0)}K`;
+  return shares.toString();
+}
+
+function shortenFundName(name: string): string {
+  // Common abbreviations for long fund names
+  const maxLength = 20;
+  if (name.length <= maxLength) return name;
+
+  // Try to find a natural break point
+  const words = name.split(' ');
+  let shortened = '';
+  for (const word of words) {
+    if ((shortened + ' ' + word).length > maxLength) break;
+    shortened = shortened ? `${shortened} ${word}` : word;
+  }
+  return shortened || name.slice(0, maxLength);
+}
+
+interface HolderRowProps {
+  holder: InstitutionalHolder;
+  type: 'buyer' | 'seller';
+}
+
+const HolderRow = memo(function HolderRow({ holder, type }: HolderRowProps) {
+  const isBuyer = type === 'buyer';
+  const Icon = isBuyer ? TrendingUp : TrendingDown;
+  const colorClass = isBuyer ? 'text-success' : 'text-destructive';
+  const sign = isBuyer ? '+' : '';
+
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${colorClass}`} />
+        <span className="text-sm truncate" title={holder.fundName}>
+          {shortenFundName(holder.fundName)}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <span className={`text-sm font-mono ${colorClass}`}>
+          {sign}{holder.changePercent.toFixed(1)}%
+        </span>
+        <span className="text-sm font-mono text-muted-foreground w-14 text-right">
+          {formatShares(holder.shares)}
+        </span>
+      </div>
+    </div>
+  );
+});
+
 export const SmartMoneySection = memo(function SmartMoneySection({ data }: SmartMoneySectionProps) {
   const { company, holdings, insiderActivity } = data;
   if (!holdings) return null;
+
+  const sentiment = holdings.sentiment;
+  const topBuyers = holdings.topBuyers || [];
+  const topSellers = holdings.topSellers || [];
 
   // Defensive: ensure insiderActivity exists and has expected properties
   const buyCount = insiderActivity?.buyCount90d ?? 0;
@@ -21,15 +78,23 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
   const trades = insiderActivity?.trades ?? [];
   const hasInsiderActivity = buyCount > 0 || sellCount > 0;
 
+  // Check if we have any institutional data
+  const hasOwnershipData = sentiment && sentiment.ownershipPercent > 0;
+  const hasHolderCounts = sentiment && sentiment.investorsHolding > 0;
+  const hasBuyersOrSellers = topBuyers.length > 0 || topSellers.length > 0;
+
   // Build rich share text
   const shareMetrics: string[] = [];
 
-  if (holdings.totalInstitutionalOwnership > 0) {
-    shareMetrics.push(`Institutional Ownership: ${(holdings.totalInstitutionalOwnership * 100).toFixed(1)}%`);
+  if (hasOwnershipData) {
+    shareMetrics.push(`Institutional Ownership: ${sentiment.ownershipPercent.toFixed(1)}%`);
+    if (sentiment.ownershipPercentChange !== 0) {
+      const sign = sentiment.ownershipPercentChange >= 0 ? '+' : '';
+      shareMetrics.push(`QoQ Change: ${sign}${sentiment.ownershipPercentChange.toFixed(1)}%`);
+    }
   }
-  if (holdings.netChangeShares !== 0) {
-    const sign = holdings.netChangeShares >= 0 ? '+' : '';
-    shareMetrics.push(`Net Change: ${sign}${(holdings.netChangeShares / 1e6).toFixed(1)}M shares`);
+  if (hasHolderCounts && sentiment) {
+    shareMetrics.push(`Holders: ${sentiment.investorsHolding} (${sentiment.investorsIncreased} increased, ${sentiment.investorsDecreased} decreased)`);
   }
   if (hasInsiderActivity) {
     shareMetrics.push(`Insider Activity (90d): ${buyCount} buys, ${sellCount} sells`);
@@ -42,59 +107,117 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
 
   return (
     <SectionCard title="Smart Money" shareTicker={company.ticker} shareText={shareText}>
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Institutional Ownership</div>
-          <div className="text-2xl font-bold font-mono">
-            {holdings.totalInstitutionalOwnership > 0
-              ? `${(holdings.totalInstitutionalOwnership * 100).toFixed(1)}%`
-              : 'N/A'}
+      {/* Institutional Sentiment */}
+      {(hasOwnershipData || hasHolderCounts) && sentiment ? (
+        <div className="mb-6">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+            Institutional Sentiment
           </div>
+
+          {/* Ownership Bar - only show if we have ownership data */}
+          {hasOwnershipData && (
+            <div className="mb-3">
+              <div className="h-2.5 rounded-full overflow-hidden bg-muted">
+                <div
+                  className="h-full bg-success rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, sentiment.ownershipPercent)}%` }}
+                />
+              </div>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-xl font-bold font-mono">
+                  {sentiment.ownershipPercent.toFixed(0)}%
+                </span>
+                <span className="text-sm text-muted-foreground">Own</span>
+                {sentiment.ownershipPercentChange !== 0 && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <span className={`text-sm font-mono ${sentiment.ownershipPercentChange >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {sentiment.ownershipPercentChange >= 0 ? '+' : ''}{sentiment.ownershipPercentChange.toFixed(1)}% QoQ
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Holder Activity Breakdown */}
+          {sentiment.investorsHolding > 0 && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {sentiment.investorsIncreased > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5 text-success" />
+                  <span className="font-mono text-success">{sentiment.investorsIncreased}</span>
+                  <span className="text-muted-foreground">increased</span>
+                </div>
+              )}
+              {sentiment.investorsDecreased > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                  <span className="font-mono text-destructive">{sentiment.investorsDecreased}</span>
+                  <span className="text-muted-foreground">decreased</span>
+                </div>
+              )}
+              {sentiment.investorsHeld > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-mono">{sentiment.investorsHeld}</span>
+                  <span className="text-muted-foreground">held</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Change (Qtrs)</div>
-          <div className={`text-2xl font-bold font-mono ${holdings.netChangeShares >= 0 ? 'text-success' : 'text-destructive'}`}>
-            {holdings.netChangeShares !== 0 ? (
-              <>
-                {holdings.netChangeShares >= 0 ? '+' : ''}
-                {(holdings.netChangeShares / 1e6).toFixed(1)}M shares
-              </>
+      ) : !hasBuyersOrSellers && !sentiment ? (
+        <div className="mb-6">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            Institutional Sentiment
+          </div>
+          <div className="text-sm text-muted-foreground">No institutional ownership data</div>
+        </div>
+      ) : null}
+
+      {/* Top Buyers / Sellers */}
+      {hasBuyersOrSellers && (
+        <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-border/30">
+          {/* Top Buyers */}
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+              Top Buyers (QoQ)
+            </div>
+            {topBuyers.length > 0 ? (
+              <div>
+                {topBuyers.map((holder) => (
+                  <HolderRow key={holder.fundCik || holder.fundName} holder={holder} type="buyer" />
+                ))}
+              </div>
             ) : (
-              'N/A'
+              <div className="text-sm text-muted-foreground">No significant buyers</div>
             )}
           </div>
-        </div>
-      </div>
 
-      {holdings.topInstitutional.length > 0 && (
-        <div className="mb-6">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Top Holders</div>
-          <div className="space-y-2">
-            {holdings.topInstitutional.slice(0, 5).map((holder) => (
-              <div key={holder.fundCik} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/30">
-                <span className="text-sm truncate max-w-[200px]">{holder.fundName}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-mono text-muted-foreground">
-                    {(holder.shares / 1e6).toFixed(1)}M shares
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={holder.changePercent >= 0 ? 'text-success border-success/30' : 'text-destructive border-destructive/30'}
-                  >
-                    <span className="font-mono">
-                      {holder.changePercent >= 0 ? '+' : ''}
-                      {holder.changePercent.toFixed(1)}%
-                    </span>
-                  </Badge>
-                </div>
+          {/* Top Sellers */}
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+              Top Sellers (QoQ)
+            </div>
+            {topSellers.length > 0 ? (
+              <div>
+                {topSellers.map((holder) => (
+                  <HolderRow key={holder.fundCik || holder.fundName} holder={holder} type="seller" />
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="text-sm text-muted-foreground">No significant sellers</div>
+            )}
           </div>
         </div>
       )}
 
-      <div className="border-t border-border/30 pt-4">
-        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Insider Activity (90d)</div>
+      {/* Insider Activity */}
+      <div className={hasBuyersOrSellers ? 'pt-4 border-t border-border/30' : 'pt-4 border-t border-border/30'}>
+        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+          Insider Activity (90d)
+        </div>
         {hasInsiderActivity ? (
           <>
             <div className="flex flex-wrap gap-4 md:gap-6 mb-4">

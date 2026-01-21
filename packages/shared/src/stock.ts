@@ -292,12 +292,36 @@ export interface InstitutionalHolder {
 }
 
 /**
+ * Aggregated institutional sentiment data.
+ */
+export interface InstitutionalSentiment {
+  /** Total institutional ownership as percentage of float */
+  ownershipPercent: number;
+  /** Quarter-over-quarter change in ownership percentage */
+  ownershipPercentChange: number;
+  /** Current number of institutional holders */
+  investorsHolding: number;
+  /** Number of holders that increased their positions */
+  investorsIncreased: number;
+  /** Number of holders that decreased their positions */
+  investorsDecreased: number;
+  /** Number of holders with unchanged positions */
+  investorsHeld: number;
+}
+
+/**
  * Aggregated institutional holdings data.
  */
 export interface Holdings {
+  /** Institutional sentiment summary */
+  sentiment?: InstitutionalSentiment;
   /** Top institutional holders by position size */
   topInstitutional: InstitutionalHolder[];
-  /** Total percentage of shares held by institutions */
+  /** Top buyers (holders with largest positive change) */
+  topBuyers?: InstitutionalHolder[];
+  /** Top sellers (holders with largest negative change) */
+  topSellers?: InstitutionalHolder[];
+  /** Total percentage of shares held by institutions (legacy) */
   totalInstitutionalOwnership: number;
   /** Net change in institutional shares (positive = accumulation) */
   netChangeShares: number;

@@ -120,6 +120,13 @@ func (p *Provider) GetInstitutionalHolders(ctx context.Context, ticker string) (
 	return mapInstitutionalHolders(fundamentals), nil
 }
 
+// GetInstitutionalSummary implements FundamentalsProvider.
+// Note: EODHD doesn't provide aggregated institutional summary data.
+func (p *Provider) GetInstitutionalSummary(ctx context.Context, ticker string) (*models.InstitutionalSummary, error) {
+	// EODHD doesn't have this data
+	return nil, nil
+}
+
 // GetInsiderTrades implements FundamentalsProvider.
 func (p *Provider) GetInsiderTrades(ctx context.Context, ticker string, days int) ([]models.InsiderTrade, error) {
 	// Try the dedicated insider transactions endpoint for more detailed data

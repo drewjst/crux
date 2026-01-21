@@ -158,12 +158,15 @@ func mapRatiosTTM(fmpRatios *RatiosTTM, fmpMetrics *KeyMetricsTTM) *models.Ratio
 func mapInstitutionalHolder(fmp *InstitutionalOwnershipHolder) *models.InstitutionalHolder {
 	return &models.InstitutionalHolder{
 		Name:          fmp.InvestorName,
+		CIK:           fmp.CIK,
 		Shares:        fmp.Shares,
 		Value:         fmp.Value,
 		PercentOwned:  fmp.OwnershipPercent,
 		ChangeShares:  fmp.SharesChange,
 		ChangePercent: fmp.ChangePercentage,
 		DateReported:  parseDate(fmp.Date),
+		IsNew:         fmp.IsNewPosition,
+		IsSoldOut:     fmp.IsSoldOut,
 	}
 }
 

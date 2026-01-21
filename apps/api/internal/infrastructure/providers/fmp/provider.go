@@ -175,7 +175,8 @@ func abs(x float64) float64 {
 func (p *Provider) GetInstitutionalHolders(ctx context.Context, ticker string) ([]models.InstitutionalHolder, error) {
 	year, quarter := getMostRecentFilingQuarter()
 
-	holders, err := p.client.GetInstitutionalHolders(ctx, ticker, year, quarter, 10)
+	// Fetch more holders to calculate top buyers/sellers
+	holders, err := p.client.GetInstitutionalHolders(ctx, ticker, year, quarter, 50)
 	if err != nil {
 		return nil, fmt.Errorf("fetching institutional holders: %w", err)
 	}
@@ -187,7 +188,7 @@ func (p *Provider) GetInstitutionalHolders(ctx context.Context, ticker string) (
 			prevQuarter = 4
 			prevYear--
 		}
-		holders, err = p.client.GetInstitutionalHolders(ctx, ticker, prevYear, prevQuarter, 10)
+		holders, err = p.client.GetInstitutionalHolders(ctx, ticker, prevYear, prevQuarter, 50)
 		if err != nil {
 			return nil, fmt.Errorf("fetching institutional holders (prev quarter): %w", err)
 		}
@@ -199,6 +200,47 @@ func (p *Provider) GetInstitutionalHolders(ctx context.Context, ticker string) (
 	}
 
 	return result, nil
+}
+
+// GetInstitutionalSummary implements FundamentalsProvider.
+func (p *Provider) GetInstitutionalSummary(ctx context.Context, ticker string) (*models.InstitutionalSummary, error) {
+	year, quarter := getMostRecentFilingQuarter()
+
+	summary, err := p.client.GetInstitutionalPositionsSummary(ctx, ticker, year, quarter)
+	if err != nil {
+		return nil, fmt.Errorf("fetching institutional summary: %w", err)
+	}
+
+	if summary == nil {
+		// Try previous quarter
+		prevYear, prevQuarter := year, quarter-1
+		if prevQuarter == 0 {
+			prevQuarter = 4
+			prevYear--
+		}
+		summary, err = p.client.GetInstitutionalPositionsSummary(ctx, ticker, prevYear, prevQuarter)
+		if err != nil {
+			return nil, fmt.Errorf("fetching institutional summary (prev quarter): %w", err)
+		}
+	}
+
+	if summary == nil {
+		return nil, nil
+	}
+
+	// Calculate QoQ ownership change
+	ownershipChange := 0.0
+	if summary.LastOwnershipPercent > 0 {
+		ownershipChange = summary.OwnershipPercent - summary.LastOwnershipPercent
+	}
+
+	return &models.InstitutionalSummary{
+		OwnershipPercent:       summary.OwnershipPercent,
+		OwnershipPercentChange: ownershipChange,
+		InvestorsHolding:       summary.InvestorsHolding,
+		// Note: These need to be calculated from individual holder changes
+		// FMP positions-summary doesn't provide increased/decreased/held breakdown
+	}, nil
 }
 
 // GetInsiderTrades implements FundamentalsProvider.
