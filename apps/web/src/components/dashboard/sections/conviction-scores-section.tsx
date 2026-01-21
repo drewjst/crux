@@ -18,6 +18,8 @@ interface ScoreBoxProps {
   status: 'positive' | 'neutral' | 'negative';
   tooltip: string;
   learnMoreUrl?: string;
+  /** Optional breakdown shown below description (e.g., "Growth: 25% + Margin: 27%") */
+  breakdown?: string;
 }
 
 const statusColors = {
@@ -32,7 +34,7 @@ const valueColors = {
   negative: 'text-destructive',
 };
 
-const ScoreBox = memo(function ScoreBox({ label, value, description, status, tooltip, learnMoreUrl }: ScoreBoxProps) {
+const ScoreBox = memo(function ScoreBox({ label, value, description, status, tooltip, learnMoreUrl, breakdown }: ScoreBoxProps) {
   return (
     <Card className={`p-4 text-center transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center justify-center gap-1 mb-2">
@@ -65,6 +67,9 @@ const ScoreBox = memo(function ScoreBox({ label, value, description, status, too
       </div>
       <div className={`text-2xl font-bold font-mono mb-1 ${valueColors[status]}`}>{value}</div>
       <div className="text-xs text-muted-foreground">{description}</div>
+      {breakdown && (
+        <div className="text-[10px] text-muted-foreground/70 mt-1 font-mono">{breakdown}</div>
+      )}
     </Card>
   );
 });
@@ -188,9 +193,11 @@ function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps
   const ruleOf40Verdict = scores.ruleOf40.passed ? 'Passed' : 'Failed';
   const altmanVerdict = scores.altmanZ.zone === 'safe' ? 'Safe' : scores.altmanZ.zone === 'gray' ? 'Gray Zone' : 'Distress';
 
+  const ruleOf40Breakdown = `Growth ${scores.ruleOf40.revenueGrowthPercent >= 0 ? '+' : ''}${scores.ruleOf40.revenueGrowthPercent.toFixed(0)}% + Margin ${scores.ruleOf40.profitMarginPercent >= 0 ? '+' : ''}${scores.ruleOf40.profitMarginPercent.toFixed(0)}%`;
+
   const shareMetrics = [
     `Piotroski F-Score: ${scores.piotroski.score}/9 (${piotroskiVerdict})`,
-    `Rule of 40: ${scores.ruleOf40.score.toFixed(0)}% (${ruleOf40Verdict})`,
+    `Rule of 40: ${scores.ruleOf40.score.toFixed(0)}% (${ruleOf40Verdict}) [${ruleOf40Breakdown}]`,
     `Altman Z-Score: ${scores.altmanZ.score.toFixed(2)} (${altmanVerdict})`,
   ];
 
@@ -224,6 +231,7 @@ function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps
           status={scores.ruleOf40.passed ? 'positive' : 'negative'}
           tooltip="Revenue growth % + profit margin % should exceed 40% for healthy growth companies. Balances growth against profitability."
           learnMoreUrl="https://www.wallstreetprep.com/knowledge/rule-of-40/"
+          breakdown={`Growth: ${scores.ruleOf40.revenueGrowthPercent >= 0 ? '+' : ''}${scores.ruleOf40.revenueGrowthPercent.toFixed(0)}% + Margin: ${scores.ruleOf40.profitMarginPercent >= 0 ? '+' : ''}${scores.ruleOf40.profitMarginPercent.toFixed(0)}%`}
         />
         <ScoreBox
           label="Altman Z"
