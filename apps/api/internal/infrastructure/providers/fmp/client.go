@@ -356,12 +356,12 @@ func (c *Client) GetAnalystEstimates(ctx context.Context, ticker string, period 
 }
 
 // GetStockPeers retrieves peer/competitor companies for a stock.
-func (c *Client) GetStockPeers(ctx context.Context, ticker string) (*StockPeersResponse, error) {
+// Returns a list of peer ticker symbols.
+func (c *Client) GetStockPeers(ctx context.Context, ticker string) ([]string, error) {
 	url := fmt.Sprintf("%s/stock-peers?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
 
-	var peers []StockPeersResponse
+	var peers []StockPeer
 	if err := c.get(ctx, url, &peers); err != nil {
-		// Log the error but also check if it's a permissions issue
 		return nil, fmt.Errorf("fetching stock peers for %s: %w", ticker, err)
 	}
 
@@ -369,12 +369,15 @@ func (c *Client) GetStockPeers(ctx context.Context, ticker string) (*StockPeersR
 		return nil, nil
 	}
 
-	// Log successful fetch for debugging
-	if len(peers[0].PeersList) > 0 {
-		return &peers[0], nil
+	// Extract just the ticker symbols
+	tickers := make([]string, 0, len(peers))
+	for _, p := range peers {
+		if p.Symbol != "" {
+			tickers = append(tickers, p.Symbol)
+		}
 	}
 
-	return &peers[0], nil
+	return tickers, nil
 }
 
 // GetQuarterlyRatios retrieves quarterly financial ratios for historical analysis.

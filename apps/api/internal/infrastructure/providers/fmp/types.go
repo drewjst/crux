@@ -391,7 +391,15 @@ type AnalystEstimate struct {
 // Stock Peers Types
 // =============================================================================
 
-// StockPeersResponse represents the FMP stock peers response.
+// StockPeer represents a single peer company from FMP stock-peers endpoint.
+type StockPeer struct {
+	Symbol      string  `json:"symbol"`
+	CompanyName string  `json:"companyName"`
+	Price       float64 `json:"price"`
+	MktCap      int64   `json:"mktCap"`
+}
+
+// StockPeersResponse is deprecated - FMP now returns []StockPeer directly.
 type StockPeersResponse struct {
 	Symbol    string   `json:"symbol"`
 	PeersList []string `json:"peersList"`

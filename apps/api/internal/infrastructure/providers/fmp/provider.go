@@ -574,14 +574,11 @@ func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*mod
 // GetStockPeers implements FundamentalsProvider.
 // Returns a list of peer/competitor ticker symbols.
 func (p *Provider) GetStockPeers(ctx context.Context, ticker string) ([]string, error) {
-	resp, err := p.client.GetStockPeers(ctx, ticker)
+	peers, err := p.client.GetStockPeers(ctx, ticker)
 	if err != nil {
 		return nil, fmt.Errorf("fetching stock peers: %w", err)
 	}
-	if resp == nil {
-		return nil, nil
-	}
-	return resp.PeersList, nil
+	return peers, nil
 }
 
 // GetQuarterlyRatios implements FundamentalsProvider.
