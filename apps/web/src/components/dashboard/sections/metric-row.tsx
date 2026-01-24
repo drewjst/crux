@@ -4,8 +4,9 @@ import { memo } from 'react';
 import { Info, ExternalLink } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PercentileBar } from './percentile-bar';
+import { formatMetricValue, type MetricFormat } from '@/lib/formatters';
 
-export type MetricFormat = 'percent' | 'ratio' | 'currency' | 'multiple' | 'number';
+export type { MetricFormat };
 
 export interface MetricRowProps {
   /** Metric display label */
@@ -24,54 +25,6 @@ export interface MetricRowProps {
   info?: string;
   /** Optional learn more URL */
   learnMoreUrl?: string;
-}
-
-/**
- * Format a value based on the metric type
- */
-function formatValue(value: number | null | undefined, format: MetricFormat): string {
-  if (value === null || value === undefined) {
-    return '--';
-  }
-
-  switch (format) {
-    case 'percent':
-      // Values might come as decimals (0.25) or already as percentages (25)
-      const pctValue = Math.abs(value) < 1 && Math.abs(value) > 0 ? value * 100 : value;
-      const sign = value > 0 && Math.abs(value) > 0.001 ? '+' : '';
-      return `${sign}${pctValue.toFixed(2)}%`;
-    case 'ratio':
-      // For ratios like P/E, PEG, EV/EBITDA, 0 or negative means N/A (e.g., unprofitable companies)
-      if (value <= 0) {
-        return '--';
-      }
-      return value.toFixed(2);
-    case 'currency':
-      if (Math.abs(value) >= 1e12) {
-        return `$${(value / 1e12).toFixed(2)}T`;
-      }
-      if (Math.abs(value) >= 1e9) {
-        return `$${(value / 1e9).toFixed(2)}B`;
-      }
-      if (Math.abs(value) >= 1e6) {
-        return `$${(value / 1e6).toFixed(2)}M`;
-      }
-      if (Math.abs(value) >= 1e3) {
-        return `$${(value / 1e3).toFixed(0)}K`;
-      }
-      return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    case 'multiple':
-      return `${value.toFixed(2)}x`;
-    case 'number':
-    default:
-      if (Math.abs(value) >= 1e9) {
-        return `${(value / 1e9).toFixed(2)}B`;
-      }
-      if (Math.abs(value) >= 1e6) {
-        return `${(value / 1e6).toFixed(2)}M`;
-      }
-      return value.toFixed(2);
-  }
 }
 
 /**
@@ -127,14 +80,14 @@ function MetricRowComponent({
       {/* Stock value column */}
       <td className="py-3 px-4 text-right">
         <span className="font-mono text-sm text-foreground">
-          {formatValue(value, format)}
+          {formatMetricValue(value, format)}
         </span>
       </td>
 
       {/* Industry average column */}
       <td className="py-3 px-4 text-right hidden sm:table-cell">
         <span className="font-mono text-sm text-muted-foreground">
-          {formatValue(industryAverage, format)}
+          {formatMetricValue(industryAverage, format)}
         </span>
       </td>
 

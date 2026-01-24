@@ -3,17 +3,11 @@
 import { memo } from 'react';
 import { SectionCard } from '@/components/dashboard/sections/section-card';
 import { cn } from '@/lib/utils';
+import { formatMultiple } from '@/lib/formatters';
 import type { ValuationDeepDive, ValuationMetricRow } from '@recon/shared';
 
 interface KeyMetricsSectionProps {
   data: ValuationDeepDive;
-}
-
-function formatValue(value: number | null | undefined, suffix: string = 'x'): string {
-  if (value === null || value === undefined) return '-';
-  if (value >= 100) return `${value.toFixed(0)}${suffix}`;
-  if (value >= 10) return `${value.toFixed(1)}${suffix}`;
-  return `${value.toFixed(2)}${suffix}`;
 }
 
 interface DotMeterProps {
@@ -87,28 +81,28 @@ function MetricTableRow({ metric }: MetricTableRowProps) {
       {/* Current Value */}
       <td className="py-3 px-3 text-right">
         <span className="text-sm font-mono font-semibold">
-          {formatValue(current)}
+          {formatMultiple(current)}
         </span>
       </td>
 
       {/* 5Y Average */}
       <td className="py-3 px-3 text-right hidden md:table-cell">
         <span className={cn('text-sm font-mono', getComparisonClass(fiveYearAvg))}>
-          {formatValue(fiveYearAvg)}
+          {formatMultiple(fiveYearAvg)}
         </span>
       </td>
 
       {/* Sector Median */}
       <td className="py-3 px-3 text-right hidden md:table-cell">
         <span className={cn('text-sm font-mono', getComparisonClass(sectorMedian))}>
-          {formatValue(sectorMedian)}
+          {formatMultiple(sectorMedian)}
         </span>
       </td>
 
       {/* S&P 500 Average */}
       <td className="py-3 px-3 text-right hidden lg:table-cell">
         <span className={cn('text-sm font-mono', getComparisonClass(spAvg))}>
-          {formatValue(spAvg)}
+          {formatMultiple(spAvg)}
         </span>
       </td>
 

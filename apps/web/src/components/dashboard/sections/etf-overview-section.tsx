@@ -3,42 +3,11 @@
 import { memo } from 'react';
 import { SectionCard } from './section-card';
 import { Card } from '@/components/ui/card';
+import { formatCurrency, formatShares, formatMonthYear, formatPrice, formatDecimal } from '@/lib/formatters';
 import type { StockDetailResponse } from '@recon/shared';
 
 interface ETFOverviewSectionProps {
   data: StockDetailResponse;
-}
-
-function formatAUM(aum: number): string {
-  if (!aum || aum === 0) return 'N/A';
-  if (aum >= 1e12) return `$${(aum / 1e12).toFixed(2)}T`;
-  if (aum >= 1e9) return `$${(aum / 1e9).toFixed(1)}B`;
-  if (aum >= 1e6) return `$${(aum / 1e6).toFixed(0)}M`;
-  return `$${aum.toLocaleString()}`;
-}
-
-function formatVolume(volume: number): string {
-  if (!volume || volume === 0) return 'N/A';
-  if (volume >= 1e9) return `${(volume / 1e9).toFixed(2)}B`;
-  if (volume >= 1e6) return `${(volume / 1e6).toFixed(1)}M`;
-  if (volume >= 1e3) return `${(volume / 1e3).toFixed(0)}K`;
-  return volume.toLocaleString();
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return 'N/A';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-}
-
-function formatNAV(nav: number): string {
-  if (!nav || nav === 0) return 'N/A';
-  return `$${nav.toFixed(2)}`;
-}
-
-function formatBeta(beta: number): string {
-  if (!beta && beta !== 0) return 'N/A';
-  return beta.toFixed(2);
 }
 
 function getExpenseRatioAssessment(ratio: number): string {
@@ -74,22 +43,22 @@ function ETFOverviewSectionComponent({ data }: ETFOverviewSectionProps) {
   const row1Metrics = [
     {
       label: 'Expense Ratio',
-      value: etfData.expenseRatio ? `${etfData.expenseRatio.toFixed(2)}%` : 'N/A',
+      value: etfData.expenseRatio ? `${etfData.expenseRatio.toFixed(2)}%` : '--',
       description: etfData.expenseRatio ? getExpenseRatioAssessment(etfData.expenseRatio) : '',
     },
     {
       label: 'Market Cap',
-      value: formatAUM(etfData.aum),
+      value: formatCurrency(etfData.aum),
       description: 'Fund Size',
     },
     {
       label: 'NAV',
-      value: formatNAV(etfData.nav),
+      value: formatPrice(etfData.nav),
       description: 'Net Asset Value',
     },
     {
       label: 'Inception',
-      value: formatDate(etfData.inceptionDate),
+      value: formatMonthYear(etfData.inceptionDate),
       description: 'Fund Start',
     },
   ];
@@ -98,22 +67,22 @@ function ETFOverviewSectionComponent({ data }: ETFOverviewSectionProps) {
   const row2Metrics = [
     {
       label: 'Volume',
-      value: formatVolume(etfData.avgVolume),
+      value: formatShares(etfData.avgVolume),
       description: 'Avg Daily',
     },
     {
       label: 'Beta',
-      value: formatBeta(etfData.beta),
+      value: formatDecimal(etfData.beta),
       description: 'vs Market',
     },
     {
       label: 'Holdings',
-      value: etfData.holdingsCount ? etfData.holdingsCount.toString() : 'N/A',
+      value: etfData.holdingsCount ? etfData.holdingsCount.toString() : '--',
       description: 'Positions',
     },
     {
       label: 'Domicile',
-      value: etfData.domicile || 'N/A',
+      value: etfData.domicile || '--',
       description: 'Country',
     },
   ];

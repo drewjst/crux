@@ -4,19 +4,11 @@ import { memo } from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { SectionCard } from '@/components/dashboard/sections/section-card';
 import { cn } from '@/lib/utils';
+import { formatPrice, formatPercent } from '@/lib/formatters';
 import type { ValuationDeepDive } from '@recon/shared';
 
 interface DCFSectionProps {
   data: ValuationDeepDive;
-}
-
-function formatCurrency(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
-
-function formatPercent(value: number): string {
-  const prefix = value >= 0 ? '+' : '';
-  return `${prefix}${value.toFixed(1)}%`;
 }
 
 function DCFSectionComponent({ data }: DCFSectionProps) {
@@ -93,7 +85,7 @@ function DCFSectionComponent({ data }: DCFSectionProps) {
               Current Price
             </div>
             <div className="text-lg font-bold font-mono">
-              {formatCurrency(currentPrice)}
+              {formatPrice(currentPrice)}
             </div>
           </div>
           <div className="p-4 rounded-lg bg-muted/30 border border-border/30 text-center">
@@ -101,7 +93,7 @@ function DCFSectionComponent({ data }: DCFSectionProps) {
               Intrinsic Value
             </div>
             <div className={cn('text-lg font-bold font-mono', config.color)}>
-              {formatCurrency(intrinsicValue)}
+              {formatPrice(intrinsicValue)}
             </div>
           </div>
           <div className="p-4 rounded-lg bg-muted/30 border border-border/30 text-center">
@@ -112,7 +104,7 @@ function DCFSectionComponent({ data }: DCFSectionProps) {
               'text-lg font-bold font-mono',
               marginOfSafety > 0 ? 'text-success' : 'text-destructive'
             )}>
-              {formatPercent(marginOfSafety)}
+              {formatPercent(marginOfSafety, { showSign: true, decimals: 1 })}
             </div>
           </div>
           <div className="p-4 rounded-lg bg-muted/30 border border-border/30 text-center">
@@ -121,7 +113,7 @@ function DCFSectionComponent({ data }: DCFSectionProps) {
             </div>
             <div className="text-lg font-bold font-mono">
               {impliedGrowthRate !== null && impliedGrowthRate !== undefined
-                ? formatPercent(impliedGrowthRate * 100)
+                ? formatPercent(impliedGrowthRate * 100, { showSign: true, decimals: 1 })
                 : 'N/A'}
             </div>
           </div>
@@ -150,8 +142,8 @@ function DCFSectionComponent({ data }: DCFSectionProps) {
             />
           </div>
           <div className="flex justify-between text-xs">
-            <span className="font-mono">{formatCurrency(currentPrice)}</span>
-            <span className={cn('font-mono', config.color)}>{formatCurrency(intrinsicValue)}</span>
+            <span className="font-mono">{formatPrice(currentPrice)}</span>
+            <span className={cn('font-mono', config.color)}>{formatPrice(intrinsicValue)}</span>
           </div>
         </div>
 

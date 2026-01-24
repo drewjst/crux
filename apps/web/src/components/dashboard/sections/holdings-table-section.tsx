@@ -3,16 +3,11 @@
 import { memo } from 'react';
 import Link from 'next/link';
 import { SectionCard } from './section-card';
+import { formatCurrency } from '@/lib/formatters';
 import type { StockDetailResponse } from '@recon/shared';
 
 interface HoldingsTableSectionProps {
   data: StockDetailResponse;
-}
-
-function formatValue(value: number): string {
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
 }
 
 function HoldingsTableSectionComponent({ data }: HoldingsTableSectionProps) {
@@ -68,7 +63,7 @@ function HoldingsTableSectionComponent({ data }: HoldingsTableSectionProps) {
                   </div>
                 </td>
                 <td className="py-3 text-right font-mono text-muted-foreground hidden sm:table-cell">
-                  {formatValue(holding.marketValue)}
+                  {formatCurrency(holding.marketValue)}
                 </td>
               </tr>
             ))}

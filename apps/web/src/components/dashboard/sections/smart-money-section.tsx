@@ -3,18 +3,11 @@
 import { memo } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { SectionCard } from './section-card';
-import { formatCompactCurrency } from '@/lib/utils';
+import { formatCurrency, formatShares } from '@/lib/formatters';
 import type { StockDetailResponse, InstitutionalHolder } from '@recon/shared';
 
 interface SmartMoneySectionProps {
   data: StockDetailResponse;
-}
-
-function formatShares(shares: number): string {
-  if (shares >= 1e9) return `${(shares / 1e9).toFixed(1)}B`;
-  if (shares >= 1e6) return `${(shares / 1e6).toFixed(0)}M`;
-  if (shares >= 1e3) return `${(shares / 1e3).toFixed(0)}K`;
-  return shares.toString();
 }
 
 const MAX_FUND_NAME_LENGTH = 20;
@@ -98,7 +91,7 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
   if (hasInsiderActivity) {
     shareMetrics.push(`Insider Activity (90d): ${buyCount} buys, ${sellCount} sells`);
     if (netValue !== 0) {
-      shareMetrics.push(`Net Insider Value: ${netValue >= 0 ? '+' : ''}${formatCompactCurrency(netValue)}`);
+      shareMetrics.push(`Net Insider Value: ${netValue >= 0 ? '+' : ''}${formatCurrency(netValue)}`);
     }
   }
 
@@ -234,7 +227,7 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
               </div>
               <div className="ml-auto">
                 <span className={`text-sm font-medium font-mono ${netValue >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  Net: {netValue >= 0 ? '+' : ''}{formatCompactCurrency(netValue)}
+                  Net: {netValue >= 0 ? '+' : ''}{formatCurrency(netValue)}
                 </span>
               </div>
             </div>
@@ -247,7 +240,7 @@ export const SmartMoneySection = memo(function SmartMoneySection({ data }: Smart
                     <div key={`${trade.tradeDate}-${trade.insiderName}-${trade.shares}`} className="flex items-center justify-between text-sm py-1 border-t border-border/30 first:border-t-0">
                       <span className="truncate max-w-[150px] md:max-w-[200px]">{trade.insiderName}</span>
                       <span className={`font-mono ${trade.tradeType === 'buy' ? 'text-success' : 'text-destructive'}`}>
-                        {trade.tradeType === 'buy' ? 'Buy' : 'Sell'} {formatCompactCurrency(trade.value)}
+                        {trade.tradeType === 'buy' ? 'Buy' : 'Sell'} {formatCurrency(trade.value)}
                       </span>
                     </div>
                   ))}

@@ -3,15 +3,11 @@
 import { memo } from 'react';
 import { SectionCard } from './section-card';
 import { Card } from '@/components/ui/card';
+import { formatMultiple } from '@/lib/formatters';
 import type { StockDetailResponse } from '@recon/shared';
 
 interface ETFValuationsSectionProps {
   data: StockDetailResponse;
-}
-
-function formatValue(value: number | undefined, suffix: string = ''): string {
-  if (value === undefined || value === null || value === 0) return 'N/A';
-  return `${value.toFixed(2)}${suffix}`;
 }
 
 interface ValuationMetricProps {
@@ -41,22 +37,22 @@ function ETFValuationsSectionComponent({ data }: ETFValuationsSectionProps) {
   const metrics = [
     {
       label: 'P/E Ratio',
-      value: formatValue(valuations.pe, 'x'),
+      value: formatMultiple(valuations.pe),
       description: 'Price to Earnings',
     },
     {
       label: 'P/B Ratio',
-      value: formatValue(valuations.pb, 'x'),
+      value: formatMultiple(valuations.pb),
       description: 'Price to Book',
     },
     {
       label: 'P/S Ratio',
-      value: formatValue(valuations.ps, 'x'),
+      value: formatMultiple(valuations.ps),
       description: 'Price to Sales',
     },
     {
       label: 'P/CF Ratio',
-      value: formatValue(valuations.pcf, 'x'),
+      value: formatMultiple(valuations.pcf),
       description: 'Price to Cash Flow',
     },
   ];
