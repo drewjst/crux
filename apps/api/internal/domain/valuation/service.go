@@ -18,8 +18,7 @@ const (
 	// 20 quarters = 5 years of data, sufficient for percentile calculations.
 	HistoricalQuarters = 20
 	// MaxPeers is the maximum number of peers to fetch ratios for.
-	// Limited to 6 to reduce API calls (each peer requires 2-3 API calls).
-	MaxPeers = 6
+	MaxPeers = 10
 )
 
 // Service provides valuation analysis.
