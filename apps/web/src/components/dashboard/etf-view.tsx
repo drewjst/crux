@@ -20,13 +20,11 @@ interface ETFViewProps {
 
 function ETFViewComponent({ data }: ETFViewProps) {
   const { etfData } = data;
+  const hasRegions = etfData?.regions && etfData.regions.length > 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <HeaderSection data={data} />
-
-      <DashboardDivider />
-      <ETFOverviewSection data={data} />
 
       {/* Performance section - only show if performance data is available */}
       {etfData?.performance && (
@@ -36,19 +34,19 @@ function ETFViewComponent({ data }: ETFViewProps) {
         </>
       )}
 
+      {/* Fund Overview (left) + Top Holdings (right) - side by side on desktop */}
       <DashboardDivider />
-      <HoldingsTableSection data={data} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ETFOverviewSection data={data} />
+        <HoldingsTableSection data={data} />
+      </div>
 
+      {/* Sector Allocation (left) + Geographic Allocation (right) - side by side on desktop */}
       <DashboardDivider />
-      <SectorBreakdownSection data={data} />
-
-      {/* Regions section - only show if region data is available */}
-      {etfData?.regions && etfData.regions.length > 0 && (
-        <>
-          <DashboardDivider />
-          <ETFRegionsSection data={data} />
-        </>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectorBreakdownSection data={data} />
+        {hasRegions && <ETFRegionsSection data={data} />}
+      </div>
 
       {/* Market cap breakdown - only show if data is available */}
       {etfData?.marketCapBreakdown && (

@@ -404,3 +404,22 @@ type StockPeersResponse struct {
 	Symbol    string   `json:"symbol"`
 	PeersList []string `json:"peersList"`
 }
+
+// =============================================================================
+// Owner Earnings Types
+// =============================================================================
+
+// OwnerEarnings represents the FMP owner earnings response.
+// Owner earnings = net income + D&A - maintenance capex
+type OwnerEarnings struct {
+	Symbol                 string  `json:"symbol"`
+	ReportedCurrency       string  `json:"reportedCurrency"`
+	FiscalYear             string  `json:"fiscalYear"` // API returns string, not int
+	Period                 string  `json:"period"`
+	Date                   string  `json:"date"`
+	AveragePPE             float64 `json:"averagePPE"`
+	MaintenanceCapex       float64 `json:"maintenanceCapex"`
+	OwnersEarnings         float64 `json:"ownersEarnings"`         // Note: API uses "owners" with 's'
+	GrowthCapex            float64 `json:"growthCapex"`
+	OwnersEarningsPerShare float64 `json:"ownersEarningsPerShare"` // Note: API uses "owners" with 's'
+}

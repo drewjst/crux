@@ -76,10 +76,12 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 	var (
 		company          *models.Company
 		ratios           *models.Ratios
+		quote            *models.Quote
 		historicalRatios []models.QuarterlyRatio
 		peers            []string
 		peerRatios       []peerRatio
 		dcf              *models.DCF
+		ownerEarnings    *models.OwnerEarnings
 		sectorPE         *models.SectorPE
 	)
 
@@ -101,6 +103,16 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 		ratios, err = s.fundamentals.GetRatios(gctx, ticker)
 		if err != nil {
 			slog.Warn("failed to fetch ratios for valuation", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	// Fetch quote for market cap (needed for owner earnings yield)
+	g.Go(func() error {
+		var err error
+		quote, err = s.quotes.GetQuote(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch quote for valuation", "ticker", ticker, "error", err)
 		}
 		return nil
 	})
@@ -133,6 +145,20 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 		dcf, err = s.fundamentals.GetDCF(gctx, ticker)
 		if err != nil {
 			slog.Warn("failed to fetch DCF", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	// Fetch owner earnings
+	g.Go(func() error {
+		var err error
+		ownerEarnings, err = s.fundamentals.GetOwnerEarnings(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch owner earnings", "ticker", ticker, "error", err)
+		} else if ownerEarnings != nil {
+			slog.Debug("fetched owner earnings", "ticker", ticker, "ownerEarnings", ownerEarnings.OwnerEarnings, "yield", ownerEarnings.OwnerEarningsPerShare)
+		} else {
+			slog.Debug("owner earnings returned nil", "ticker", ticker)
 		}
 		return nil
 	})
@@ -196,7 +222,7 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 	}
 
 	// Build the deep dive response
-	return s.buildDeepDive(ticker, company, ratios, historicalRatios, peerRatios, dcf, sectorPE), nil
+	return s.buildDeepDive(ticker, company, ratios, quote, historicalRatios, peerRatios, dcf, ownerEarnings, sectorPE), nil
 }
 
 // peerRatio holds all valuation metrics for a peer company.
@@ -303,9 +329,11 @@ func (s *Service) buildDeepDive(
 	ticker string,
 	company *models.Company,
 	ratios *models.Ratios,
+	quote *models.Quote,
 	historicalRatios []models.QuarterlyRatio,
 	peerRatios []peerRatio,
 	dcf *models.DCF,
+	ownerEarnings *models.OwnerEarnings,
 	sectorPE *models.SectorPE,
 ) *models.ValuationDeepDive {
 	companyName := ticker
@@ -352,6 +380,9 @@ func (s *Service) buildDeepDive(
 
 	// Build DCF analysis
 	result.DCFAnalysis = s.buildDCFAnalysis(dcf, ratios)
+
+	// Build owner earnings analysis
+	result.OwnerEarningsAnalysis = s.buildOwnerEarningsAnalysis(ownerEarnings, quote)
 
 	// Generate valuation signals
 	result.Signals = s.generateValuationSignals(result, ratios)
@@ -715,7 +746,16 @@ func (s *Service) calculateMetricPercentile(
 
 // buildDCFAnalysis constructs DCF analysis from DCF data.
 func (s *Service) buildDCFAnalysis(dcf *models.DCF, ratios *models.Ratios) *models.DCFAnalysis {
-	if dcf == nil || dcf.DCFValue <= 0 || dcf.StockPrice <= 0 {
+	if dcf == nil {
+		slog.Debug("buildDCFAnalysis: dcf is nil")
+		return nil
+	}
+	if dcf.DCFValue <= 0 {
+		slog.Debug("buildDCFAnalysis: DCFValue is <= 0", "ticker", dcf.Ticker, "dcfValue", dcf.DCFValue)
+		return nil
+	}
+	if dcf.StockPrice <= 0 {
+		slog.Debug("buildDCFAnalysis: StockPrice is <= 0", "ticker", dcf.Ticker, "stockPrice", dcf.StockPrice)
 		return nil
 	}
 
@@ -748,6 +788,32 @@ func (s *Service) buildDCFAnalysis(dcf *models.DCF, ratios *models.Ratios) *mode
 		MarginOfSafety:    marginOfSafety,
 		ImpliedGrowthRate: impliedGrowth,
 		Assessment:        assessment,
+	}
+}
+
+// buildOwnerEarningsAnalysis constructs owner earnings analysis from FMP data.
+func (s *Service) buildOwnerEarningsAnalysis(oe *models.OwnerEarnings, quote *models.Quote) *models.OwnerEarningsAnalysis {
+	if oe == nil {
+		slog.Debug("owner earnings analysis: oe is nil")
+		return nil
+	}
+	if oe.OwnerEarnings == 0 {
+		slog.Debug("owner earnings analysis: owner earnings value is 0", "ticker", oe.Ticker)
+		return nil
+	}
+
+	// Calculate owner earnings yield: (ownerEarnings / marketCap) * 100
+	var ownerEarningsYield float64
+	if quote != nil && quote.MarketCap > 0 {
+		ownerEarningsYield = (oe.OwnerEarnings / float64(quote.MarketCap)) * 100
+	}
+
+	return &models.OwnerEarningsAnalysis{
+		OwnerEarnings:         oe.OwnerEarnings,
+		OwnerEarningsPerShare: oe.OwnerEarningsPerShare,
+		OwnerEarningsYield:    ownerEarningsYield,
+		MaintenanceCapex:      oe.MaintenanceCapex,
+		GrowthCapex:           oe.GrowthCapex,
 	}
 }
 
@@ -833,6 +899,24 @@ func (s *Service) generateValuationSignals(data *models.ValuationDeepDive, ratio
 				Name:        "High Earnings Yield",
 				Description: fmt.Sprintf("%.1f%% earnings yield exceeds typical bond returns", earningsYield),
 				Sentiment:   "bullish",
+			})
+		}
+	}
+
+	// Owner earnings yield signal
+	if data.OwnerEarningsAnalysis != nil && data.OwnerEarningsAnalysis.OwnerEarningsYield > 0 {
+		yield := data.OwnerEarningsAnalysis.OwnerEarningsYield
+		if yield > 8 {
+			signals = append(signals, models.ValuationSignal{
+				Name:        "High Owner Earnings Yield",
+				Description: fmt.Sprintf("%.1f%% owner earnings yield suggests strong cash generation", yield),
+				Sentiment:   "bullish",
+			})
+		} else if yield > 5 {
+			signals = append(signals, models.ValuationSignal{
+				Name:        "Solid Owner Earnings",
+				Description: fmt.Sprintf("%.1f%% owner earnings yield indicates healthy cash flow", yield),
+				Sentiment:   "neutral",
 			})
 		}
 	}

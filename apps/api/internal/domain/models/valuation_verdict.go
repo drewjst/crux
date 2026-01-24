@@ -104,6 +104,15 @@ type DCFAnalysis struct {
 	Assessment        string   `json:"assessment"` // "Undervalued", "Fairly Valued", "Overvalued", "N/A"
 }
 
+// OwnerEarningsAnalysis contains Buffett-style owner earnings data.
+type OwnerEarningsAnalysis struct {
+	OwnerEarnings         float64 `json:"ownerEarnings"`         // Total owner earnings
+	OwnerEarningsPerShare float64 `json:"ownerEarningsPerShare"` // Per share
+	OwnerEarningsYield    float64 `json:"ownerEarningsYield"`    // OE / Market Cap as percentage
+	MaintenanceCapex      float64 `json:"maintenanceCapex"`      // Maintenance capex (subtracted)
+	GrowthCapex           float64 `json:"growthCapex"`           // Growth capex (not subtracted)
+}
+
 // ValuationSignal represents a valuation-related signal.
 type ValuationSignal struct {
 	Name        string `json:"name"`
@@ -137,6 +146,9 @@ type ValuationDeepDive struct {
 
 	// DCF / Intrinsic Value Analysis
 	DCFAnalysis *DCFAnalysis `json:"dcfAnalysis"`
+
+	// Owner Earnings Analysis (Buffett-style)
+	OwnerEarningsAnalysis *OwnerEarningsAnalysis `json:"ownerEarningsAnalysis"`
 
 	// Valuation Signals Summary
 	Signals []ValuationSignal `json:"signals"`

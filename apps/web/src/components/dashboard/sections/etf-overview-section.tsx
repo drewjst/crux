@@ -89,27 +89,15 @@ function ETFOverviewSectionComponent({ data }: ETFOverviewSectionProps) {
 
   return (
     <SectionCard title="Fund Overview">
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {row1Metrics.map((metric) => (
-            <MetricCard
-              key={metric.label}
-              label={metric.label}
-              value={metric.value}
-              description={metric.description}
-            />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {row2Metrics.map((metric) => (
-            <MetricCard
-              key={metric.label}
-              label={metric.label}
-              value={metric.value}
-              description={metric.description}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-3">
+        {[...row1Metrics, ...row2Metrics].map((metric) => (
+          <MetricCard
+            key={metric.label}
+            label={metric.label}
+            value={metric.value}
+            description={metric.description}
+          />
+        ))}
       </div>
     </SectionCard>
   );

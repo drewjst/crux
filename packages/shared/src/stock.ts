@@ -457,6 +457,21 @@ export interface ValuationDeepDive {
     assessment: 'Undervalued' | 'Fairly Valued' | 'Overvalued' | 'N/A';
   } | null;
 
+  // Owner Earnings Analysis (Buffett-style)
+  /** Owner earnings analysis for intrinsic value assessment */
+  ownerEarningsAnalysis: {
+    /** Total owner earnings (net income + D&A - maintenance capex) */
+    ownerEarnings: number;
+    /** Owner earnings per share */
+    ownerEarningsPerShare: number;
+    /** Owner earnings yield (owner earnings / market cap * 100) */
+    ownerEarningsYield: number;
+    /** Maintenance capex (subtracted from owner earnings) */
+    maintenanceCapex: number;
+    /** Growth capex (not subtracted - discretionary expansion) */
+    growthCapex: number;
+  } | null;
+
   // Valuation Signals Summary
   /** Valuation-related signals */
   signals: {

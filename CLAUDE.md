@@ -126,9 +126,32 @@ We use multiple external data sources:
 
 | Provider | Purpose | Key Endpoints |
 |----------|---------|---------------|
-| **FMP** (Primary) | Fundamentals, financials, ratios, holdings, insider trades, analyst estimates | `/stable/profile`, `/stable/ratios-ttm`, `/stable/income-statement` |
+| **FMP** (Primary) | Fundamentals, financials, ratios, holdings, insider trades, analyst estimates | See FMP endpoints table below |
 | **Polygon.io** | Ticker search, company metadata | `/v3/reference/tickers` (parallel ticker prefix + name search) |
 | **EODHD** (Fallback) | ETF holdings fallback, legacy support | `/fundamentals/{ticker}.US` |
+
+**FMP Endpoints Used:**
+
+| Endpoint | Purpose | Tier Required |
+|----------|---------|---------------|
+| `/stable/profile` | Company profile, description, sector | Free |
+| `/stable/quote` | Real-time stock quotes | Free |
+| `/stable/income-statement` | Income statements | Free |
+| `/stable/balance-sheet-statement` | Balance sheets | Free |
+| `/stable/cash-flow-statement` | Cash flow statements | Free |
+| `/stable/ratios-ttm` | TTM financial ratios | Free |
+| `/stable/key-metrics-ttm` | TTM key metrics | Free |
+| `/stable/ratios` | Historical ratios (quarterly) | Free |
+| `/stable/discounted-cash-flow` | DCF valuation | Free |
+| `/stable/stock-peers` | Peer/competitor companies | Paid |
+| `/stable/owner-earnings` | Buffett-style owner earnings | Paid |
+| `/stable/insider-trading/search` | Insider trades | Paid |
+| `/stable/institutional-ownership/*` | 13F holdings data | Paid |
+| `/stable/grades-consensus` | Analyst ratings | Paid |
+| `/stable/price-target-consensus` | Price targets | Paid |
+| `/stable/analyst-estimates` | EPS/revenue estimates | Paid |
+| `/stable/sector-pe` | Sector P/E ratios | Paid |
+| `/stable/industry-pe` | Industry P/E ratios | Paid |
 
 **Provider Architecture:**
 ```

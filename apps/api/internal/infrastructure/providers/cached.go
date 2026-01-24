@@ -23,6 +23,7 @@ const (
 	cacheInstitutionalSum    = "institutional_summary"
 	cacheInsiderTrades       = "insider_trades"
 	cacheDCF                 = "dcf"
+	cacheOwnerEarnings       = "owner_earnings"
 	cacheIndustryAverages    = "industry_averages"
 	cacheTechnicalMetrics    = "technical_metrics"
 	cacheShortInterest       = "short_interest"
@@ -159,6 +160,12 @@ func (p *CachedFundamentalsProvider) GetInsiderTrades(ctx context.Context, ticke
 func (p *CachedFundamentalsProvider) GetDCF(ctx context.Context, ticker string) (*models.DCF, error) {
 	return cached(p, cacheDCF, ticker, ttlDefault, func() (*models.DCF, error) {
 		return p.underlying.GetDCF(ctx, ticker)
+	})
+}
+
+func (p *CachedFundamentalsProvider) GetOwnerEarnings(ctx context.Context, ticker string) (*models.OwnerEarnings, error) {
+	return cached(p, cacheOwnerEarnings, ticker, ttlDefault, func() (*models.OwnerEarnings, error) {
+		return p.underlying.GetOwnerEarnings(ctx, ticker)
 	})
 }
 

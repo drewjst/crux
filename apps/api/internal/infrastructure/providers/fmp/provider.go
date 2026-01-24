@@ -310,6 +310,24 @@ func (p *Provider) GetDCF(ctx context.Context, ticker string) (*models.DCF, erro
 	}, nil
 }
 
+// GetOwnerEarnings implements FundamentalsProvider.
+func (p *Provider) GetOwnerEarnings(ctx context.Context, ticker string) (*models.OwnerEarnings, error) {
+	data, err := p.client.GetOwnerEarnings(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching owner earnings: %w", err)
+	}
+	if data == nil {
+		return nil, nil
+	}
+	return &models.OwnerEarnings{
+		Ticker:                data.Symbol,
+		OwnerEarnings:         data.OwnersEarnings,        // API uses "owners" with 's'
+		OwnerEarningsPerShare: data.OwnersEarningsPerShare, // API uses "owners" with 's'
+		GrowthCapex:           data.GrowthCapex,
+		MaintenanceCapex:      data.MaintenanceCapex,
+	}, nil
+}
+
 // Search implements SearchProvider.
 func (p *Provider) Search(ctx context.Context, query string, limit int) ([]models.SearchResult, error) {
 	results, err := p.client.SearchTicker(ctx, query, limit)

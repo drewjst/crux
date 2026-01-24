@@ -155,6 +155,12 @@ func (p *Provider) GetDCF(ctx context.Context, ticker string) (*models.DCF, erro
 	return nil, nil
 }
 
+// GetOwnerEarnings implements FundamentalsProvider.
+// EODHD doesn't have an owner earnings endpoint.
+func (p *Provider) GetOwnerEarnings(ctx context.Context, ticker string) (*models.OwnerEarnings, error) {
+	return nil, nil
+}
+
 // GetIndustryAverages implements FundamentalsProvider.
 // Note: EODHD doesn't provide industry average data directly.
 func (p *Provider) GetIndustryAverages(ctx context.Context, industry string) (*models.IndustryAverages, error) {

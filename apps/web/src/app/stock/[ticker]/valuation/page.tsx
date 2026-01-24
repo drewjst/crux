@@ -28,12 +28,10 @@ export default function ValuationPage({ params }: PageProps) {
           <div className="h-48 bg-muted rounded" />
           <div className="h-32 bg-muted rounded" />
           <div className="h-64 bg-muted rounded" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-64 bg-muted rounded" />
-            <div className="h-64 bg-muted rounded" />
-          </div>
+          <div className="h-80 bg-muted rounded" />
           <div className="h-48 bg-muted rounded" />
-          <div className="h-48 bg-muted rounded" />
+          <div className="h-64 bg-muted rounded" />
+          <div className="h-32 bg-muted rounded" />
         </div>
       </div>
     );
@@ -88,20 +86,20 @@ export default function ValuationPage({ params }: PageProps) {
 
         <DashboardDivider />
 
-        {/* 4 & 5. Peer Comparison + Growth Justification (Side by Side) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 4 & 5. Peer Comparison (full width) + Growth Justification (below) */}
+        <div className="space-y-6">
           <PeerComparisonSection data={data} />
           <GrowthJustificationSection data={data} />
         </div>
 
         <DashboardDivider />
 
-        {/* 6 & 7. DCF & Intrinsic Value (includes Margin of Safety) */}
+        {/* 6. DCF & Intrinsic Value (includes Owner Earnings) */}
         <DCFSection data={data} />
 
         <DashboardDivider />
 
-        {/* 8. Valuation Signals Summary */}
+        {/* 7. Valuation Signals Summary */}
         <ValuationSignalsSection data={data} />
       </div>
     </div>

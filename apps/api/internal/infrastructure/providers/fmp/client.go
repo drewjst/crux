@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -215,14 +216,36 @@ func (c *Client) GetDCF(ctx context.Context, ticker string) (*DCF, error) {
 
 	var dcfData []DCF
 	if err := c.get(ctx, url, &dcfData); err != nil {
+		slog.Debug("FMP DCF API error", "ticker", ticker, "error", err)
 		return nil, fmt.Errorf("fetching DCF: %w", err)
 	}
 
 	if len(dcfData) == 0 {
+		slog.Debug("FMP DCF API returned empty array", "ticker", ticker)
 		return nil, nil
 	}
 
+	slog.Debug("FMP DCF API success", "ticker", ticker, "dcf", dcfData[0].DCF, "stockPrice", dcfData[0].StockPrice)
 	return &dcfData[0], nil
+}
+
+// GetOwnerEarnings retrieves owner earnings data (Buffett-style earnings).
+func (c *Client) GetOwnerEarnings(ctx context.Context, ticker string) (*OwnerEarnings, error) {
+	url := fmt.Sprintf("%s/owner-earnings?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var data []OwnerEarnings
+	if err := c.get(ctx, url, &data); err != nil {
+		slog.Debug("FMP owner-earnings API error", "ticker", ticker, "error", err)
+		return nil, fmt.Errorf("fetching owner earnings: %w", err)
+	}
+
+	if len(data) == 0 {
+		slog.Debug("FMP owner-earnings API returned empty array", "ticker", ticker)
+		return nil, nil
+	}
+
+	slog.Debug("FMP owner-earnings API success", "ticker", ticker, "ownersEarnings", data[0].OwnersEarnings)
+	return &data[0], nil
 }
 
 // GetETFInfo retrieves ETF information (expense ratio, AUM, etc.).
