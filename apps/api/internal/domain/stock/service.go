@@ -11,12 +11,12 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
-	"github.com/drewjst/recon/apps/api/internal/domain/scores"
-	"github.com/drewjst/recon/apps/api/internal/domain/signals"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/db"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/polygon"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/providers"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/scores"
+	"github.com/drewjst/crux/apps/api/internal/domain/signals"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/db"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/external/polygon"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers"
 )
 
 // ErrTickerNotFound is returned when a ticker doesn't exist.
@@ -562,7 +562,9 @@ func convertETFDataFromModel(m *models.ETFData) *ETFData {
 			Ticker:        h.Ticker,
 			Name:          h.Name,
 			Sector:        h.Sector,
+			Shares:        float64(h.Shares),
 			WeightPercent: h.WeightPercent,
+			MarketValue:   h.MarketValue,
 		})
 	}
 

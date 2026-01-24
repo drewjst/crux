@@ -3,7 +3,7 @@ package signals
 import (
 	"sort"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/scores"
+	"github.com/drewjst/crux/apps/api/internal/domain/scores"
 )
 
 // Generator creates signals from various data sources.

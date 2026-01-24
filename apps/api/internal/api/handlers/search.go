@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/search"
+	"github.com/drewjst/crux/apps/api/internal/domain/search"
 )
 
 const (

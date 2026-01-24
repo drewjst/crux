@@ -127,7 +127,7 @@ We use multiple external data sources:
 | Provider | Purpose | Key Endpoints |
 |----------|---------|---------------|
 | **FMP** (Primary) | Fundamentals, financials, ratios, holdings, insider trades, analyst estimates | `/stable/profile`, `/stable/ratios-ttm`, `/stable/income-statement` |
-| **Polygon.io** | Ticker search, company metadata | `/v3/reference/tickers` |
+| **Polygon.io** | Ticker search, company metadata | `/v3/reference/tickers` (parallel ticker prefix + name search) |
 | **EODHD** (Fallback) | ETF holdings fallback, legacy support | `/fundamentals/{ticker}.US` |
 
 **Provider Architecture:**
@@ -186,6 +186,40 @@ func (p *Provider) GetDCF(ctx context.Context, ticker string) (*models.DCF, erro
     return nil, nil
 }
 ```
+
+### Polygon Ticker Search
+
+The ticker search uses parallel queries for better results:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  User Query: "WM"                                           │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐    ┌─────────────────────┐        │
+│  │ Ticker Prefix Search│    │ Name Search         │        │
+│  │ ticker.gte=WM       │    │ search=WM           │        │
+│  │ ticker.lte=WMZZZZ   │    │ (fuzzy name match)  │        │
+│  └──────────┬──────────┘    └──────────┬──────────┘        │
+│             │                          │                    │
+│             └──────────┬───────────────┘                    │
+│                        ▼                                    │
+│              ┌─────────────────┐                            │
+│              │ Merge & Dedup   │                            │
+│              │ Sort by relevance│                            │
+│              └─────────────────┘                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Supported security types:**
+- `CS` — Common stocks (AAPL, GOOGL, WM)
+- `ETF` — Exchange-traded funds (SPY, QQQ, VTI)
+- `ADRC` — ADR Class C (NVO, TSM, BABA)
+
+**Sorting priority:**
+1. Exact ticker match (WM → WM first)
+2. Ticker prefix match (WM → WMT, WMS)
+3. Shorter tickers (more well-known)
+4. Alphabetical
 
 ### Environment Variables
 

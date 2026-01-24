@@ -257,6 +257,12 @@ type KeyMetricsTTM struct {
 	ReturnOnAssetsTTM          float64 `json:"returnOnAssetsTTM"`
 	ReturnOnEquityTTM          float64 `json:"returnOnEquityTTM"`
 	ReturnOnInvestedCapitalTTM float64 `json:"returnOnInvestedCapitalTTM"`
+	// Additional fields for ETF valuations
+	PERatioTTM        float64 `json:"peRatioTTM"`
+	PriceToSalesTTM   float64 `json:"priceToSalesRatioTTM"`
+	PBRatioTTM        float64 `json:"pbRatioTTM"`
+	PriceToCashFlowTTM float64 `json:"priceToFreeCashFlowsRatioTTM"`
+	DividendYieldTTM  float64 `json:"dividendYieldTTM"`
 }
 
 // DCF represents the FMP discounted cash flow response.
@@ -272,7 +278,8 @@ type DCF struct {
 type ETFInfo struct {
 	Symbol                 string  `json:"symbol"`
 	Name                   string  `json:"name"`
-	ExpenseRatio           float64 `json:"expenseRatio"`           // Already as decimal (0.0945 = 9.45%)
+	ExpenseRatio           float64 `json:"expenseRatio"`           // Gross expense ratio as decimal
+	NetExpenseRatio        float64 `json:"netExpenseRatio"`        // Net expense ratio as decimal (preferred)
 	AssetsUnderManagement  float64 `json:"assetsUnderManagement"`  // AUM in USD
 	NAV                    float64 `json:"nav"`
 	HoldingsCount          int     `json:"holdingsCount"`
@@ -289,16 +296,24 @@ type ETFInfo struct {
 type ETFHolding struct {
 	Asset            string  `json:"asset"`
 	Name             string  `json:"name"`
-	Shares           float64 `json:"shares"`
+	SharesNumber     float64 `json:"sharesNumber"`
 	WeightPercentage float64 `json:"weightPercentage"`
 	MarketValue      float64 `json:"marketValue"`
 }
 
 // ETFSectorWeighting represents sector allocation in an ETF.
 type ETFSectorWeighting struct {
-	Sector           string `json:"sector"`
+	Sector           string  `json:"sector"`
+	WeightPercentage float64 `json:"weightPercentage"`
+}
+
+// ETFCountryWeighting represents country/region allocation in an ETF.
+// Note: FMP returns weightPercentage as a string with % suffix for this endpoint
+type ETFCountryWeighting struct {
+	Country          string `json:"country"`
 	WeightPercentage string `json:"weightPercentage"`
 }
+
 
 // InstitutionalOwnershipHolder represents an institutional holder's position from 13F filings.
 type InstitutionalOwnershipHolder struct {
@@ -370,4 +385,14 @@ type AnalystEstimate struct {
 	EstimatedEpsHigh              float64 `json:"estimatedEpsHigh"`
 	NumberAnalystEstimatedRevenue int     `json:"numberAnalystEstimatedRevenue"`
 	NumberAnalystsEstimatedEps    int     `json:"numberAnalystsEstimatedEps"`
+}
+
+// =============================================================================
+// Stock Peers Types
+// =============================================================================
+
+// StockPeersResponse represents the FMP stock peers response.
+type StockPeersResponse struct {
+	Symbol    string   `json:"symbol"`
+	PeersList []string `json:"peersList"`
 }

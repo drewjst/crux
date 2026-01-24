@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import Link from 'next/link';
 import { SectionCard } from './section-card';
 import type { StockDetailResponse } from '@recon/shared';
 
@@ -44,7 +45,14 @@ function HoldingsTableSectionComponent({ data }: HoldingsTableSectionProps) {
                 key={holding.ticker}
                 className="border-b border-border/50 hover:bg-muted/30"
               >
-                <td className="py-3 font-mono font-medium">{holding.ticker}</td>
+                <td className="py-3 font-mono font-medium">
+                  <Link
+                    href={`/stock/${holding.ticker}`}
+                    className="text-primary hover:underline"
+                  >
+                    {holding.ticker}
+                  </Link>
+                </td>
                 <td className="py-3 text-muted-foreground truncate max-w-[200px]">
                   {holding.name}
                 </td>

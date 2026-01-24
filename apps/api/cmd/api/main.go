@@ -1,4 +1,4 @@
-// Package main is the entry point for the Recon API server.
+// Package main is the entry point for the Crux API server.
 package main
 
 import (
@@ -12,13 +12,14 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/drewjst/recon/apps/api/internal/api"
-	"github.com/drewjst/recon/apps/api/internal/config"
-	"github.com/drewjst/recon/apps/api/internal/domain/search"
-	"github.com/drewjst/recon/apps/api/internal/domain/stock"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/db"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/polygon"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/providers"
+	"github.com/drewjst/crux/apps/api/internal/api"
+	"github.com/drewjst/crux/apps/api/internal/config"
+	"github.com/drewjst/crux/apps/api/internal/domain/search"
+	"github.com/drewjst/crux/apps/api/internal/domain/stock"
+	"github.com/drewjst/crux/apps/api/internal/domain/valuation"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/db"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/external/polygon"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers"
 )
 
 func main() {
@@ -88,11 +89,16 @@ func run() error {
 	)
 	slog.Info("stock service initialized", "provider", cfg.FundamentalsProvider, "caching", cacheRepo != nil)
 
+	// Initialize valuation service
+	valuationService := valuation.NewService(dataProvider, dataProvider)
+	slog.Info("valuation service initialized")
+
 	// Initialize router
 	router := api.NewRouter(api.RouterDeps{
-		StockService:    stockService,
-		PolygonSearcher: polygonSearcher,
-		AllowedOrigins:  cfg.AllowedOrigins,
+		StockService:     stockService,
+		ValuationService: valuationService,
+		PolygonSearcher:  polygonSearcher,
+		AllowedOrigins:   cfg.AllowedOrigins,
 	})
 
 	// Create server

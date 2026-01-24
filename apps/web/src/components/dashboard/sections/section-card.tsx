@@ -20,6 +20,8 @@ interface SectionCardProps {
   shareTicker?: string;
   /** Custom share text. Required if shareTicker is provided */
   shareText?: string;
+  /** Optional content to render on the right side of the header (e.g., filters, selectors) */
+  headerRight?: React.ReactNode;
 }
 
 export function SectionCard({
@@ -29,6 +31,7 @@ export function SectionCard({
   defaultOpen = true,
   shareTicker,
   shareText,
+  headerRight,
 }: SectionCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -49,6 +52,11 @@ export function SectionCard({
                 )}
               />
             </CollapsibleTrigger>
+            {headerRight && (
+              <div className="ml-4" onClick={(e) => e.stopPropagation()}>
+                {headerRight}
+              </div>
+            )}
             {shareTicker && shareText && (
               <ShareButton
                 ticker={shareTicker}

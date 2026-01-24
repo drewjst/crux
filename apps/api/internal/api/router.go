@@ -4,17 +4,19 @@ package api
 import (
 	"github.com/go-chi/chi/v5"
 
-	"github.com/drewjst/recon/apps/api/internal/api/handlers"
-	"github.com/drewjst/recon/apps/api/internal/api/middleware"
-	"github.com/drewjst/recon/apps/api/internal/domain/search"
-	"github.com/drewjst/recon/apps/api/internal/domain/stock"
+	"github.com/drewjst/crux/apps/api/internal/api/handlers"
+	"github.com/drewjst/crux/apps/api/internal/api/middleware"
+	"github.com/drewjst/crux/apps/api/internal/domain/search"
+	"github.com/drewjst/crux/apps/api/internal/domain/stock"
+	"github.com/drewjst/crux/apps/api/internal/domain/valuation"
 )
 
 // RouterDeps contains all dependencies needed by the router.
 type RouterDeps struct {
-	StockService    *stock.Service
-	PolygonSearcher *search.PolygonSearcher
-	AllowedOrigins  []string
+	StockService      *stock.Service
+	ValuationService  *valuation.Service
+	PolygonSearcher   *search.PolygonSearcher
+	AllowedOrigins    []string
 }
 
 // NewRouter creates and configures the Chi router with all routes and middleware.
@@ -38,8 +40,10 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	r.Route("/api", func(r chi.Router) {
 		stockHandler := handlers.NewStockHandler(deps.StockService)
 		searchHandler := handlers.NewSearchHandler(deps.PolygonSearcher)
+		valuationHandler := handlers.NewValuationHandler(deps.ValuationService)
 
 		r.Get("/stock/{ticker}", stockHandler.GetStock)
+		r.Get("/stock/{ticker}/valuation", valuationHandler.GetValuation)
 		r.Get("/search", searchHandler.Search)
 	})
 

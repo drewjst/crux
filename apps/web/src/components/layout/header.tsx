@@ -9,10 +9,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 
 function HeaderSearch() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const tickerParam = searchParams.get('ticker');
 
-  if (!tickerParam) return null;
+  // Show search when viewing stock data (query param or /stock/ path)
+  const showSearch = tickerParam || pathname.startsWith('/stock/');
+
+  if (!showSearch) return null;
 
   return (
     <div className="hidden sm:block w-full max-w-xs lg:max-w-md xl:max-w-lg">

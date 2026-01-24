@@ -4,7 +4,7 @@ package providers
 import (
 	"context"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
 )
 
 // FundamentalsProvider provides fundamental company and financial data.
@@ -22,6 +22,12 @@ type FundamentalsProvider interface {
 
 	// Analyst estimates (FMP provides this, EODHD returns nil)
 	GetAnalystEstimates(ctx context.Context, ticker string) (*models.AnalystEstimates, error)
+
+	// Valuation deep dive methods
+	GetStockPeers(ctx context.Context, ticker string) ([]string, error)
+	GetQuarterlyRatios(ctx context.Context, ticker string, quarters int) ([]models.QuarterlyRatio, error)
+	GetSectorPE(ctx context.Context, sector string, exchange string) (*models.SectorPE, error)
+	GetIndustryPE(ctx context.Context, industry string, exchange string) (*models.IndustryPE, error)
 
 	// ETF-specific methods
 	IsETF(ctx context.Context, ticker string) (bool, error)

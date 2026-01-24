@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
 )
 
 // mapCompanyProfile converts FMP CompanyProfile to internal Company model.
@@ -230,7 +230,7 @@ func parseYear(date string) (int, error) {
 }
 
 // mapETFData converts FMP ETF data to internal ETFData model.
-func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighting, profile *CompanyProfile) *models.ETFData {
+func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighting, countries []ETFCountryWeighting, profile *CompanyProfile, keyMetrics *KeyMetricsTTM) *models.ETFData {
 	if info == nil {
 		return nil
 	}
@@ -244,18 +244,28 @@ func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighti
 		modelHoldings = append(modelHoldings, models.ETFHolding{
 			Ticker:        h.Asset,
 			Name:          h.Name,
+			Shares:        int64(h.SharesNumber),
 			WeightPercent: h.WeightPercentage,
+			MarketValue:   int64(h.MarketValue),
 		})
 	}
 
 	// Map sector weights
 	sectorWeights := make([]models.ETFSectorWeight, 0, len(sectors))
 	for _, s := range sectors {
-		// FMP returns weight as string like "15.23%", parse it
-		weightStr := strings.TrimSuffix(s.WeightPercentage, "%")
-		weight, _ := strconv.ParseFloat(weightStr, 64)
 		sectorWeights = append(sectorWeights, models.ETFSectorWeight{
 			Sector:        s.Sector,
+			WeightPercent: s.WeightPercentage,
+		})
+	}
+
+	// Map country/region weights (FMP returns weightPercentage as string with % suffix)
+	regionWeights := make([]models.ETFRegionWeight, 0, len(countries))
+	for _, c := range countries {
+		weightStr := strings.TrimSuffix(c.WeightPercentage, "%")
+		weight, _ := strconv.ParseFloat(weightStr, 64)
+		regionWeights = append(regionWeights, models.ETFRegionWeight{
+			Region:        c.Country,
 			WeightPercent: weight,
 		})
 	}
@@ -284,19 +294,63 @@ func mapETFData(info *ETFInfo, holdings []ETFHolding, sectors []ETFSectorWeighti
 		holdingsCount = len(holdings)
 	}
 
+	// Use NetExpenseRatio if available, fall back to ExpenseRatio
+	expenseRatio := info.NetExpenseRatio
+	if expenseRatio == 0 {
+		expenseRatio = info.ExpenseRatio
+	}
+
+	// Use NAV from ETF info, fall back to price from profile
+	nav := info.NAV
+	if nav == 0 && profile != nil {
+		nav = profile.Price
+	}
+
+	// Use domicile from ETF info, fall back to country from profile
+	domicile := info.Domicile
+	if domicile == "" && profile != nil {
+		domicile = profile.Country
+	}
+
+	// Use inception date from ETF info, fall back to IPO date from profile
+	inceptionDate := info.InceptionDate
+	if inceptionDate == "" && profile != nil {
+		inceptionDate = profile.IPODate
+	}
+
+	// Use website from ETF info, fall back to profile
+	website := info.Website
+	if website == "" && profile != nil {
+		website = profile.Website
+	}
+
+	// Build valuations from key metrics TTM if available
+	var valuations *models.ETFValuations
+	if keyMetrics != nil {
+		valuations = &models.ETFValuations{
+			PE:            keyMetrics.PERatioTTM,
+			PB:            keyMetrics.PBRatioTTM,
+			PS:            keyMetrics.PriceToSalesTTM,
+			PCF:           keyMetrics.PriceToCashFlowTTM,
+			DividendYield: keyMetrics.DividendYieldTTM * 100, // Convert to percentage
+		}
+	}
+
 	return &models.ETFData{
-		ExpenseRatio:  info.ExpenseRatio * 100, // Convert to percentage (0.0945 -> 9.45)
+		ExpenseRatio:  expenseRatio, // FMP returns as percentage already (0.0945 = 0.0945%)
 		AUM:           aum,
-		NAV:           info.NAV,
+		NAV:           nav,
 		AvgVolume:     avgVolume,
 		Beta:          beta,
 		HoldingsCount: holdingsCount,
-		Domicile:      info.Domicile,
-		InceptionDate: info.InceptionDate,
-		Website:       info.Website,
+		Domicile:      domicile,
+		InceptionDate: inceptionDate,
+		Website:       website,
 		ETFCompany:    info.ETFCompany,
 		Holdings:      modelHoldings,
 		SectorWeights: sectorWeights,
+		Regions:       regionWeights,
+		Valuations:    valuations,
 	}
 }
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/providers/eodhd"
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/providers/fmp"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/eodhd"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/fmp"
 )
 
 // ProviderType represents the type of data provider to use.

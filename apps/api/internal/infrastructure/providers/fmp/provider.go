@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -388,12 +388,14 @@ func (p *Provider) IsETF(ctx context.Context, ticker string) (bool, error) {
 }
 
 // GetETFData implements FundamentalsProvider.
-// Fetches ETF info, holdings, sector weightings, and profile (for beta) from FMP.
+// Fetches ETF info, holdings, sector weightings, country weightings, key metrics, and profile from FMP.
 func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFData, error) {
 	var info *ETFInfo
 	var holdings []ETFHolding
 	var sectors []ETFSectorWeighting
+	var countries []ETFCountryWeighting
 	var profile *CompanyProfile
+	var keyMetrics *KeyMetricsTTM
 
 	g, gctx := errgroup.WithContext(ctx)
 
@@ -426,9 +428,28 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 
 	g.Go(func() error {
 		var err error
+		countries, err = p.client.GetETFCountryWeightings(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch ETF country weightings", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
 		profile, err = p.client.GetCompanyProfile(gctx, ticker)
 		if err != nil {
 			slog.Debug("failed to fetch ETF profile for beta", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		metrics, err := p.client.GetKeyMetricsTTM(gctx, ticker)
+		if err != nil {
+			slog.Debug("failed to fetch ETF key metrics TTM", "ticker", ticker, "error", err)
+		} else if len(metrics) > 0 {
+			keyMetrics = &metrics[0]
 		}
 		return nil
 	})
@@ -443,7 +464,7 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 	}
 
 	// Build base ETF data from FMP
-	etfData := mapETFData(info, holdings, sectors, profile)
+	etfData := mapETFData(info, holdings, sectors, countries, profile, keyMetrics)
 
 	// If FMP returned empty holdings and we have a fallback, use it
 	if len(holdings) == 0 && p.etfHoldingsFallback != nil {
@@ -548,6 +569,83 @@ func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*mod
 	}
 
 	return mapAnalystEstimates(ticker, grades, targets, estimates), nil
+}
+
+// GetStockPeers implements FundamentalsProvider.
+// Returns a list of peer/competitor ticker symbols.
+func (p *Provider) GetStockPeers(ctx context.Context, ticker string) ([]string, error) {
+	resp, err := p.client.GetStockPeers(ctx, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("fetching stock peers: %w", err)
+	}
+	if resp == nil {
+		return nil, nil
+	}
+	return resp.PeersList, nil
+}
+
+// GetQuarterlyRatios implements FundamentalsProvider.
+// Returns quarterly valuation ratios for historical analysis.
+func (p *Provider) GetQuarterlyRatios(ctx context.Context, ticker string, quarters int) ([]models.QuarterlyRatio, error) {
+	ratios, err := p.client.GetQuarterlyRatios(ctx, ticker, quarters)
+	if err != nil {
+		return nil, fmt.Errorf("fetching quarterly ratios: %w", err)
+	}
+
+	result := make([]models.QuarterlyRatio, 0, len(ratios))
+	for _, r := range ratios {
+		// Skip entries with no P/E (negative earnings)
+		if r.PriceToEarningsRatio <= 0 {
+			continue
+		}
+		result = append(result, models.QuarterlyRatio{
+			Date:       r.Date,
+			PE:         r.PriceToEarningsRatio,
+			PS:         r.PriceToSalesRatio,
+			PB:         r.PriceToBookRatio,
+			PriceToFCF: r.PriceToFreeCashFlowRatio,
+			EVToEBITDA: r.EnterpriseValueMultiple,
+			PEG:        r.PriceToEarningsGrowthRatio,
+		})
+	}
+
+	return result, nil
+}
+
+// GetSectorPE implements FundamentalsProvider.
+// Returns sector P/E ratio for the given sector and exchange.
+func (p *Provider) GetSectorPE(ctx context.Context, sector string, exchange string) (*models.SectorPE, error) {
+	sectorPE, err := p.client.GetSectorPE(ctx, sector, exchange)
+	if err != nil {
+		return nil, fmt.Errorf("fetching sector P/E: %w", err)
+	}
+	if sectorPE == nil {
+		return nil, nil
+	}
+	return &models.SectorPE{
+		Date:     sectorPE.Date,
+		Sector:   sectorPE.Sector,
+		Exchange: sectorPE.Exchange,
+		PE:       sectorPE.PE,
+	}, nil
+}
+
+// GetIndustryPE implements FundamentalsProvider.
+// Returns industry P/E ratio (more granular than sector).
+func (p *Provider) GetIndustryPE(ctx context.Context, industry string, exchange string) (*models.IndustryPE, error) {
+	industryPE, err := p.client.GetIndustryPE(ctx, industry, exchange)
+	if err != nil {
+		return nil, fmt.Errorf("fetching industry P/E: %w", err)
+	}
+	if industryPE == nil {
+		return nil, nil
+	}
+	return &models.IndustryPE{
+		Date:     industryPE.Date,
+		Industry: industryPE.Industry,
+		Exchange: industryPE.Exchange,
+		PE:       industryPE.PE,
+	}, nil
 }
 
 // getMostRecentFilingQuarter returns the most recent quarter with complete 13F filings.

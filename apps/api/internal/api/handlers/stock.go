@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/drewjst/recon/apps/api/internal/api/middleware"
-	"github.com/drewjst/recon/apps/api/internal/domain/stock"
+	"github.com/drewjst/crux/apps/api/internal/api/middleware"
+	"github.com/drewjst/crux/apps/api/internal/domain/stock"
 )
 
 // StockHandler handles stock-related HTTP requests.

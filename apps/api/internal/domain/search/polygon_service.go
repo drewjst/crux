@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/drewjst/recon/apps/api/internal/infrastructure/external/polygon"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/external/polygon"
 )
 
 // PolygonSearcher provides search functionality using the Polygon API.

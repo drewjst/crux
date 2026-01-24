@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
 )
 
 // Provider implements the provider interfaces using EODHD API.
@@ -256,5 +256,31 @@ func (p *Provider) GetETFData(ctx context.Context, ticker string) (*models.ETFDa
 // EODHD has limited analyst data, so this returns nil.
 // Use FMP provider for analyst estimates.
 func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*models.AnalystEstimates, error) {
+	return nil, nil
+}
+
+// GetStockPeers returns peer/competitor companies.
+// EODHD doesn't provide peer data, so this returns nil.
+// Use FMP provider for peer data.
+func (p *Provider) GetStockPeers(ctx context.Context, ticker string) ([]string, error) {
+	return nil, nil
+}
+
+// GetQuarterlyRatios returns historical quarterly P/E ratios.
+// EODHD doesn't provide quarterly ratio history, so this returns nil.
+// Use FMP provider for historical ratios.
+func (p *Provider) GetQuarterlyRatios(ctx context.Context, ticker string, quarters int) ([]models.QuarterlyRatio, error) {
+	return nil, nil
+}
+
+// GetSectorPE returns sector P/E data.
+// EODHD doesn't provide sector P/E data, so this returns nil.
+func (p *Provider) GetSectorPE(ctx context.Context, sector string, exchange string) (*models.SectorPE, error) {
+	return nil, nil
+}
+
+// GetIndustryPE returns industry P/E data.
+// EODHD doesn't provide industry P/E data, so this returns nil.
+func (p *Provider) GetIndustryPE(ctx context.Context, industry string, exchange string) (*models.IndustryPE, error) {
 	return nil, nil
 }

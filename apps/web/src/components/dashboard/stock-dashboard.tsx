@@ -119,7 +119,7 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
       {/* Row 2: Smart Money - Institutional & Insider activity */}
       <SmartMoneySection data={data} />
 
-      {/* Row 3: Valuation - Full width for detailed metrics */}
+      {/* Row 3: Valuation - Full width with verdict header and deep dive link */}
       <ValuationSection data={data} />
 
       {/* Row 4: Growth - Full width for growth story */}

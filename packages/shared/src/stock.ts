@@ -263,6 +263,192 @@ export interface Valuation {
 }
 
 // =============================================================================
+// Valuation Verdict (Deep Dive)
+// =============================================================================
+
+/**
+ * Valuation verdict teaser for dashboard card.
+ * Minimal data to show sentiment and link to deep dive page.
+ */
+export interface ValuationTeaser {
+  /** Overall valuation sentiment */
+  sentiment: 'cheap' | 'fair' | 'expensive';
+  /** Headline text for the card (e.g., "Trading at 85th percentile of 5Y range") */
+  headline: string;
+}
+
+/**
+ * Historical valuation data point for charting.
+ * Supports multiple metrics for chart metric selector.
+ */
+export interface HistoricalValuationPoint {
+  /** Date of the data point (ISO 8601) */
+  date: string;
+  /** P/E ratio value */
+  pe: number;
+  /** Price to Sales ratio */
+  ps: number;
+  /** Price to Book ratio */
+  pb: number;
+  /** Price to Free Cash Flow ratio */
+  priceToFcf: number;
+  /** Enterprise Value to EBITDA ratio */
+  evToEbitda: number;
+  /** PEG ratio */
+  peg: number;
+}
+
+/**
+ * Historical P/E data point for charting.
+ * @deprecated Use HistoricalValuationPoint instead
+ */
+export interface HistoricalPE {
+  /** Date of the data point (ISO 8601) */
+  date: string;
+  /** P/E ratio value */
+  pe: number;
+}
+
+/**
+ * Peer company with valuation metrics for comparison table.
+ */
+export interface PeerValuation {
+  /** Ticker symbol */
+  ticker: string;
+  /** Company name */
+  name: string;
+  /** P/E ratio (null if negative earnings) */
+  pe: number | null;
+  /** EV/EBITDA ratio (null if not available) */
+  evToEbitda: number | null;
+  /** Price to Sales ratio (null if not available) */
+  ps: number | null;
+  /** Price to Book ratio (null if not available) */
+  pb: number | null;
+  /** Price to Free Cash Flow ratio (null if not available) */
+  priceToFcf: number | null;
+}
+
+/**
+ * A single valuation metric row with comparison context.
+ */
+export interface ValuationMetricRow {
+  /** Metric key identifier */
+  key: string;
+  /** Display label */
+  label: string;
+  /** Current value */
+  current: number | null;
+  /** 5-year historical average */
+  fiveYearAvg: number | null;
+  /** Sector/peer median */
+  sectorMedian: number | null;
+  /** S&P 500 average */
+  spAvg: number | null;
+  /** Percentile rank (0-100) across all comparisons */
+  percentile: number | null;
+  /** Whether lower values are better for this metric (e.g., PEG) */
+  lowerIsBetter: boolean;
+}
+
+/**
+ * Full valuation deep dive response for GET /api/stock/{ticker}/valuation.
+ *
+ * Contains detailed valuation analysis with 3 verdict dimensions:
+ * 1. Historical: Current P/E vs 5-year range
+ * 2. Sector: Current P/E vs peer companies
+ * 3. Growth: PEG-based growth justification
+ *
+ * Each dimension has a score (1-10) and contextual data for visualization.
+ */
+export interface ValuationDeepDive {
+  /** Stock ticker */
+  ticker: string;
+  /** Company name */
+  companyName: string;
+
+  // Historical Valuation (vs 5Y P/E history)
+  /** Historical score (1-10): 1 = very cheap vs history, 10 = very expensive */
+  historicalScore: number | null;
+  /** Context for historical comparison */
+  historicalContext: {
+    /** Current P/E ratio */
+    currentPE: number;
+    /** Minimum P/E over last 5 years */
+    minPE5Y: number;
+    /** Maximum P/E over last 5 years */
+    maxPE5Y: number;
+    /** Percentile within 5Y range (0-100) */
+    percentile: number;
+    /** Historical valuation data points for chart (up to 10Y of quarterly data) */
+    history: HistoricalValuationPoint[];
+  } | null;
+
+  // Sector Valuation (vs peer P/Es)
+  /** Sector score (1-10): 1 = very cheap vs peers, 10 = very expensive */
+  sectorScore: number | null;
+  /** Context for sector comparison */
+  sectorContext: {
+    /** Median P/E of peer companies */
+    peerMedianPE: number;
+    /** Percentile among peers (0-100) */
+    percentile: number;
+    /** Peer companies with their P/E ratios */
+    peers: PeerValuation[];
+  } | null;
+
+  // Growth Justification (PEG-based)
+  /** Growth score (1-10): 1 = undervalued for growth, 10 = overvalued for growth */
+  growthScore: number | null;
+  /** Context for growth justification */
+  growthContext: {
+    /** PEG ratio */
+    peg: number;
+    /** Forward P/E ratio */
+    forwardPE: number;
+    /** Expected EPS growth rate (percentage) */
+    epsGrowth: number;
+  } | null;
+
+  /** Overall verdict text explaining the valuation */
+  verdict: string;
+  /** Overall sentiment derived from combined scores */
+  sentiment: 'cheap' | 'fair' | 'expensive';
+
+  // Key Valuation Metrics with context
+  /** Key valuation metrics with comparison context */
+  keyMetrics: ValuationMetricRow[] | null;
+
+  // DCF / Intrinsic Value
+  /** DCF valuation analysis */
+  dcfAnalysis: {
+    /** Calculated intrinsic value per share */
+    intrinsicValue: number;
+    /** Current market price */
+    currentPrice: number;
+    /** Percentage difference from intrinsic value */
+    differencePercent: number;
+    /** Margin of safety percentage (positive = undervalued) */
+    marginOfSafety: number;
+    /** Implied growth rate baked into current price */
+    impliedGrowthRate: number | null;
+    /** Assessment: Undervalued, Fairly Valued, Overvalued */
+    assessment: 'Undervalued' | 'Fairly Valued' | 'Overvalued' | 'N/A';
+  } | null;
+
+  // Valuation Signals Summary
+  /** Valuation-related signals */
+  signals: {
+    /** Signal name */
+    name: string;
+    /** Signal description */
+    description: string;
+    /** Sentiment: bullish, bearish, neutral */
+    sentiment: 'bullish' | 'bearish' | 'neutral';
+  }[];
+}
+
+// =============================================================================
 // Institutional Holdings
 // =============================================================================
 
@@ -821,6 +1007,8 @@ export interface StockDetailResponse {
   signals: Signal[];
   /** Valuation metrics with sector context (only for stocks) */
   valuation?: Valuation;
+  /** Valuation verdict teaser for deep dive link (only for stocks) */
+  valuationTeaser?: ValuationTeaser;
   /** Institutional ownership data (only for stocks) */
   holdings?: Holdings;
   /** Recent insider transactions */

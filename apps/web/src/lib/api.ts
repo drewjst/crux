@@ -1,4 +1,4 @@
-import type { StockDetailResponse, SearchResponse } from '@recon/shared';
+import type { StockDetailResponse, SearchResponse, ValuationDeepDive } from '@recon/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -42,4 +42,8 @@ export async function searchTickers(query: string): Promise<SearchResponse> {
     return { results: [], query: '' };
   }
   return fetchApi<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function fetchValuation(ticker: string): Promise<ValuationDeepDive> {
+  return fetchApi<ValuationDeepDive>(`/api/stock/${ticker.toUpperCase()}/valuation`);
 }

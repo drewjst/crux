@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/models"
+	"github.com/drewjst/crux/apps/api/internal/domain/models"
 )
 
 // mapCompany converts EODHD General to internal Company model.

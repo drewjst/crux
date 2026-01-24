@@ -67,28 +67,151 @@ type shortInterestResponse struct {
 	Status  string                `json:"status"`
 }
 
+// isSearchableType returns true for ticker types we want to include in search results.
+// Includes common stocks (CS), ETFs, and ADRs (ADRC = ADR Class C).
+func isSearchableType(tickerType string) bool {
+	switch tickerType {
+	case "CS", "ETF", "ADRC":
+		return true
+	default:
+		return false
+	}
+}
+
 // SearchTickers searches for tickers matching the query.
-// Filters to common stocks and ETFs on major US exchanges.
+// Performs both exact ticker lookup and fuzzy name search for best results.
+// Filters to common stocks, ETFs, and ADRs on major US exchanges.
 func (c *Client) SearchTickers(ctx context.Context, query string, limit int) ([]TickerSearchResult, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
 
-	// Request more results than needed since we'll filter by type
-	fetchLimit := limit * 2
-	if fetchLimit > 50 {
-		fetchLimit = 50
+	upperQuery := strings.ToUpper(strings.TrimSpace(query))
+	if upperQuery == "" {
+		return nil, nil
 	}
 
+	// Run ticker prefix search and name search in parallel
+	type searchResult struct {
+		results []TickerSearchResult
+		err     error
+	}
+
+	tickerCh := make(chan searchResult, 1)
+	nameCh := make(chan searchResult, 1)
+
+	// Search 1: Exact/prefix ticker match (e.g., "WM" finds "WM", "WMT", "WMS")
+	go func() {
+		results, err := c.searchByTicker(ctx, upperQuery, limit)
+		tickerCh <- searchResult{results: results, err: err}
+	}()
+
+	// Search 2: Fuzzy name search (e.g., "waste" finds "Waste Management")
+	go func() {
+		results, err := c.searchByName(ctx, query, limit)
+		nameCh <- searchResult{results: results, err: err}
+	}()
+
+	// Collect results
+	tickerRes := <-tickerCh
+	nameRes := <-nameCh
+
+	// Log any errors but don't fail - use whatever results we got
+	if tickerRes.err != nil {
+		slog.Debug("ticker search failed", "query", query, "error", tickerRes.err)
+	}
+	if nameRes.err != nil {
+		slog.Debug("name search failed", "query", query, "error", nameRes.err)
+	}
+
+	// Merge and deduplicate results
+	seen := make(map[string]bool)
+	merged := make([]TickerSearchResult, 0, limit)
+
+	// Add ticker matches first (higher priority)
+	for _, r := range tickerRes.results {
+		if !seen[r.Ticker] && isSearchableType(r.Type) {
+			seen[r.Ticker] = true
+			merged = append(merged, r)
+		}
+	}
+
+	// Add name matches second
+	for _, r := range nameRes.results {
+		if !seen[r.Ticker] && isSearchableType(r.Type) {
+			seen[r.Ticker] = true
+			merged = append(merged, r)
+		}
+	}
+
+	// Sort merged results by relevance
+	sort.Slice(merged, func(i, j int) bool {
+		ti, tj := merged[i].Ticker, merged[j].Ticker
+
+		// Exact match gets highest priority
+		exactI := ti == upperQuery
+		exactJ := tj == upperQuery
+		if exactI != exactJ {
+			return exactI
+		}
+
+		// Prefix match gets second priority
+		prefixI := strings.HasPrefix(ti, upperQuery)
+		prefixJ := strings.HasPrefix(tj, upperQuery)
+		if prefixI != prefixJ {
+			return prefixI
+		}
+
+		// Shorter tickers tend to be more well-known
+		if len(ti) != len(tj) {
+			return len(ti) < len(tj)
+		}
+
+		// Alphabetical as final tiebreaker
+		return ti < tj
+	})
+
+	// Return top N results
+	if len(merged) > limit {
+		merged = merged[:limit]
+	}
+
+	return merged, nil
+}
+
+// searchByTicker searches for tickers that start with or match the query.
+func (c *Client) searchByTicker(ctx context.Context, upperQuery string, limit int) ([]TickerSearchResult, error) {
+	params := url.Values{}
+	params.Set("ticker.gte", upperQuery)
+	// Use ZZZZ suffix as upper bound to capture all tickers starting with query
+	// (e.g., WM -> WMZZZZ captures WM, WMB, WMT, etc.)
+	params.Set("ticker.lte", upperQuery+"ZZZZ")
+	params.Set("active", "true")
+	params.Set("market", "stocks")
+	params.Set("sort", "ticker")
+	params.Set("order", "asc")
+	params.Set("limit", fmt.Sprintf("%d", limit))
+	params.Set("apiKey", c.apiKey)
+
+	return c.fetchTickers(ctx, params)
+}
+
+// searchByName searches for tickers by company name.
+func (c *Client) searchByName(ctx context.Context, query string, limit int) ([]TickerSearchResult, error) {
 	params := url.Values{}
 	params.Set("search", query)
 	params.Set("active", "true")
 	params.Set("market", "stocks")
 	params.Set("sort", "ticker")
 	params.Set("order", "asc")
-	params.Set("limit", fmt.Sprintf("%d", fetchLimit))
+	params.Set("limit", fmt.Sprintf("%d", limit*2)) // Request more since we'll filter
 	params.Set("apiKey", c.apiKey)
 
+	return c.fetchTickers(ctx, params)
+}
+
+// fetchTickers makes the actual API request to Polygon.
+func (c *Client) fetchTickers(ctx context.Context, params url.Values) ([]TickerSearchResult, error) {
 	reqURL := fmt.Sprintf("%s/v3/reference/tickers?%s", baseURL, params.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
@@ -111,43 +234,7 @@ func (c *Client) SearchTickers(ctx context.Context, query string, limit int) ([]
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 
-	// Filter to only common stocks (CS) and ETFs
-	filtered := make([]TickerSearchResult, 0, len(result.Results))
-	for _, r := range result.Results {
-		if r.Type == "CS" || r.Type == "ETF" {
-			filtered = append(filtered, r)
-		}
-	}
-
-	// Sort by relevance: exact match first, then prefix match, then alphabetical
-	upperQuery := strings.ToUpper(query)
-	sort.Slice(filtered, func(i, j int) bool {
-		ti, tj := filtered[i].Ticker, filtered[j].Ticker
-
-		// Exact match gets highest priority
-		exactI := ti == upperQuery
-		exactJ := tj == upperQuery
-		if exactI != exactJ {
-			return exactI
-		}
-
-		// Prefix match gets second priority
-		prefixI := strings.HasPrefix(ti, upperQuery)
-		prefixJ := strings.HasPrefix(tj, upperQuery)
-		if prefixI != prefixJ {
-			return prefixI
-		}
-
-		// Then sort alphabetically
-		return ti < tj
-	})
-
-	// Return top N results
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
-	}
-
-	return filtered, nil
+	return result.Results, nil
 }
 
 // GetShortInterest fetches short interest data from Polygon Massive API.

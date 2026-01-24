@@ -266,6 +266,18 @@ func (c *Client) GetETFSectorWeightings(ctx context.Context, ticker string) ([]E
 	return sectors, nil
 }
 
+// GetETFCountryWeightings retrieves country/region breakdown of an ETF.
+func (c *Client) GetETFCountryWeightings(ctx context.Context, ticker string) ([]ETFCountryWeighting, error) {
+	url := fmt.Sprintf("%s/etf/country-weightings?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var countries []ETFCountryWeighting
+	if err := c.get(ctx, url, &countries); err != nil {
+		return nil, fmt.Errorf("fetching ETF country weightings: %w", err)
+	}
+
+	return countries, nil
+}
+
 // GetInstitutionalHolders retrieves top institutional holders for a stock.
 // Uses the institutional-ownership extract-analytics/holder endpoint with most recent quarter.
 func (c *Client) GetInstitutionalHolders(ctx context.Context, ticker string, year int, quarter int, limit int) ([]InstitutionalOwnershipHolder, error) {
@@ -341,6 +353,89 @@ func (c *Client) GetAnalystEstimates(ctx context.Context, ticker string, period 
 	}
 
 	return estimates, nil
+}
+
+// GetStockPeers retrieves peer/competitor companies for a stock.
+func (c *Client) GetStockPeers(ctx context.Context, ticker string) (*StockPeersResponse, error) {
+	url := fmt.Sprintf("%s/stock-peers?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var peers []StockPeersResponse
+	if err := c.get(ctx, url, &peers); err != nil {
+		return nil, fmt.Errorf("fetching stock peers: %w", err)
+	}
+
+	if len(peers) == 0 {
+		return nil, nil
+	}
+
+	return &peers[0], nil
+}
+
+// GetQuarterlyRatios retrieves quarterly financial ratios for historical analysis.
+func (c *Client) GetQuarterlyRatios(ctx context.Context, ticker string, limit int) ([]Ratios, error) {
+	url := fmt.Sprintf("%s/ratios?symbol=%s&period=quarter&limit=%d&apikey=%s", c.baseURL, ticker, limit, c.apiKey)
+
+	var ratios []Ratios
+	if err := c.get(ctx, url, &ratios); err != nil {
+		return nil, fmt.Errorf("fetching quarterly ratios: %w", err)
+	}
+
+	return ratios, nil
+}
+
+// SectorPE represents sector P/E data from FMP.
+type SectorPE struct {
+	Date     string  `json:"date"`
+	Sector   string  `json:"sector"`
+	Exchange string  `json:"exchange"`
+	PE       float64 `json:"pe"`
+}
+
+// IndustryPE represents industry-level P/E data from FMP.
+type IndustryPE struct {
+	Date     string  `json:"date"`
+	Industry string  `json:"industry"`
+	Exchange string  `json:"exchange"`
+	PE       float64 `json:"pe"`
+}
+
+// GetSectorPE retrieves sector P/E ratio for a given sector.
+func (c *Client) GetSectorPE(ctx context.Context, sector string, exchange string) (*SectorPE, error) {
+	// Use recent date for current sector P/E
+	url := fmt.Sprintf("%s/sector-pe?exchange=%s&apikey=%s", c.baseURL, exchange, c.apiKey)
+
+	var sectorPEs []SectorPE
+	if err := c.get(ctx, url, &sectorPEs); err != nil {
+		return nil, fmt.Errorf("fetching sector P/E: %w", err)
+	}
+
+	// Find matching sector
+	for _, sp := range sectorPEs {
+		if sp.Sector == sector {
+			return &sp, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// GetIndustryPE retrieves industry P/E ratio (more granular than sector).
+func (c *Client) GetIndustryPE(ctx context.Context, industry string, exchange string) (*IndustryPE, error) {
+	url := fmt.Sprintf("%s/industry-pe?exchange=%s&apikey=%s", c.baseURL, exchange, c.apiKey)
+
+	var industryPEs []IndustryPE
+	if err := c.get(ctx, url, &industryPEs); err != nil {
+		return nil, fmt.Errorf("fetching industry P/E: %w", err)
+	}
+
+	// Find matching industry
+	for _, ip := range industryPEs {
+		if ip.Industry == industry {
+			return &ip, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // get makes an HTTP GET request and unmarshals the response.

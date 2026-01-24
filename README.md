@@ -30,7 +30,7 @@ Recon synthesizes financial data into conviction scores and actionable signalsâ€
 | Provider | Data Type | Usage |
 |----------|-----------|-------|
 | [FMP](https://financialmodelingprep.com) | Fundamentals, ratios, financials, holdings, insider trades, estimates | Primary |
-| [Polygon.io](https://polygon.io) | Ticker search, company metadata | Search |
+| [Polygon.io](https://polygon.io) | Ticker search (stocks, ETFs, ADRs) | Search |
 | [EODHD](https://eodhd.com) | ETF holdings | Fallback |
 
 Data is cached in PostgreSQL for 24 hours to minimize API calls.
@@ -167,7 +167,7 @@ Hosted on **Google Cloud Run** with **Cloud SQL** (PostgreSQL) for caching.
 
 ## Contributing
 
-See [CLAUDE.md](./CLAUDE.md) for coding standards and conventions.
+See [CLAUDE.md](./CLAUDE.md) for coding standards and conventions. Notable changes are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 **Key Principles:**
 - Readability over cleverness

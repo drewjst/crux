@@ -26,7 +26,9 @@ type ETFHolding struct {
 	Ticker        string
 	Name          string
 	Sector        string
+	Shares        int64
 	WeightPercent float64
+	MarketValue   int64
 }
 
 // ETFSectorWeight represents sector allocation within an ETF.

@@ -3,7 +3,7 @@ package signals
 import (
 	"testing"
 
-	"github.com/drewjst/recon/apps/api/internal/domain/scores"
+	"github.com/drewjst/crux/apps/api/internal/domain/scores"
 )
 
 func TestGenerator_HighPiotroskiScore(t *testing.T) {
