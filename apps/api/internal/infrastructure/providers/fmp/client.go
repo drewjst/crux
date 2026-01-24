@@ -457,18 +457,18 @@ func (c *Client) get(ctx context.Context, url string, dest any) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
-	// Read body for debugging
+	// Read body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
 	if err := json.Unmarshal(body, dest); err != nil {
-		return fmt.Errorf("decoding response: %w", err)
+		return fmt.Errorf("decoding response: %w (body: %.200s)", err, string(body))
 	}
 
 	return nil
