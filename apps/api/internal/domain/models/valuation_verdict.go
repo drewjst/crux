@@ -36,6 +36,8 @@ type PeerValuation struct {
 	PS         *float64 `json:"ps"`         // nil if not available
 	PB         *float64 `json:"pb"`         // nil if not available
 	PriceToFCF *float64 `json:"priceToFcf"` // nil if not available
+	PEG        *float64 `json:"peg"`        // nil if not available
+	Growth     *float64 `json:"growth"`     // EPS growth rate (percentage), nil if not available
 }
 
 // HistoricalContext provides context for historical P/E percentile calculation.
@@ -47,11 +49,24 @@ type HistoricalContext struct {
 	History    []QuarterlyRatio `json:"history"`
 }
 
+// SectorMedians contains median values for each valuation metric.
+type SectorMedians struct {
+	PE         *float64 `json:"pe"`
+	EVToEBITDA *float64 `json:"evToEbitda"`
+	PS         *float64 `json:"ps"`
+	PB         *float64 `json:"pb"`
+	PriceToFCF *float64 `json:"priceToFcf"`
+	PEG        *float64 `json:"peg"`
+	Growth     *float64 `json:"growth"`
+}
+
 // SectorContext provides context for sector P/E percentile calculation.
 type SectorContext struct {
 	PeerMedianPE float64         `json:"peerMedianPE"`
 	Percentile   float64         `json:"percentile"`
 	Peers        []PeerValuation `json:"peers"`
+	Medians      *SectorMedians  `json:"medians"` // Medians for all metrics
+	Insight      string          `json:"insight"` // Auto-generated insight text
 }
 
 // GrowthContext provides context for growth justification (PEG-based).

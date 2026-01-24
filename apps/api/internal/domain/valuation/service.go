@@ -120,6 +120,8 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 		peers, err = s.fundamentals.GetStockPeers(gctx, ticker)
 		if err != nil {
 			slog.Warn("failed to fetch peers", "ticker", ticker, "error", err)
+		} else {
+			slog.Debug("fetched peers", "ticker", ticker, "peerCount", len(peers), "peers", peers)
 		}
 		return nil
 	})
@@ -178,6 +180,9 @@ func (s *Service) GetDeepDive(ctx context.Context, ticker string) (*models.Valua
 	// Fetch peer P/E ratios
 	if len(peers) > 0 {
 		peerRatios = s.fetchPeerRatios(ctx, peers)
+		slog.Debug("fetched peer ratios", "ticker", ticker, "peerRatiosCount", len(peerRatios))
+	} else {
+		slog.Debug("no peers found", "ticker", ticker)
 	}
 
 	// Build the deep dive response
@@ -193,6 +198,8 @@ type peerRatio struct {
 	PS         *float64
 	PB         *float64
 	PriceToFCF *float64
+	PEG        *float64
+	Growth     *float64 // EPS growth rate
 }
 
 // fetchPeerRatios fetches full valuation ratios for peer companies.
@@ -216,6 +223,9 @@ func (s *Service) fetchPeerRatios(ctx context.Context, peers []string) []peerRat
 				slog.Debug("failed to fetch peer ratios", "peer", peer, "error", err)
 				return nil
 			}
+
+			// Fetch analyst estimates to get growth rate
+			estimates, _ := s.fundamentals.GetAnalystEstimates(gctx, peer)
 
 			name := peer
 			if company != nil {
@@ -244,7 +254,18 @@ func (s *Service) fetchPeerRatios(ctx context.Context, peers []string) []peerRat
 					fcf := ratios.PriceToFCF
 					pr.PriceToFCF = &fcf
 				}
+				if ratios.PEG > 0 {
+					peg := ratios.PEG
+					pr.PEG = &peg
+				}
 			}
+
+			// Get growth rate from analyst estimates
+			if estimates != nil && estimates.EPSGrowthNextY != 0 {
+				growth := estimates.EPSGrowthNextY
+				pr.Growth = &growth
+			}
+
 			resultChan <- pr
 			return nil
 		})
@@ -302,6 +323,11 @@ func (s *Service) buildDeepDive(
 		sectorScore, sectorContext := s.calculateSectorScore(currentPE, peerRatios)
 		result.SectorScore = sectorScore
 		result.SectorContext = sectorContext
+
+		// Generate peer comparison insight
+		if sectorContext != nil {
+			sectorContext.Insight = s.generatePeerInsight(ticker, ratios, sectorContext)
+		}
 	}
 
 	// Calculate growth score (PEG-based)
@@ -853,8 +879,8 @@ func (s *Service) calculateHistoricalScore(currentPE float64, history []models.Q
 
 // calculateSectorScore calculates where current P/E falls among peers.
 func (s *Service) calculateSectorScore(currentPE float64, peers []peerRatio) (*int, *models.SectorContext) {
-	// Collect valid peer P/Es
-	var peerPEs []float64
+	// Collect valid peer values for each metric
+	var peerPEs, peerEVs, peerPSs, peerPBs, peerFCFs, peerPEGs, peerGrowths []float64
 	peerVals := make([]models.PeerValuation, 0, len(peers))
 
 	for _, p := range peers {
@@ -866,9 +892,29 @@ func (s *Service) calculateSectorScore(currentPE float64, peers []peerRatio) (*i
 			PS:         p.PS,
 			PB:         p.PB,
 			PriceToFCF: p.PriceToFCF,
+			PEG:        p.PEG,
+			Growth:     p.Growth,
 		})
-		if p.PE != nil {
+		if p.PE != nil && *p.PE > 0 {
 			peerPEs = append(peerPEs, *p.PE)
+		}
+		if p.EVToEBITDA != nil && *p.EVToEBITDA > 0 {
+			peerEVs = append(peerEVs, *p.EVToEBITDA)
+		}
+		if p.PS != nil && *p.PS > 0 {
+			peerPSs = append(peerPSs, *p.PS)
+		}
+		if p.PB != nil && *p.PB > 0 {
+			peerPBs = append(peerPBs, *p.PB)
+		}
+		if p.PriceToFCF != nil && *p.PriceToFCF > 0 {
+			peerFCFs = append(peerFCFs, *p.PriceToFCF)
+		}
+		if p.PEG != nil && *p.PEG > 0 {
+			peerPEGs = append(peerPEGs, *p.PEG)
+		}
+		if p.Growth != nil {
+			peerGrowths = append(peerGrowths, *p.Growth)
 		}
 	}
 
@@ -878,12 +924,29 @@ func (s *Service) calculateSectorScore(currentPE float64, peers []peerRatio) (*i
 
 	// Calculate median P/E
 	sort.Float64s(peerPEs)
-	var medianPE float64
-	n := len(peerPEs)
-	if n%2 == 0 {
-		medianPE = (peerPEs[n/2-1] + peerPEs[n/2]) / 2
-	} else {
-		medianPE = peerPEs[n/2]
+	medianPE := calculateMedianFromSorted(peerPEs)
+
+	// Calculate all medians
+	medians := &models.SectorMedians{
+		PE: &medianPE,
+	}
+	if evMedian := calculateMedian(peerEVs); evMedian != nil {
+		medians.EVToEBITDA = evMedian
+	}
+	if psMedian := calculateMedian(peerPSs); psMedian != nil {
+		medians.PS = psMedian
+	}
+	if pbMedian := calculateMedian(peerPBs); pbMedian != nil {
+		medians.PB = pbMedian
+	}
+	if fcfMedian := calculateMedian(peerFCFs); fcfMedian != nil {
+		medians.PriceToFCF = fcfMedian
+	}
+	if pegMedian := calculateMedian(peerPEGs); pegMedian != nil {
+		medians.PEG = pegMedian
+	}
+	if growthMedian := calculateMedian(peerGrowths); growthMedian != nil {
+		medians.Growth = growthMedian
 	}
 
 	// Calculate percentile rank
@@ -908,9 +971,88 @@ func (s *Service) calculateSectorScore(currentPE float64, peers []peerRatio) (*i
 		PeerMedianPE: medianPE,
 		Percentile:   percentile,
 		Peers:        peerVals,
+		Medians:      medians,
 	}
 
 	return &score, context
+}
+
+// calculateMedianFromSorted returns the median of a sorted slice.
+func calculateMedianFromSorted(values []float64) float64 {
+	n := len(values)
+	if n == 0 {
+		return 0
+	}
+	if n%2 == 0 {
+		return (values[n/2-1] + values[n/2]) / 2
+	}
+	return values[n/2]
+}
+
+// generatePeerInsight creates an auto-generated insight comparing the stock to peers.
+// Format: "{TICKER} trades at {X}x sector median EV/EBITDA with {Y}x the growth"
+func (s *Service) generatePeerInsight(ticker string, ratios *models.Ratios, ctx *models.SectorContext) string {
+	if ctx == nil || ctx.Medians == nil {
+		return ""
+	}
+
+	// Compare EV/EBITDA to sector median
+	var evRatio float64
+	var hasEV bool
+	if ratios.EVToEBITDA > 0 && ctx.Medians.EVToEBITDA != nil && *ctx.Medians.EVToEBITDA > 0 {
+		evRatio = ratios.EVToEBITDA / *ctx.Medians.EVToEBITDA
+		hasEV = true
+	}
+
+	// Compare growth to sector median
+	var growthRatio float64
+	var hasGrowth bool
+	if ratios.EPSGrowthYoY != 0 && ctx.Medians.Growth != nil && *ctx.Medians.Growth != 0 {
+		growthRatio = ratios.EPSGrowthYoY / *ctx.Medians.Growth
+		hasGrowth = true
+	}
+
+	// Build insight text
+	if hasEV && hasGrowth {
+		evDesc := formatRatioDescription(evRatio)
+		growthDesc := formatGrowthDescription(growthRatio)
+		return fmt.Sprintf("%s trades at %s sector median EV/EBITDA %s", ticker, evDesc, growthDesc)
+	} else if hasEV {
+		evDesc := formatRatioDescription(evRatio)
+		return fmt.Sprintf("%s trades at %s sector median EV/EBITDA", ticker, evDesc)
+	}
+
+	return ""
+}
+
+// formatRatioDescription formats a ratio as "X.Xx" or descriptive text.
+func formatRatioDescription(ratio float64) string {
+	if ratio < 0.5 {
+		return fmt.Sprintf("%.1fx (well below)", ratio)
+	} else if ratio < 0.85 {
+		return fmt.Sprintf("%.1fx (below)", ratio)
+	} else if ratio <= 1.15 {
+		return fmt.Sprintf("%.1fx (in line with)", ratio)
+	} else if ratio <= 1.5 {
+		return fmt.Sprintf("%.1fx (above)", ratio)
+	}
+	return fmt.Sprintf("%.1fx (well above)", ratio)
+}
+
+// formatGrowthDescription formats growth comparison text.
+func formatGrowthDescription(growthRatio float64) string {
+	if growthRatio <= 0 {
+		return "with negative growth"
+	} else if growthRatio < 0.5 {
+		return fmt.Sprintf("with %.1fx the growth", growthRatio)
+	} else if growthRatio < 0.85 {
+		return fmt.Sprintf("with %.1fx the growth", growthRatio)
+	} else if growthRatio <= 1.15 {
+		return "with similar growth"
+	} else if growthRatio <= 2.0 {
+		return fmt.Sprintf("with %.1fx the growth", growthRatio)
+	}
+	return fmt.Sprintf("with %.1fx the growth", growthRatio)
 }
 
 // calculateGrowthScore maps PEG ratio to 1-10 score.

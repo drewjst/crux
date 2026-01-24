@@ -327,6 +327,23 @@ export interface PeerValuation {
   pb: number | null;
   /** Price to Free Cash Flow ratio (null if not available) */
   priceToFcf: number | null;
+  /** PEG ratio (null if not available) */
+  peg: number | null;
+  /** EPS growth rate as percentage (null if not available) */
+  growth: number | null;
+}
+
+/**
+ * Sector median values for each valuation metric.
+ */
+export interface SectorMedians {
+  pe: number | null;
+  evToEbitda: number | null;
+  ps: number | null;
+  pb: number | null;
+  priceToFcf: number | null;
+  peg: number | null;
+  growth: number | null;
 }
 
 /**
@@ -393,8 +410,12 @@ export interface ValuationDeepDive {
     peerMedianPE: number;
     /** Percentile among peers (0-100) */
     percentile: number;
-    /** Peer companies with their P/E ratios */
+    /** Peer companies with their valuation ratios */
     peers: PeerValuation[];
+    /** Median values for all metrics */
+    medians: SectorMedians | null;
+    /** Auto-generated insight text */
+    insight: string;
   } | null;
 
   // Growth Justification (PEG-based)

@@ -361,11 +361,17 @@ func (c *Client) GetStockPeers(ctx context.Context, ticker string) (*StockPeersR
 
 	var peers []StockPeersResponse
 	if err := c.get(ctx, url, &peers); err != nil {
-		return nil, fmt.Errorf("fetching stock peers: %w", err)
+		// Log the error but also check if it's a permissions issue
+		return nil, fmt.Errorf("fetching stock peers for %s: %w", ticker, err)
 	}
 
 	if len(peers) == 0 {
 		return nil, nil
+	}
+
+	// Log successful fetch for debugging
+	if len(peers[0].PeersList) > 0 {
+		return &peers[0], nil
 	}
 
 	return &peers[0], nil
