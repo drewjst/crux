@@ -117,7 +117,7 @@ P/S                 {{printf "%6.1f" .PS}}x
 PEG                 {{printf "%6.2f" .PEG}}x      (EPS Growth Est: {{printf "%.0f" .EPSGrowth}}%)
 
 Historical Rank: {{.PEPercentile}}th percentile vs 5-year range
-{{if gt .DCFValue 0}}
+{{if gt .DCFValue 0.0}}
 ═══════════════════════════════════════════════════════════════════
 INTRINSIC VALUE ESTIMATE
 ═══════════════════════════════════════════════════════════════════
@@ -129,7 +129,7 @@ PROFITABILITY & GROWTH
 Gross Margin: {{printf "%.1f" .GrossMargin}}% | Operating Margin: {{printf "%.1f" .OperatingMargin}}% | Net Margin: {{printf "%.1f" .NetMargin}}%
 ROE: {{printf "%.1f" .ROE}}% | ROIC: {{printf "%.1f" .ROIC}}%
 Revenue Growth (YoY): {{printf "%.1f" .RevenueGrowth}}%
-{{if gt .TargetPrice 0}}
+{{if gt .TargetPrice 0.0}}
 ═══════════════════════════════════════════════════════════════════
 ANALYST CONSENSUS
 ═══════════════════════════════════════════════════════════════════
@@ -170,21 +170,21 @@ VALUATION SNAPSHOT
 ═══════════════════════════════════════════════════════════════════
 P/E (TTM):   {{printf "%.1f" .PE}}x     | Forward P/E: {{printf "%.1f" .ForwardPE}}x
 EV/EBITDA:   {{printf "%.1f" .EVToEBITDA}}x  | P/FCF:       {{printf "%.1f" .PFCF}}x
-{{if gt .DCFValue 0}}DCF Value:   ${{printf "%.2f" .DCFValue}} → {{printf "%.0f" .DCFUpside}}% {{.DCFDirection}}{{end}}
+{{if gt .DCFValue 0.0}}DCF Value:   ${{printf "%.2f" .DCFValue}} → {{printf "%.0f" .DCFUpside}}% {{.DCFDirection}}{{end}}
 
 ═══════════════════════════════════════════════════════════════════
 PROFITABILITY & GROWTH
 ═══════════════════════════════════════════════════════════════════
 Gross Margin: {{printf "%.1f" .GrossMargin}}% | Operating Margin: {{printf "%.1f" .OperatingMargin}}% | Net Margin: {{printf "%.1f" .NetMargin}}%
 ROE: {{printf "%.1f" .ROE}}% | ROIC: {{printf "%.1f" .ROIC}}%
-Revenue Growth (YoY): {{printf "%.1f" .RevenueGrowth}}%{{if gt .EPSGrowth 0}} | EPS Growth Est: {{printf "%.0f" .EPSGrowth}}%{{end}}
+Revenue Growth (YoY): {{printf "%.1f" .RevenueGrowth}}%{{if gt .EPSGrowth 0.0}} | EPS Growth Est: {{printf "%.0f" .EPSGrowth}}%{{end}}
 
 ═══════════════════════════════════════════════════════════════════
 FINANCIAL HEALTH
 ═══════════════════════════════════════════════════════════════════
 Debt/Equity:   {{printf "%.2f" .DebtToEquity}}
 Current Ratio: {{printf "%.2f" .CurrentRatio}}
-{{if gt .TargetPrice 0}}
+{{if gt .TargetPrice 0.0}}
 ═══════════════════════════════════════════════════════════════════
 ANALYST CONSENSUS
 ═══════════════════════════════════════════════════════════════════
