@@ -10,7 +10,7 @@ import (
 
 // Default configuration values
 const (
-	DefaultModel       = "gemini-1.5-flash"
+	DefaultModel       = "gemini-2.0-flash-001"
 	DefaultLocation    = "us-central1"
 	DefaultTemperature = 0.7
 	DefaultMaxTokens   = 300

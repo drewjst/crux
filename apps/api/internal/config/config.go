@@ -107,7 +107,7 @@ func loadCruxAIConfig() CruxAIConfig {
 		Enabled:     enabled,
 		ProjectID:   os.Getenv("GCP_PROJECT_ID"),
 		Location:    getEnv("GCP_LOCATION", "us-central1"),
-		Model:       getEnv("CRUX_AI_MODEL", "gemini-1.5-flash"),
+		Model:       getEnv("CRUX_AI_MODEL", "gemini-2.0-flash-001"),
 		Temperature: temperature,
 		MaxTokens:   maxTokens,
 	}
