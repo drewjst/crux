@@ -263,14 +263,14 @@ func (s *InsightService) buildValuationPromptData(data *valuationData) ai.Prompt
 		pd.PB = data.ratios.PB
 		pd.PEG = data.ratios.PEG
 
-		// Profitability
-		pd.GrossMargin = data.ratios.GrossMargin * 100
-		pd.OperatingMargin = data.ratios.OperatingMargin * 100
-		pd.NetMargin = data.ratios.NetMargin * 100
-		pd.ROE = data.ratios.ROE * 100
-		pd.ROIC = data.ratios.ROIC * 100
-		pd.FCFMargin = data.ratios.FCFMargin * 100
-		pd.RevenueGrowth = data.ratios.RevenueGrowthYoY * 100
+		// Profitability (already in percentage form from provider)
+		pd.GrossMargin = data.ratios.GrossMargin
+		pd.OperatingMargin = data.ratios.OperatingMargin
+		pd.NetMargin = data.ratios.NetMargin
+		pd.ROE = data.ratios.ROE
+		pd.ROIC = data.ratios.ROIC
+		pd.FCFMargin = data.ratios.FCFMargin
+		pd.RevenueGrowth = data.ratios.RevenueGrowthYoY
 
 		// Risk
 		pd.DebtToEquity = data.ratios.DebtToEquity
@@ -492,13 +492,13 @@ func (s *InsightService) buildPositionPromptData(data *positionData) ai.PromptDa
 		pd.EVToEBITDA = data.ratios.EVToEBITDA
 		pd.PFCF = data.ratios.PriceToFCF
 
-		// Profitability
-		pd.GrossMargin = data.ratios.GrossMargin * 100
-		pd.OperatingMargin = data.ratios.OperatingMargin * 100
-		pd.NetMargin = data.ratios.NetMargin * 100
-		pd.ROE = data.ratios.ROE * 100
-		pd.ROIC = data.ratios.ROIC * 100
-		pd.RevenueGrowth = data.ratios.RevenueGrowthYoY * 100
+		// Profitability (already in percentage form from provider)
+		pd.GrossMargin = data.ratios.GrossMargin
+		pd.OperatingMargin = data.ratios.OperatingMargin
+		pd.NetMargin = data.ratios.NetMargin
+		pd.ROE = data.ratios.ROE
+		pd.ROIC = data.ratios.ROIC
+		pd.RevenueGrowth = data.ratios.RevenueGrowthYoY
 
 		// Financial health
 		pd.DebtToEquity = data.ratios.DebtToEquity
