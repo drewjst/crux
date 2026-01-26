@@ -125,6 +125,8 @@ type StockDetailResponse struct {
 	Holdings         *Holdings         `json:"holdings,omitempty"`
 	InsiderTrades    []InsiderTrade    `json:"insiderTrades"`
 	InsiderActivity  *InsiderActivity  `json:"insiderActivity,omitempty"`
+	CongressTrades   []CongressTrade   `json:"congressTrades"`
+	CongressActivity *CongressActivity `json:"congressActivity,omitempty"`
 	Financials       *Financials       `json:"financials,omitempty"`
 	Profitability    *Profitability    `json:"profitability,omitempty"`
 	FinancialHealth  *FinancialHealth  `json:"financialHealth,omitempty"`
@@ -246,6 +248,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		holders               []models.InstitutionalHolder
 		institutionalSummary  *models.InstitutionalSummary
 		trades                []models.InsiderTrade
+		congressTrades        []models.CongressTrade
 		prices                []models.PriceBar
 		dcf                   *models.DCF
 		technicalMetrics      *models.TechnicalMetrics
@@ -320,6 +323,15 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 		trades, err = s.fundamentals.GetInsiderTrades(gctx, ticker, 90)
 		if err != nil {
 			slog.Warn("failed to fetch insider trades", "ticker", ticker, "error", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		congressTrades, err = s.fundamentals.GetCongressTrades(gctx, ticker, 365)
+		if err != nil {
+			slog.Warn("failed to fetch congress trades", "ticker", ticker, "error", err)
 		}
 		return nil
 	})
@@ -421,7 +433,7 @@ func (s *Service) fetchAndBuildResponse(ctx context.Context, ticker string) (*St
 	}
 
 	// Build stock response from fetched data
-	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, institutionalSummary, trades, prices, dcf, technicalMetrics, shortInterest, analystEstimates), nil
+	return s.buildResponseFromProviders(company, quote, ratios, financials, holders, institutionalSummary, trades, congressTrades, prices, dcf, technicalMetrics, shortInterest, analystEstimates), nil
 }
 
 // buildResponseFromProviders constructs the response from provider data.
@@ -433,6 +445,7 @@ func (s *Service) buildResponseFromProviders(
 	holders []models.InstitutionalHolder,
 	institutionalSummary *models.InstitutionalSummary,
 	trades []models.InsiderTrade,
+	congressTradesModel []models.CongressTrade,
 	prices []models.PriceBar,
 	dcf *models.DCF,
 	technicalMetrics *models.TechnicalMetrics,
@@ -456,6 +469,9 @@ func (s *Service) buildResponseFromProviders(
 
 	// Convert and aggregate insider trades
 	insiderTrades, insiderActivity := convertInsiderTradesFromModel(trades)
+
+	// Convert and aggregate congress trades
+	congressTrades, congressActivity := convertCongressTradesFromModel(congressTradesModel)
 
 	// Build financials from ratios
 	financials := convertFinancialsFromRatios(ratios)
@@ -499,6 +515,8 @@ func (s *Service) buildResponseFromProviders(
 		Holdings:         holdings,
 		InsiderTrades:    insiderTrades,
 		InsiderActivity:  insiderActivity,
+		CongressTrades:   congressTrades,
+		CongressActivity: congressActivity,
 		Financials:       financials,
 		Profitability:    profitability,
 		FinancialHealth:  financialHealth,
@@ -538,8 +556,9 @@ func (s *Service) buildETFResponseFromProviders(
 		Quote:         domainQuote,
 		Performance:   performance,
 		Signals:       []signals.Signal{},
-		InsiderTrades: []InsiderTrade{},
-		ETFData:       etf,
+		InsiderTrades:  []InsiderTrade{},
+		CongressTrades: []CongressTrade{},
+		ETFData:        etf,
 		Meta: DataMeta{
 			FundamentalsAsOf: "N/A",
 			HoldingsAsOf:     etf.InceptionDate,
@@ -828,6 +847,46 @@ func convertInsiderTradesFromModel(trades []models.InsiderTrade) ([]InsiderTrade
 			activity.NetValue90d -= float64(t.Value)
 		}
 	}
+
+	return result, activity
+}
+
+func convertCongressTradesFromModel(trades []models.CongressTrade) ([]CongressTrade, *CongressActivity) {
+	result := make([]CongressTrade, 0, len(trades))
+	activity := &CongressActivity{Trades: []CongressTrade{}}
+
+	for _, t := range trades {
+		trade := CongressTrade{
+			Chamber:         t.Chamber,
+			PoliticianName:  t.PoliticianName,
+			State:           t.State,
+			Owner:           t.Owner,
+			TradeType:       t.TradeType,
+			Amount:          t.Amount,
+			TransactionDate: t.TransactionDate.Format("2006-01-02"),
+			DisclosureDate:  t.DisclosureDate.Format("2006-01-02"),
+			Link:            t.Link,
+		}
+		result = append(result, trade)
+		activity.Trades = append(activity.Trades, trade)
+
+		if t.Chamber == "senate" {
+			if t.TradeType == "buy" {
+				activity.SenateBuys++
+			} else {
+				activity.SenateSells++
+			}
+		} else {
+			if t.TradeType == "buy" {
+				activity.HouseBuys++
+			} else {
+				activity.HouseSells++
+			}
+		}
+	}
+
+	activity.TotalBuys = activity.SenateBuys + activity.HouseBuys
+	activity.TotalSells = activity.SenateSells + activity.HouseSells
 
 	return result, activity
 }
@@ -1411,9 +1470,10 @@ func (s *Service) getETFDetail(ctx context.Context, ticker string) (*StockDetail
 		Company:       *company,
 		Quote:         *quote,
 		Performance:   *performance,
-		Signals:       []signals.Signal{},
-		InsiderTrades: []InsiderTrade{},
-		ETFData:       etfData,
+		Signals:        []signals.Signal{},
+		InsiderTrades:  []InsiderTrade{},
+		CongressTrades: []CongressTrade{},
+		ETFData:        etfData,
 		Meta: DataMeta{
 			FundamentalsAsOf: "N/A",
 			HoldingsAsOf:     etfData.InceptionDate,

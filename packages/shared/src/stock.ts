@@ -619,6 +619,57 @@ export interface InsiderActivity {
 }
 
 // =============================================================================
+// Congressional Trades
+// =============================================================================
+
+/**
+ * A single congressional trade from Senate/House disclosure filings.
+ *
+ * Members of Congress are required to disclose stock trades within 45 days.
+ * This data can provide insight into potential regulatory or policy changes.
+ */
+export interface CongressTrade {
+  /** Chamber: "senate" or "house" */
+  chamber: 'senate' | 'house';
+  /** Name of the politician */
+  politicianName: string;
+  /** State represented (e.g., "CA", "TX") */
+  state: string;
+  /** Political party (e.g., "Democrat", "Republican") */
+  party: string;
+  /** Owner of the asset (e.g., "Self", "Spouse", "Joint") */
+  owner: string;
+  /** Transaction type: "buy" or "sell" */
+  tradeType: 'buy' | 'sell';
+  /** Value range (e.g., "$1,001 - $15,000", "$15,001 - $50,000") */
+  amount: string;
+  /** Description of the asset traded */
+  assetDescription: string;
+  /** Date of the transaction (ISO 8601) */
+  transactionDate: string;
+  /** Date the trade was disclosed (ISO 8601) */
+  disclosureDate: string;
+  /** Link to the disclosure document */
+  link?: string;
+}
+
+/**
+ * Aggregated congressional trading activity.
+ */
+export interface CongressActivity {
+  /** Recent congressional trades */
+  trades: CongressTrade[];
+  /** Number of buy transactions in the time period */
+  buyCount: number;
+  /** Number of sell transactions in the time period */
+  sellCount: number;
+  /** Number of Senate trades */
+  senateCount: number;
+  /** Number of House trades */
+  houseCount: number;
+}
+
+// =============================================================================
 // Sector Metrics (used across Profitability, Financial Health, Growth, Earnings Quality)
 // =============================================================================
 
@@ -1051,6 +1102,10 @@ export interface StockDetailResponse {
   insiderTrades: InsiderTrade[];
   /** Aggregated insider activity (only for stocks) */
   insiderActivity?: InsiderActivity;
+  /** Recent congressional trades (only for stocks) */
+  congressTrades?: CongressTrade[];
+  /** Aggregated congressional activity (only for stocks) */
+  congressActivity?: CongressActivity;
   /** Key financial metrics (only for stocks) */
   financials?: Financials;
   /** Profitability metrics with sector comparisons (only for stocks) */

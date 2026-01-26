@@ -15,6 +15,7 @@ type FundamentalsProvider interface {
 	GetInstitutionalHolders(ctx context.Context, ticker string) ([]models.InstitutionalHolder, error)
 	GetInstitutionalSummary(ctx context.Context, ticker string) (*models.InstitutionalSummary, error)
 	GetInsiderTrades(ctx context.Context, ticker string, days int) ([]models.InsiderTrade, error)
+	GetCongressTrades(ctx context.Context, ticker string, days int) ([]models.CongressTrade, error)
 	GetDCF(ctx context.Context, ticker string) (*models.DCF, error)
 	GetOwnerEarnings(ctx context.Context, ticker string) (*models.OwnerEarnings, error)
 	GetIndustryAverages(ctx context.Context, industry string) (*models.IndustryAverages, error)

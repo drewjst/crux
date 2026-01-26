@@ -183,6 +183,30 @@ type InsiderActivity struct {
 	NetValue90d  float64        `json:"netValue90d"`
 }
 
+// CongressTrade represents a trade by a member of Congress.
+type CongressTrade struct {
+	Chamber         string `json:"chamber"`         // "senate" or "house"
+	PoliticianName  string `json:"politicianName"`  // Full name
+	State           string `json:"state"`           // State code or district
+	Owner           string `json:"owner"`           // "Self", "Spouse", "Joint"
+	TradeType       string `json:"tradeType"`       // "buy" or "sell"
+	Amount          string `json:"amount"`          // Value range
+	TransactionDate string `json:"transactionDate"` // ISO date
+	DisclosureDate  string `json:"disclosureDate"`  // ISO date
+	Link            string `json:"link"`            // URL to filing
+}
+
+// CongressActivity contains aggregated Congress trading data.
+type CongressActivity struct {
+	Trades       []CongressTrade `json:"trades"`
+	SenateBuys   int             `json:"senateBuys"`
+	SenateSells  int             `json:"senateSells"`
+	HouseBuys    int             `json:"houseBuys"`
+	HouseSells   int             `json:"houseSells"`
+	TotalBuys    int             `json:"totalBuys"`
+	TotalSells   int             `json:"totalSells"`
+}
+
 // DataMeta contains data freshness timestamps.
 type DataMeta struct {
 	FundamentalsAsOf string    `json:"fundamentalsAsOf"`

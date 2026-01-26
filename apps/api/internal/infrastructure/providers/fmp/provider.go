@@ -266,6 +266,55 @@ func (p *Provider) GetInsiderTrades(ctx context.Context, ticker string, days int
 	return result, nil
 }
 
+// GetCongressTrades fetches Senate and House trades for a ticker.
+func (p *Provider) GetCongressTrades(ctx context.Context, ticker string, days int) ([]models.CongressTrade, error) {
+	var senateTrades []SenateTrade
+	var houseTrades []HouseTrade
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		senateTrades, err = p.client.GetSenateTrades(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch senate trades", "ticker", ticker, "error", err)
+		}
+		return nil // Don't fail on error, just log
+	})
+
+	g.Go(func() error {
+		var err error
+		houseTrades, err = p.client.GetHouseTrades(gctx, ticker)
+		if err != nil {
+			slog.Warn("failed to fetch house trades", "ticker", ticker, "error", err)
+		}
+		return nil // Don't fail on error, just log
+	})
+
+	_ = g.Wait()
+
+	cutoff := time.Now().AddDate(0, 0, -days)
+	result := make([]models.CongressTrade, 0, len(senateTrades)+len(houseTrades))
+
+	// Map Senate trades
+	for _, t := range senateTrades {
+		trade := mapSenateTrade(&t)
+		if trade != nil && trade.TransactionDate.After(cutoff) {
+			result = append(result, *trade)
+		}
+	}
+
+	// Map House trades
+	for _, t := range houseTrades {
+		trade := mapHouseTrade(&t)
+		if trade != nil && trade.TransactionDate.After(cutoff) {
+			result = append(result, *trade)
+		}
+	}
+
+	return result, nil
+}
+
 // GetQuote implements QuoteProvider.
 func (p *Provider) GetQuote(ctx context.Context, ticker string) (*models.Quote, error) {
 	quote, err := p.client.GetQuote(ctx, ticker)

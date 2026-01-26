@@ -225,6 +225,44 @@ type InsiderStatistics struct {
 	TotalSales           float64 `json:"totalSales"`
 }
 
+// SenateTrade represents a Senate member's stock trade from FMP API.
+type SenateTrade struct {
+	Symbol            string `json:"symbol"`
+	FirstName         string `json:"firstName"`
+	LastName          string `json:"lastName"`
+	Office            string `json:"office"`
+	District          string `json:"district"` // State code (e.g., "TX")
+	TransactionDate   string `json:"transactionDate"`
+	DisclosureDate    string `json:"disclosureDate"`
+	Type              string `json:"type"`   // "Purchase", "Sale", "Sale (Full)", "Sale (Partial)"
+	Amount            string `json:"amount"` // Value range (e.g., "$100,001 - $250,000")
+	Owner             string `json:"owner"`  // "Self", "Spouse", "Joint", "Child"
+	AssetType         string `json:"assetType"`
+	AssetDescription  string `json:"assetDescription"`
+	CapitalGains      string `json:"capitalGainsOver200USD"`
+	Comment           string `json:"comment"`
+	Link              string `json:"link"`
+}
+
+// HouseTrade represents a House member's stock trade from FMP API.
+type HouseTrade struct {
+	Symbol            string `json:"symbol"`
+	FirstName         string `json:"firstName"`
+	LastName          string `json:"lastName"`
+	Office            string `json:"office"`
+	District          string `json:"district"` // Congressional district (e.g., "CA17")
+	TransactionDate   string `json:"transactionDate"`
+	DisclosureDate    string `json:"disclosureDate"`
+	Type              string `json:"type"`   // "Purchase", "Sale", "Exchange"
+	Amount            string `json:"amount"` // Value range
+	Owner             string `json:"owner"`  // "Self", "Spouse", "Joint"
+	AssetType         string `json:"assetType"`
+	AssetDescription  string `json:"assetDescription"`
+	CapitalGains      string `json:"capitalGainsOver200USD"`
+	Comment           string `json:"comment"`
+	Link              string `json:"link"`
+}
+
 // RatiosTTM represents trailing twelve month ratios from FMP API.
 type RatiosTTM struct {
 	Symbol                        string  `json:"symbol"`

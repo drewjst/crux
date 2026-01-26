@@ -192,6 +192,48 @@ func mapInsiderTrade(fmp *InsiderTrade) *models.InsiderTrade {
 	}
 }
 
+// mapSenateTrade converts FMP Senate trade to internal model.
+func mapSenateTrade(fmp *SenateTrade) *models.CongressTrade {
+	tradeType := "sell"
+	if fmp.Type == "Purchase" {
+		tradeType = "buy"
+	}
+
+	return &models.CongressTrade{
+		Chamber:          "senate",
+		PoliticianName:   fmp.FirstName + " " + fmp.LastName,
+		State:            fmp.District,
+		Owner:            fmp.Owner,
+		TradeType:        tradeType,
+		Amount:           fmp.Amount,
+		AssetDescription: fmp.AssetDescription,
+		TransactionDate:  parseDate(fmp.TransactionDate),
+		DisclosureDate:   parseDate(fmp.DisclosureDate),
+		Link:             fmp.Link,
+	}
+}
+
+// mapHouseTrade converts FMP House trade to internal model.
+func mapHouseTrade(fmp *HouseTrade) *models.CongressTrade {
+	tradeType := "sell"
+	if fmp.Type == "Purchase" {
+		tradeType = "buy"
+	}
+
+	return &models.CongressTrade{
+		Chamber:          "house",
+		PoliticianName:   fmp.FirstName + " " + fmp.LastName,
+		State:            fmp.District,
+		Owner:            fmp.Owner,
+		TradeType:        tradeType,
+		Amount:           fmp.Amount,
+		AssetDescription: fmp.AssetDescription,
+		TransactionDate:  parseDate(fmp.TransactionDate),
+		DisclosureDate:   parseDate(fmp.DisclosureDate),
+		Link:             fmp.Link,
+	}
+}
+
 // mapHistoricalPrice converts FMP historical price to internal PriceBar.
 func mapHistoricalPrice(fmp *HistoricalPrice) *models.PriceBar {
 	return &models.PriceBar{

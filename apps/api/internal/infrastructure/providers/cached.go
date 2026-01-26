@@ -22,6 +22,7 @@ const (
 	cacheInstitutionalHolder = "institutional_holders"
 	cacheInstitutionalSum    = "institutional_summary"
 	cacheInsiderTrades       = "insider_trades"
+	cacheCongressTrades      = "congress_trades"
 	cacheDCF                 = "dcf"
 	cacheOwnerEarnings       = "owner_earnings"
 	cacheIndustryAverages    = "industry_averages"
@@ -239,5 +240,11 @@ func (p *CachedFundamentalsProvider) IsETF(ctx context.Context, ticker string) (
 func (p *CachedFundamentalsProvider) GetETFData(ctx context.Context, ticker string) (*models.ETFData, error) {
 	return cached(p, cacheETFData, ticker, ttlDefault, func() (*models.ETFData, error) {
 		return p.underlying.GetETFData(ctx, ticker)
+	})
+}
+
+func (p *CachedFundamentalsProvider) GetCongressTrades(ctx context.Context, ticker string, days int) ([]models.CongressTrade, error) {
+	return cachedSlice(p, cacheCongressTrades, fmt.Sprintf("%s:%d", ticker, days), ttlInsider, func() ([]models.CongressTrade, error) {
+		return p.underlying.GetCongressTrades(ctx, ticker, days)
 	})
 }

@@ -146,6 +146,12 @@ func (p *Provider) GetInsiderTrades(ctx context.Context, ticker string, days int
 	return mapInsiderTrades(fundamentals.InsiderTransactions, days), nil
 }
 
+// GetCongressTrades implements FundamentalsProvider.
+// EODHD doesn't provide Congress trading data.
+func (p *Provider) GetCongressTrades(ctx context.Context, ticker string, days int) ([]models.CongressTrade, error) {
+	return nil, nil
+}
+
 // GetDCF implements FundamentalsProvider.
 // Note: EODHD doesn't have a dedicated DCF endpoint.
 // This could be calculated from financials if needed.

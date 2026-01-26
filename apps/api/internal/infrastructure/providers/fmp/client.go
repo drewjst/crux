@@ -186,6 +186,30 @@ func (c *Client) GetInsiderStatistics(ctx context.Context, ticker string) ([]Ins
 	return stats, nil
 }
 
+// GetSenateTrades retrieves Senate member stock trades for a ticker.
+func (c *Client) GetSenateTrades(ctx context.Context, ticker string) ([]SenateTrade, error) {
+	url := fmt.Sprintf("%s/senate-trades?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var trades []SenateTrade
+	if err := c.get(ctx, url, &trades); err != nil {
+		return nil, fmt.Errorf("fetching senate trades: %w", err)
+	}
+
+	return trades, nil
+}
+
+// GetHouseTrades retrieves House member stock trades for a ticker.
+func (c *Client) GetHouseTrades(ctx context.Context, ticker string) ([]HouseTrade, error) {
+	url := fmt.Sprintf("%s/house-trades?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)
+
+	var trades []HouseTrade
+	if err := c.get(ctx, url, &trades); err != nil {
+		return nil, fmt.Errorf("fetching house trades: %w", err)
+	}
+
+	return trades, nil
+}
+
 // GetRatiosTTM retrieves trailing twelve month financial ratios.
 func (c *Client) GetRatiosTTM(ctx context.Context, ticker string) ([]RatiosTTM, error) {
 	url := fmt.Sprintf("%s/ratios-ttm?symbol=%s&apikey=%s", c.baseURL, ticker, c.apiKey)

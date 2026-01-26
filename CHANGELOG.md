@@ -9,6 +9,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Congress Trades** — Senate and House trading disclosures in Smart Money section
+  - Tabbed interface to switch between Insider and Congress activity
+  - Shows politician name, party, state, trade type, and amount range
+  - Data from FMP Senate/House disclosure endpoints
 - **CruxAI Insights** — AI-powered analysis using Google Vertex AI (Gemini 2.0 Flash)
   - Position Summary: Executive overview on main stock page with quality signals and key factors
   - Valuation Summary: Deep-dive valuation analysis on valuation page

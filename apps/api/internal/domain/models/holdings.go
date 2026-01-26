@@ -40,3 +40,18 @@ type InsiderTrade struct {
 	TradeDate   time.Time
 	FilingDate  time.Time
 }
+
+// CongressTrade represents a trade by a member of Congress (Senate or House).
+type CongressTrade struct {
+	Chamber          string    // "senate" or "house"
+	PoliticianName   string    // Full name
+	State            string    // State code (e.g., "TX") or district (e.g., "CA17")
+	Party            string    // Political party if available
+	Owner            string    // "Self", "Spouse", "Joint", "Child"
+	TradeType        string    // "buy" or "sell"
+	Amount           string    // Value range (e.g., "$100,001 - $250,000")
+	AssetDescription string    // Asset name/description
+	TransactionDate  time.Time
+	DisclosureDate   time.Time
+	Link             string // URL to official filing
+}
