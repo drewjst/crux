@@ -36,6 +36,8 @@ func mapQuote(fmp *Quote) *models.Quote {
 		Open:          fmp.Open,
 		High:          fmp.DayHigh,
 		Low:           fmp.DayLow,
+		YearHigh:      fmp.YearHigh,
+		YearLow:       fmp.YearLow,
 		PrevClose:     fmp.PreviousClose,
 		Volume:        int64(fmp.Volume),
 		MarketCap:     int64(fmp.MarketCap),

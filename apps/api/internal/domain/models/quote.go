@@ -9,8 +9,10 @@ type Quote struct {
 	Change        float64
 	ChangePercent float64
 	Open          float64
-	High          float64
-	Low           float64
+	High          float64 // Day high
+	Low           float64 // Day low
+	YearHigh      float64 // 52-week high
+	YearLow       float64 // 52-week low
 	PrevClose     float64
 	Volume        int64
 	MarketCap     int64

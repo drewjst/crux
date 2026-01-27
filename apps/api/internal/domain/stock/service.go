@@ -469,7 +469,7 @@ func (s *Service) buildResponseFromProviders(
 	domainQuote := convertQuoteFromModel(quote)
 
 	// Calculate performance from historical prices
-	performance := calculatePerformance(prices, quote.Price, quote.High)
+	performance := calculatePerformance(prices, quote.Price, quote.YearHigh)
 
 	// Convert holdings
 	holdings := convertHoldingsFromModel(holders, institutionalSummary)
@@ -558,7 +558,7 @@ func (s *Service) buildETFResponseFromProviders(
 	domainQuote := convertQuoteFromModel(quote)
 
 	// Calculate performance from historical prices
-	performance := calculatePerformance(prices, quote.Price, quote.High)
+	performance := calculatePerformance(prices, quote.Price, quote.YearHigh)
 
 	// Convert ETF data from provider model to domain type
 	etf := convertETFDataFromModel(etfData)
@@ -721,8 +721,8 @@ func convertQuoteFromModel(m *models.Quote) Quote {
 		ChangePercent:    m.ChangePercent,
 		Volume:           m.Volume,
 		MarketCap:        m.MarketCap,
-		FiftyTwoWeekHigh: m.High,
-		FiftyTwoWeekLow:  m.Low,
+		FiftyTwoWeekHigh: m.YearHigh,
+		FiftyTwoWeekLow:  m.YearLow,
 		AsOf:             m.AsOf,
 	}
 }
@@ -1014,8 +1014,16 @@ func calculatePerformance(prices []models.PriceBar, currentPrice, yearHigh float
 	}
 
 	if len(prices) == 0 {
+		slog.Debug("calculatePerformance: no price data available")
 		return perf
 	}
+
+	slog.Debug("calculatePerformance",
+		"priceCount", len(prices),
+		"currentPrice", currentPrice,
+		"newestDate", prices[0].Date.Format("2006-01-02"),
+		"oldestDate", prices[len(prices)-1].Date.Format("2006-01-02"),
+	)
 
 	getPriceChange := func(daysAgo int) float64 {
 		if len(prices) <= daysAgo {
@@ -1044,14 +1052,32 @@ func calculatePerformance(prices []models.PriceBar, currentPrice, yearHigh float
 		}
 	}
 
-	// Calculate 1-year change - use the oldest available price up to ~252 trading days
-	if len(prices) > 250 {
-		perf.Year1Change = getPriceChange(252)
+	// Calculate 1-year change - use the oldest available price
+	// We need at least ~250 trading days for a full year
+	if len(prices) >= 250 {
+		// Use price from ~252 trading days ago (1 year)
+		idx := min(252, len(prices)-1)
+		oldPrice := prices[idx].Close
+		if oldPrice > 0 {
+			perf.Year1Change = ((currentPrice - oldPrice) / oldPrice) * 100
+			slog.Debug("calculatePerformance 1Y",
+				"idx", idx,
+				"oldPrice", oldPrice,
+				"oldDate", prices[idx].Date.Format("2006-01-02"),
+				"year1Change", perf.Year1Change,
+			)
+		}
 	} else if len(prices) > 1 {
 		// Use the oldest available price if we don't have a full year
 		oldestIdx := len(prices) - 1
 		if prices[oldestIdx].Close > 0 {
 			perf.Year1Change = ((currentPrice - prices[oldestIdx].Close) / prices[oldestIdx].Close) * 100
+			slog.Debug("calculatePerformance 1Y (partial)",
+				"idx", oldestIdx,
+				"oldPrice", prices[oldestIdx].Close,
+				"oldDate", prices[oldestIdx].Date.Format("2006-01-02"),
+				"year1Change", perf.Year1Change,
+			)
 		}
 	}
 

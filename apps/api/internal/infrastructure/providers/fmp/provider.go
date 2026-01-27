@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/drewjst/crux/apps/api/internal/domain/models"
@@ -336,9 +337,15 @@ func (p *Provider) GetHistoricalPrices(ctx context.Context, ticker string, days 
 	}
 
 	result := make([]models.PriceBar, 0, len(prices))
-	for _, p := range prices {
-		result = append(result, *mapHistoricalPrice(&p))
+	for _, pr := range prices {
+		result = append(result, *mapHistoricalPrice(&pr))
 	}
+
+	// Sort by date descending (newest first) to ensure consistent ordering
+	// The calculatePerformance function expects prices[0] to be most recent
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Date.After(result[j].Date)
+	})
 
 	return result, nil
 }
