@@ -431,21 +431,74 @@ func mapAnalystEstimates(ticker string, grades *GradesConsensus, targets *PriceT
 		result.PriceTargetMedian = targets.TargetMedian
 	}
 
-	// Map estimates (find current and next year)
-	// FMP returns estimates sorted by date, most recent first
-	if len(estimates) >= 1 {
-		result.EPSEstimateCurrentY = estimates[0].EstimatedEpsAvg
-		result.RevenueEstimateCurrentY = estimates[0].EstimatedRevenueAvg
-	}
-	if len(estimates) >= 2 {
-		result.EPSEstimateNextY = estimates[1].EstimatedEpsAvg
-		result.RevenueEstimateNextY = estimates[1].EstimatedRevenueAvg
+	// Map estimates (find current and next year based on fiscal year end dates)
+	// FMP returns estimates with date field representing fiscal year end date.
+	// We find the first future fiscal period as "current" and the next one as "next year".
+	if len(estimates) > 0 {
+		now := time.Now()
+
+		// Sort estimates by date ascending to ensure consistent ordering
+		type datedEstimate struct {
+			date     time.Time
+			estimate *AnalystEstimate
+		}
+		var dated []datedEstimate
+		for i := range estimates {
+			estDate, err := time.Parse("2006-01-02", estimates[i].Date)
+			if err != nil {
+				continue
+			}
+			dated = append(dated, datedEstimate{date: estDate, estimate: &estimates[i]})
+		}
+
+		// Sort by date ascending
+		for i := 0; i < len(dated)-1; i++ {
+			for j := i + 1; j < len(dated); j++ {
+				if dated[j].date.Before(dated[i].date) {
+					dated[i], dated[j] = dated[j], dated[i]
+				}
+			}
+		}
+
+		// Find current and next year estimates
+		// "Current" = first fiscal year ending after today (or recently ended within 30 days)
+		// "Next" = the following fiscal year
+		var currentYearEst, nextYearEst *AnalystEstimate
+		cutoffDate := now.AddDate(0, 0, -30) // Allow 30 days grace for just-ended fiscal years
+
+		for _, de := range dated {
+			if de.date.After(cutoffDate) || de.date.Equal(cutoffDate) {
+				if currentYearEst == nil {
+					currentYearEst = de.estimate
+				} else if nextYearEst == nil {
+					nextYearEst = de.estimate
+					break
+				}
+			}
+		}
+
+		// Fallback: if no future estimates found, use the first two available
+		if currentYearEst == nil && len(dated) >= 1 {
+			currentYearEst = dated[0].estimate
+		}
+		if nextYearEst == nil && len(dated) >= 2 {
+			nextYearEst = dated[1].estimate
+		}
+
+		if currentYearEst != nil {
+			result.EPSEstimateCurrentY = currentYearEst.EstimatedEpsAvg
+			result.RevenueEstimateCurrentY = currentYearEst.EstimatedRevenueAvg
+		}
+		if nextYearEst != nil {
+			result.EPSEstimateNextY = nextYearEst.EstimatedEpsAvg
+			result.RevenueEstimateNextY = nextYearEst.EstimatedRevenueAvg
+		}
 
 		// Calculate growth rates
-		if result.EPSEstimateCurrentY != 0 {
+		if result.EPSEstimateCurrentY != 0 && result.EPSEstimateNextY != 0 {
 			result.EPSGrowthNextY = ((result.EPSEstimateNextY - result.EPSEstimateCurrentY) / result.EPSEstimateCurrentY) * 100
 		}
-		if result.RevenueEstimateCurrentY != 0 {
+		if result.RevenueEstimateCurrentY != 0 && result.RevenueEstimateNextY != 0 {
 			result.RevenueGrowthNextY = ((result.RevenueEstimateNextY - result.RevenueEstimateCurrentY) / result.RevenueEstimateCurrentY) * 100
 		}
 	}

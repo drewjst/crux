@@ -626,7 +626,7 @@ func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*mod
 		"estimatesCount", len(estimates),
 	)
 	if grades != nil {
-		slog.Info("FMP grades consensus",
+		slog.Debug("FMP grades consensus",
 			"ticker", ticker,
 			"strongBuy", grades.StrongBuy,
 			"buy", grades.Buy,
@@ -634,6 +634,16 @@ func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*mod
 			"sell", grades.Sell,
 			"strongSell", grades.StrongSell,
 			"consensus", grades.Consensus,
+		)
+	}
+	// Log estimate details for debugging NTM P/S issues
+	for i, est := range estimates {
+		slog.Debug("FMP analyst estimate",
+			"ticker", ticker,
+			"index", i,
+			"date", est.Date,
+			"revenueAvg", est.EstimatedRevenueAvg,
+			"epsAvg", est.EstimatedEpsAvg,
 		)
 	}
 
