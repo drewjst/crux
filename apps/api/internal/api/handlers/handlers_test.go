@@ -22,6 +22,8 @@ func TestInsightHandler_Validation(t *testing.T) {
 		wantStatus int
 	}{
 		{"Valid ticker", "AAPL", "valuation-summary", 0}, // Panic expected (nil service)
+		{"Valid ticker with class (BRK.B)", "BRK.B", "valuation-summary", 0}, // Panic expected (nil service)
+		{"Valid ticker with class (BRK.A)", "BRK.A", "valuation-summary", 0}, // Panic expected (nil service)
 		{"Invalid ticker (too long)", "INVALIDTICKER", "valuation-summary", http.StatusBadRequest},
 		{"Invalid ticker (digits)", "AAP1", "valuation-summary", http.StatusBadRequest},
 	}

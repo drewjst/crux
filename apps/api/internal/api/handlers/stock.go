@@ -23,8 +23,9 @@ func NewStockHandler(service *stock.Service) *StockHandler {
 	return &StockHandler{service: service}
 }
 
-// tickerPattern validates ticker symbols (1-5 uppercase letters).
-var tickerPattern = regexp.MustCompile(`^[A-Z]{1,5}$`)
+// tickerPattern validates ticker symbols.
+// Supports: AAPL, TSLA (1-5 letters), BRK.A, BRK.B (class shares with dot).
+var tickerPattern = regexp.MustCompile(`^[A-Z]{1,5}(\.[A-Z]{1,2})?$`)
 
 // GetStock handles GET /api/stock/{ticker} requests.
 // Returns comprehensive stock data including scores, signals, and financials.
