@@ -560,6 +560,9 @@ func (s *InsightService) generateNewsSentiment(ctx context.Context, ticker strin
 		return nil, fmt.Errorf("generating insight: %w", err)
 	}
 
+	// Enrich the AI response with top article links
+	insight = s.enrichNewsSentimentWithArticles(insight, data.articles)
+
 	now := time.Now()
 	return &models.InsightResponse{
 		Ticker:      ticker,
@@ -569,6 +572,43 @@ func (s *InsightService) generateNewsSentiment(ctx context.Context, ticker strin
 		ExpiresAt:   now.Add(models.InsightSectionNewsSentiment.CacheTTL()),
 		Cached:      false,
 	}, nil
+}
+
+// enrichNewsSentimentWithArticles parses the AI response and adds top article links.
+func (s *InsightService) enrichNewsSentimentWithArticles(insight string, articles []models.NewsArticle) string {
+	// Parse the AI-generated JSON
+	var sentiment models.NewsSentiment
+	if err := json.Unmarshal([]byte(insight), &sentiment); err != nil {
+		slog.Warn("failed to parse news sentiment JSON, returning as-is", "error", err)
+		return insight
+	}
+
+	// Add top 3 recent articles with URLs
+	cutoff := time.Now().AddDate(0, 0, -7)
+	var topArticles []models.NewsLink
+	for _, a := range articles {
+		if a.PublishedDate.Before(cutoff) || a.URL == "" {
+			continue
+		}
+		topArticles = append(topArticles, models.NewsLink{
+			Title: a.Title,
+			URL:   a.URL,
+			Site:  a.Site,
+		})
+		if len(topArticles) >= 3 {
+			break
+		}
+	}
+	sentiment.TopArticles = topArticles
+
+	// Re-encode with articles included
+	enriched, err := json.Marshal(sentiment)
+	if err != nil {
+		slog.Warn("failed to re-encode news sentiment, returning original", "error", err)
+		return insight
+	}
+
+	return string(enriched)
 }
 
 func (s *InsightService) fetchNewsData(ctx context.Context, ticker string) (*newsData, error) {

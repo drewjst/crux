@@ -60,6 +60,12 @@ export interface InsightResponse {
   cached: boolean;
 }
 
+export interface NewsLink {
+  title: string;
+  url: string;
+  site: string;
+}
+
 export interface NewsSentiment {
   sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
   confidence: number;
@@ -67,6 +73,7 @@ export interface NewsSentiment {
   summary: string;
   articleCount: number;
   daysCovered: number;
+  topArticles?: NewsLink[];
 }
 
 export async function fetchInsight(

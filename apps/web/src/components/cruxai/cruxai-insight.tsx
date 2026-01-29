@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, RefreshCw, Newspaper } from 'lucide-react';
+import { Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
 import { fetchInsight, type InsightSection, type NewsSentiment } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -199,11 +199,23 @@ function NewsSentimentContent({ insight }: { insight: string }) {
         </div>
       )}
 
-      {/* Article count */}
-      {parsed.articleCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Based on {parsed.articleCount} articles over {parsed.daysCovered} days
-        </p>
+      {/* Top Articles */}
+      {parsed.topArticles && parsed.topArticles.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {parsed.topArticles.slice(0, 3).map((article, idx) => (
+            <a
+              key={idx}
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors max-w-[200px] truncate"
+              title={article.title}
+            >
+              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{article.site || 'Article'}</span>
+            </a>
+          ))}
+        </div>
       )}
     </div>
   );
