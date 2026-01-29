@@ -21,3 +21,8 @@ export { SectorMetricRow } from './sector-metric-row';
 export { PercentileBar } from './percentile-bar';
 export { MetricRow } from './metric-row';
 export { MetricSection } from './metric-section';
+export { CollapsibleMetricSection } from './collapsible-metric-section';
+export { SmartMoneySummary } from './smart-money-summary';
+export { ValuationCompact } from './valuation-compact';
+export { GrowthCompact } from './growth-compact';
+export { ProfitabilityCompact } from './profitability-compact';

@@ -9,22 +9,32 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   HeaderSection,
   ConvictionScoresSection,
-  DashboardDivider,
 } from './sections';
 import { ETFView } from './etf-view';
 import { CruxAIInsight } from '@/components/cruxai/cruxai-insight';
+import { SnapshotSidebar } from '@/components/stock/snapshot-sidebar';
 
 // Skeleton for loading sections
 const SectionSkeleton = () => (
-  <div className="w-full h-64 p-6 rounded-xl border bg-card text-card-foreground shadow-sm space-y-4">
+  <div className="w-full h-64 p-4 rounded-xl border bg-card text-card-foreground shadow-sm space-y-4">
     <div className="flex items-center justify-between">
-      <Skeleton className="h-6 w-32" />
-      <Skeleton className="h-8 w-24" />
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="h-6 w-24" />
     </div>
     <div className="space-y-2">
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-[90%]" />
       <Skeleton className="h-4 w-[80%]" />
+    </div>
+  </div>
+);
+
+// Compact skeleton for collapsed sections
+const CompactSkeleton = () => (
+  <div className="w-full p-3 rounded-xl border bg-card text-card-foreground shadow-sm">
+    <div className="flex items-center justify-between">
+      <Skeleton className="h-4 w-40" />
+      <Skeleton className="h-4 w-20" />
     </div>
   </div>
 );
@@ -39,14 +49,24 @@ const SignalsSection = dynamic(
   { loading: () => <SectionSkeleton /> }
 );
 
-const ValuationSection = dynamic(
-  () => import('./sections/valuation-section').then((mod) => mod.ValuationSection),
-  { loading: () => <SectionSkeleton /> }
+const SmartMoneySummary = dynamic(
+  () => import('./sections/smart-money-summary').then((mod) => mod.SmartMoneySummary),
+  { loading: () => <CompactSkeleton /> }
 );
 
-const ProfitabilitySection = dynamic(
-  () => import('./sections/profitability-section').then((mod) => mod.ProfitabilitySection),
-  { loading: () => <SectionSkeleton /> }
+const ValuationCompact = dynamic(
+  () => import('./sections/valuation-compact').then((mod) => mod.ValuationCompact),
+  { loading: () => <CompactSkeleton /> }
+);
+
+const GrowthCompact = dynamic(
+  () => import('./sections/growth-compact').then((mod) => mod.GrowthCompact),
+  { loading: () => <CompactSkeleton /> }
+);
+
+const ProfitabilityCompact = dynamic(
+  () => import('./sections/profitability-compact').then((mod) => mod.ProfitabilityCompact),
+  { loading: () => <CompactSkeleton /> }
 );
 
 const FinancialHealthSection = dynamic(
@@ -54,18 +74,8 @@ const FinancialHealthSection = dynamic(
   { loading: () => <SectionSkeleton /> }
 );
 
-const GrowthSection = dynamic(
-  () => import('./sections/growth-section').then((mod) => mod.GrowthSection),
-  { loading: () => <SectionSkeleton /> }
-);
-
 const EarningsQualitySection = dynamic(
   () => import('./sections/earnings-quality-section').then((mod) => mod.EarningsQualitySection),
-  { loading: () => <SectionSkeleton /> }
-);
-
-const SmartMoneySection = dynamic(
-  () => import('./sections/smart-money-section').then((mod) => mod.SmartMoneySection),
   { loading: () => <SectionSkeleton /> }
 );
 
@@ -119,41 +129,50 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
     return <ETFView data={data} />;
   }
 
-  // Stock view - Modern minimalist layout with strategic pairing
+  // Stock view - Compact layout with collapsible sections
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header with price & performance */}
-      <HeaderSection data={data} />
+    <div className="w-full max-w-6xl mx-auto flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Main content */}
+      <div className="flex-1 min-w-0 space-y-2">
+        {/* Header with price & performance */}
+        <HeaderSection data={data} />
 
-      {/* CruxAI Position Summary */}
-      <CruxAIInsight ticker={ticker} section="position-summary" />
+        {/* CruxAI Position Summary */}
+        <CruxAIInsight ticker={ticker} section="position-summary" />
 
-      {/* Row 1: Signals + Scores - Quick overview at a glance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <SignalsSection data={data} />
-        <ConvictionScoresSection data={data} />
+        {/* Key Signals + Health Scores - Two column grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <SignalsSection data={data} />
+          <ConvictionScoresSection data={data} />
+        </div>
+
+        {/* Smart Money - Condensed one-line summary */}
+        <SmartMoneySummary data={data} />
+
+        {/* Valuation - Collapsible, collapsed by default */}
+        <ValuationCompact data={data} />
+
+        {/* Growth - Collapsible, collapsed by default */}
+        <GrowthCompact data={data} />
+
+        {/* Margins & Returns - Collapsible, collapsed by default */}
+        <ProfitabilityCompact data={data} />
+
+        {/* News & Sentiment - CruxAI insight */}
+        <CruxAIInsight ticker={ticker} section="news-sentiment" />
+
+        {/* Financial Health - For advanced users */}
+        <FinancialHealthSection data={data} />
+
+        {/* Earnings Quality - For advanced users */}
+        <EarningsQualitySection data={data} />
+
+        {/* Footer */}
+        <FooterSection data={data} />
       </div>
 
-      {/* Row 2: Smart Money - Institutional & Insider activity */}
-      <SmartMoneySection data={data} />
-
-      {/* Row 3: Valuation - Full width with verdict header and deep dive link */}
-      <ValuationSection data={data} />
-
-      {/* Row 4: Growth - Full width for growth story */}
-      <GrowthSection data={data} />
-
-      {/* Row 5: Profitability - Margins & Returns */}
-      <ProfitabilitySection data={data} />
-
-      {/* Row 6: Operating Metrics - Efficiency indicators */}
-      <EarningsQualitySection data={data} />
-
-      {/* Row 7: Balance Sheet - Debt & Liquidity */}
-      <FinancialHealthSection data={data} />
-
-      {/* Footer */}
-      <FooterSection data={data} />
+      {/* Snapshot Sidebar - Bloomberg-style persistent sidebar */}
+      <SnapshotSidebar data={data} />
     </div>
   );
 }

@@ -25,6 +25,8 @@ export interface MetricRowProps {
   info?: string;
   /** Optional learn more URL */
   learnMoreUrl?: string;
+  /** Compact mode with reduced padding */
+  compact?: boolean;
 }
 
 /**
@@ -40,11 +42,14 @@ function MetricRowComponent({
   higherIsBetter = true,
   info,
   learnMoreUrl,
+  compact = false,
 }: MetricRowProps) {
+  const cellPadding = compact ? 'py-2' : 'py-3';
+
   return (
     <tr className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
       {/* Label column */}
-      <td className="py-3 pr-4">
+      <td className={`${cellPadding} pr-4`}>
         <div className="flex items-center gap-1.5">
           <span className="text-sm text-foreground">{label}</span>
           {info && (
@@ -78,21 +83,21 @@ function MetricRowComponent({
       </td>
 
       {/* Stock value column */}
-      <td className="py-3 px-4 text-right">
+      <td className={`${cellPadding} px-4 text-right`}>
         <span className="font-mono text-sm text-foreground">
           {formatMetricValue(value, format)}
         </span>
       </td>
 
       {/* Industry average column */}
-      <td className="py-3 px-4 text-right hidden sm:table-cell">
+      <td className={`${cellPadding} px-4 text-right hidden sm:table-cell`}>
         <span className="font-mono text-sm text-muted-foreground">
           {formatMetricValue(industryAverage, format)}
         </span>
       </td>
 
       {/* Percentile column */}
-      <td className="py-3 pl-4">
+      <td className={`${cellPadding} pl-4`}>
         <PercentileBar
           percentile={percentile}
           higherIsBetter={higherIsBetter}
