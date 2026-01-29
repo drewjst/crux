@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, RefreshCw } from 'lucide-react';
-import { fetchInsight, type InsightSection } from '@/lib/api';
+import { Sparkles, RefreshCw, Newspaper } from 'lucide-react';
+import { fetchInsight, type InsightSection, type NewsSentiment } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface CruxAIInsightProps {
@@ -18,6 +18,31 @@ const sectionLabels: Record<InsightSection, string> = {
   'position-summary': 'Position Summary',
   'news-sentiment': 'News Sentiment',
 };
+
+// Parse news sentiment JSON from insight string
+function parseNewsSentiment(insight: string): NewsSentiment | null {
+  try {
+    // Remove markdown code blocks if present
+    const cleaned = insight.replace(/```json\s*|\s*```/g, '').trim();
+    return JSON.parse(cleaned) as NewsSentiment;
+  } catch {
+    return null;
+  }
+}
+
+// Sentiment color mapping
+function getSentimentStyle(sentiment: string): { color: string; bg: string } {
+  switch (sentiment) {
+    case 'positive':
+      return { color: 'text-success', bg: 'bg-success/10' };
+    case 'negative':
+      return { color: 'text-destructive', bg: 'bg-destructive/10' };
+    case 'mixed':
+      return { color: 'text-amber-500', bg: 'bg-amber-500/10' };
+    default:
+      return { color: 'text-muted-foreground', bg: 'bg-muted' };
+  }
+}
 
 export function CruxAIInsight({ ticker, section, className }: CruxAIInsightProps) {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
@@ -120,10 +145,66 @@ export function CruxAIInsight({ ticker, section, className }: CruxAIInsightProps
         </div>
       </div>
 
-      {/* Insight text */}
+      {/* Insight content - special handling for news-sentiment */}
+      {section === 'news-sentiment' ? (
+        <NewsSentimentContent insight={data.insight} />
+      ) : (
+        <p className="text-sm text-foreground/80 leading-relaxed">
+          {data.insight}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Dedicated component for news sentiment display
+function NewsSentimentContent({ insight }: { insight: string }) {
+  const parsed = parseNewsSentiment(insight);
+
+  if (!parsed) {
+    // Fallback to raw text if parsing fails
+    return (
       <p className="text-sm text-foreground/80 leading-relaxed">
-        {data.insight}
+        {insight}
       </p>
+    );
+  }
+
+  const { color, bg } = getSentimentStyle(parsed.sentiment);
+
+  return (
+    <div className="space-y-2">
+      {/* Sentiment badge and summary */}
+      <div className="flex items-start gap-3">
+        <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium capitalize', color, bg)}>
+          {parsed.sentiment}
+        </span>
+        <p className="text-sm text-foreground/80 leading-relaxed flex-1">
+          {parsed.summary}
+        </p>
+      </div>
+
+      {/* Themes */}
+      {parsed.themes && parsed.themes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-xs text-muted-foreground">Themes:</span>
+          {parsed.themes.slice(0, 4).map((theme) => (
+            <span
+              key={theme}
+              className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+            >
+              {theme}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Article count */}
+      {parsed.articleCount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Based on {parsed.articleCount} articles over {parsed.daysCovered} days
+        </p>
+      )}
     </div>
   );
 }

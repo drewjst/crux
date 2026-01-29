@@ -137,8 +137,11 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
         {/* Header with price & performance */}
         <HeaderSection data={data} />
 
-        {/* CruxAI Position Summary */}
-        <CruxAIInsight ticker={ticker} section="position-summary" />
+        {/* CruxAI Insights - Position Summary and News Sentiment side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <CruxAIInsight ticker={ticker} section="position-summary" />
+          <CruxAIInsight ticker={ticker} section="news-sentiment" />
+        </div>
 
         {/* Key Signals + Health Scores - Two column grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -163,9 +166,6 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
 
         {/* Operating Metrics - Collapsible, collapsed by default */}
         <EarningsQualityCompact data={data} />
-
-        {/* News & Sentiment - CruxAI insight */}
-        <CruxAIInsight ticker={ticker} section="news-sentiment" />
 
         {/* Footer */}
         <FooterSection data={data} />
