@@ -74,21 +74,25 @@ export const SmartMoneySummary = memo(function SmartMoneySummary({ data }: Smart
           )}
 
           {/* Congress */}
-          {hasCongressActivity && (
-            <div className="flex items-center gap-1.5">
-              <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Congress:</span>
-              {congressBuyCount > 0 && (
-                <span className="font-mono text-success">{congressBuyCount} buy{congressBuyCount !== 1 ? 's' : ''}</span>
-              )}
-              {congressBuyCount > 0 && congressSellCount > 0 && (
-                <span className="text-muted-foreground">/</span>
-              )}
-              {congressSellCount > 0 && (
-                <span className="font-mono text-destructive">{congressSellCount} sell{congressSellCount !== 1 ? 's' : ''}</span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            <Landmark className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">Congress:</span>
+            {hasCongressActivity ? (
+              <>
+                {congressBuyCount > 0 && (
+                  <span className="font-mono text-success">{congressBuyCount} buy{congressBuyCount !== 1 ? 's' : ''}</span>
+                )}
+                {congressBuyCount > 0 && congressSellCount > 0 && (
+                  <span className="text-muted-foreground">/</span>
+                )}
+                {congressSellCount > 0 && (
+                  <span className="font-mono text-destructive">{congressSellCount} sell{congressSellCount !== 1 ? 's' : ''}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground/70">No activity</span>
+            )}
+          </div>
 
           {/* Insiders */}
           <div className="flex items-center gap-1.5">
