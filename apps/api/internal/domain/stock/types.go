@@ -199,13 +199,11 @@ type CongressTrade struct {
 
 // CongressActivity contains aggregated Congress trading data.
 type CongressActivity struct {
-	Trades       []CongressTrade `json:"trades"`
-	SenateBuys   int             `json:"senateBuys"`
-	SenateSells  int             `json:"senateSells"`
-	HouseBuys    int             `json:"houseBuys"`
-	HouseSells   int             `json:"houseSells"`
-	TotalBuys    int             `json:"totalBuys"`
-	TotalSells   int             `json:"totalSells"`
+	Trades      []CongressTrade `json:"trades"`
+	BuyCount    int             `json:"buyCount"`
+	SellCount   int             `json:"sellCount"`
+	SenateCount int             `json:"senateCount"`
+	HouseCount  int             `json:"houseCount"`
 }
 
 // DataMeta contains data freshness timestamps.

@@ -893,6 +893,8 @@ func convertCongressTradesFromModel(trades []models.CongressTrade) ([]CongressTr
 	result := make([]CongressTrade, 0, len(trades))
 	activity := &CongressActivity{Trades: []CongressTrade{}}
 
+	var senateBuys, senateSells, houseBuys, houseSells int
+
 	for _, t := range trades {
 		trade := CongressTrade{
 			Chamber:         t.Chamber,
@@ -910,21 +912,23 @@ func convertCongressTradesFromModel(trades []models.CongressTrade) ([]CongressTr
 
 		if t.Chamber == "senate" {
 			if t.TradeType == "buy" {
-				activity.SenateBuys++
+				senateBuys++
 			} else {
-				activity.SenateSells++
+				senateSells++
 			}
 		} else {
 			if t.TradeType == "buy" {
-				activity.HouseBuys++
+				houseBuys++
 			} else {
-				activity.HouseSells++
+				houseSells++
 			}
 		}
 	}
 
-	activity.TotalBuys = activity.SenateBuys + activity.HouseBuys
-	activity.TotalSells = activity.SenateSells + activity.HouseSells
+	activity.BuyCount = senateBuys + houseBuys
+	activity.SellCount = senateSells + houseSells
+	activity.SenateCount = senateBuys + senateSells
+	activity.HouseCount = houseBuys + houseSells
 
 	return result, activity
 }
