@@ -193,10 +193,35 @@ func (s *Service) GetStockDetailWithOptions(ctx context.Context, ticker string, 
 	// Invalidate cache if force refresh requested
 	if forceRefresh && s.cacheRepo != nil {
 		if err := s.cacheRepo.DeleteStock(ticker); err != nil {
-			slog.Warn("failed to invalidate cache", "ticker", ticker, "error", err)
+			slog.Warn("failed to invalidate stock cache", "ticker", ticker, "error", err)
 		} else {
-			slog.Info("cache invalidated", "ticker", ticker)
+			slog.Info("stock cache invalidated", "ticker", ticker)
 		}
+		// Also clear provider-level cache entries for this ticker
+		providerCacheTypes := []string{
+			"analyst_estimates",
+			"financials",
+			"ratios",
+			"quarterly_ratios",
+			"company",
+			"dcf",
+			"owner_earnings",
+			"technical_metrics",
+			"short_interest",
+			"institutional_holders",
+			"institutional_summary",
+			"insider_trades",
+			"congress_trades",
+			"stock_peers",
+			"etf_data",
+			"is_etf",
+		}
+		for _, cacheType := range providerCacheTypes {
+			if err := s.cacheRepo.DeleteProviderCache(cacheType, ticker); err != nil {
+				slog.Warn("failed to invalidate provider cache", "type", cacheType, "ticker", ticker, "error", err)
+			}
+		}
+		slog.Info("provider caches invalidated", "ticker", ticker)
 	}
 
 	// Check cache first
