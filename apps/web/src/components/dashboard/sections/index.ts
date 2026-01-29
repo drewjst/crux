@@ -26,3 +26,5 @@ export { SmartMoneySummary } from './smart-money-summary';
 export { ValuationCompact } from './valuation-compact';
 export { GrowthCompact } from './growth-compact';
 export { ProfitabilityCompact } from './profitability-compact';
+export { FinancialHealthCompact } from './financial-health-compact';
+export { EarningsQualityCompact } from './earnings-quality-compact';

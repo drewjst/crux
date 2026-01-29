@@ -69,14 +69,14 @@ const ProfitabilityCompact = dynamic(
   { loading: () => <CompactSkeleton /> }
 );
 
-const FinancialHealthSection = dynamic(
-  () => import('./sections/financial-health-section').then((mod) => mod.FinancialHealthSection),
-  { loading: () => <SectionSkeleton /> }
+const FinancialHealthCompact = dynamic(
+  () => import('./sections/financial-health-compact').then((mod) => mod.FinancialHealthCompact),
+  { loading: () => <CompactSkeleton /> }
 );
 
-const EarningsQualitySection = dynamic(
-  () => import('./sections/earnings-quality-section').then((mod) => mod.EarningsQualitySection),
-  { loading: () => <SectionSkeleton /> }
+const EarningsQualityCompact = dynamic(
+  () => import('./sections/earnings-quality-compact').then((mod) => mod.EarningsQualityCompact),
+  { loading: () => <CompactSkeleton /> }
 );
 
 const FooterSection = dynamic(
@@ -158,14 +158,14 @@ export function StockDashboard({ ticker }: StockDashboardProps) {
         {/* Margins & Returns - Collapsible, collapsed by default */}
         <ProfitabilityCompact data={data} />
 
+        {/* Balance Sheet - Collapsible, collapsed by default */}
+        <FinancialHealthCompact data={data} />
+
+        {/* Operating Metrics - Collapsible, collapsed by default */}
+        <EarningsQualityCompact data={data} />
+
         {/* News & Sentiment - CruxAI insight */}
         <CruxAIInsight ticker={ticker} section="news-sentiment" />
-
-        {/* Financial Health - For advanced users */}
-        <FinancialHealthSection data={data} />
-
-        {/* Earnings Quality - For advanced users */}
-        <EarningsQualitySection data={data} />
 
         {/* Footer */}
         <FooterSection data={data} />
