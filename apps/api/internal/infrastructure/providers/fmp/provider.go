@@ -638,8 +638,8 @@ func (p *Provider) GetAnalystEstimates(ctx context.Context, ticker string) (*mod
 			"ticker", ticker,
 			"index", i,
 			"date", est.Date,
-			"revenueAvg", est.EstimatedRevenueAvg,
-			"epsAvg", est.EstimatedEpsAvg,
+			"revenueAvg", est.RevenueAvg,
+			"epsAvg", est.EPSAvg,
 		)
 	}
 

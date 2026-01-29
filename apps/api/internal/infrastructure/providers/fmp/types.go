@@ -412,17 +412,29 @@ type PriceTargetConsensus struct {
 }
 
 // AnalystEstimate represents FMP analyst estimates response for EPS and revenue.
+// Note: FMP stable API uses different field names than the legacy v3 API.
 type AnalystEstimate struct {
-	Symbol                        string  `json:"symbol"`
-	Date                          string  `json:"date"`
-	EstimatedRevenueAvg           float64 `json:"estimatedRevenueAvg"`
-	EstimatedRevenueLow           float64 `json:"estimatedRevenueLow"`
-	EstimatedRevenueHigh          float64 `json:"estimatedRevenueHigh"`
-	EstimatedEpsAvg               float64 `json:"estimatedEpsAvg"`
-	EstimatedEpsLow               float64 `json:"estimatedEpsLow"`
-	EstimatedEpsHigh              float64 `json:"estimatedEpsHigh"`
-	NumberAnalystEstimatedRevenue int     `json:"numberAnalystEstimatedRevenue"`
-	NumberAnalystsEstimatedEps    int     `json:"numberAnalystsEstimatedEps"`
+	Symbol string `json:"symbol"`
+	Date   string `json:"date"`
+	// Revenue estimates
+	RevenueLow  float64 `json:"revenueLow"`
+	RevenueHigh float64 `json:"revenueHigh"`
+	RevenueAvg  float64 `json:"revenueAvg"`
+	// EPS estimates
+	EPSLow  float64 `json:"epsLow"`
+	EPSHigh float64 `json:"epsHigh"`
+	EPSAvg  float64 `json:"epsAvg"`
+	// Net Income estimates
+	NetIncomeLow  float64 `json:"netIncomeLow"`
+	NetIncomeHigh float64 `json:"netIncomeHigh"`
+	NetIncomeAvg  float64 `json:"netIncomeAvg"`
+	// EBITDA estimates
+	EBITDALow  float64 `json:"ebitdaLow"`
+	EBITDAHigh float64 `json:"ebitdaHigh"`
+	EBITDAAvg  float64 `json:"ebitdaAvg"`
+	// Number of analysts
+	NumberAnalystEstimatedRevenue int `json:"numberAnalystEstimatedRevenue"`
+	NumberAnalystsEstimatedEps    int `json:"numberAnalystsEstimatedEps"`
 }
 
 // =============================================================================

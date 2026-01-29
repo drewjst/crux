@@ -495,12 +495,12 @@ func mapAnalystEstimates(ticker string, grades *GradesConsensus, targets *PriceT
 		}
 
 		if currentYearEst != nil {
-			result.EPSEstimateCurrentY = currentYearEst.EstimatedEpsAvg
-			result.RevenueEstimateCurrentY = currentYearEst.EstimatedRevenueAvg
+			result.EPSEstimateCurrentY = currentYearEst.EPSAvg
+			result.RevenueEstimateCurrentY = currentYearEst.RevenueAvg
 		}
 		if nextYearEst != nil {
-			result.EPSEstimateNextY = nextYearEst.EstimatedEpsAvg
-			result.RevenueEstimateNextY = nextYearEst.EstimatedRevenueAvg
+			result.EPSEstimateNextY = nextYearEst.EPSAvg
+			result.RevenueEstimateNextY = nextYearEst.RevenueAvg
 		}
 
 		// Calculate growth rates

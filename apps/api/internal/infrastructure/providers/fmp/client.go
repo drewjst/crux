@@ -428,8 +428,8 @@ func (c *Client) GetAnalystEstimates(ctx context.Context, ticker string, period 
 		slog.Info("FMP analyst-estimates first item",
 			"ticker", ticker,
 			"date", estimates[0].Date,
-			"epsAvg", estimates[0].EstimatedEpsAvg,
-			"revenueAvg", estimates[0].EstimatedRevenueAvg,
+			"epsAvg", estimates[0].EPSAvg,
+			"revenueAvg", estimates[0].RevenueAvg,
 		)
 	}
 
