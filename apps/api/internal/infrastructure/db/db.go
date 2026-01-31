@@ -33,8 +33,15 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 // AutoMigrate runs GORM auto-migration for all cache models.
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
+		// Cache models
 		&StockCache{},
 		&QuoteCache{},
 		&ProviderCache{},
+		// Financial statements models
+		&FinancialPeriod{},
+		&IncomeStatementModel{},
+		&BalanceSheetModel{},
+		&CashFlowStatementModel{},
+		&RevenueSegmentModel{},
 	)
 }

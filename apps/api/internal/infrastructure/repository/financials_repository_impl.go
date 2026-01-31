@@ -887,7 +887,7 @@ func (r *FinancialsRepositoryImpl) cashFlowStatementDomainToModel(s repository.C
 		CashAtBeginning: ptrInt64(s.CashAtBeginning),
 		CashAtEnd:       ptrInt64(s.CashAtEnd),
 
-		// FreeCashFlow is computed by DB, don't set it
+		FreeCashFlow: ptrInt64(s.FreeCashFlow),
 
 		UpdatedAt: time.Now(),
 	}

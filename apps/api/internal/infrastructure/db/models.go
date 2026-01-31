@@ -181,8 +181,8 @@ type CashFlowStatementModel struct {
 	CashAtBeginning *int64 `gorm:"column:cash_at_beginning"`
 	CashAtEnd       *int64 `gorm:"column:cash_at_end"`
 
-	// Computed (stored in DB as GENERATED column, but we also track it here)
-	FreeCashFlow *int64 `gorm:"column:free_cash_flow;->"` // read-only, computed by DB
+	// Free cash flow (from provider, not computed)
+	FreeCashFlow *int64 `gorm:"column:free_cash_flow"`
 
 	RawData   datatypes.JSON `gorm:"type:jsonb"`
 	CreatedAt time.Time      `gorm:"not null;default:now()"`

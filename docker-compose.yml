@@ -9,7 +9,10 @@ services:
       - ./apps/api/.env
     environment:
       - PORT=8080
+      - DATABASE_URL=postgres://recon:recon@db:5432/recon?sslmode=disable
     depends_on:
+      db:
+        condition: service_healthy
       cache:
         condition: service_started
 
