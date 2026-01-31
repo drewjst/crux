@@ -10,6 +10,7 @@ import (
 	"github.com/drewjst/crux/apps/api/internal/api/middleware"
 	"github.com/drewjst/crux/apps/api/internal/application/services"
 	"github.com/drewjst/crux/apps/api/internal/domain/institutional"
+	"github.com/drewjst/crux/apps/api/internal/domain/repository"
 	"github.com/drewjst/crux/apps/api/internal/domain/search"
 	"github.com/drewjst/crux/apps/api/internal/domain/stock"
 	"github.com/drewjst/crux/apps/api/internal/domain/valuation"
@@ -21,6 +22,7 @@ type RouterDeps struct {
 	ValuationService     *valuation.Service
 	InstitutionalService *institutional.Service
 	InsightService       *services.InsightService
+	FinancialsRepo       repository.FinancialsRepository
 	PolygonSearcher      *search.PolygonSearcher
 	AllowedOrigins       []string
 }
@@ -56,6 +58,18 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 		if deps.InstitutionalService != nil {
 			institutionalHandler := handlers.NewInstitutionalHandler(deps.InstitutionalService)
 			r.Get("/stock/{ticker}/institutional", institutionalHandler.GetInstitutionalDetail)
+		}
+
+		// Financial statements deep dive
+		if deps.FinancialsRepo != nil {
+			financialsHandler := handlers.NewFinancialsHandler(deps.FinancialsRepo)
+			r.Route("/stock/{ticker}/financials", func(r chi.Router) {
+				r.Get("/income", financialsHandler.GetIncomeStatements)
+				r.Get("/balance-sheet", financialsHandler.GetBalanceSheets)
+				r.Get("/cash-flow", financialsHandler.GetCashFlowStatements)
+				r.Get("/segments", financialsHandler.GetRevenueSegments)
+			})
+			slog.Info("financials routes registered", "path", "/api/stock/{ticker}/financials/*")
 		}
 
 		// CruxAI insight routes (v1)

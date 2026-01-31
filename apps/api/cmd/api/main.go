@@ -12,11 +12,13 @@ import (
 
 	"github.com/joho/godotenv"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 
 	"github.com/drewjst/crux/apps/api/internal/api"
 	"github.com/drewjst/crux/apps/api/internal/application/services"
 	"github.com/drewjst/crux/apps/api/internal/config"
 	"github.com/drewjst/crux/apps/api/internal/domain/institutional"
+	"github.com/drewjst/crux/apps/api/internal/domain/repository"
 	"github.com/drewjst/crux/apps/api/internal/domain/search"
 	"github.com/drewjst/crux/apps/api/internal/domain/stock"
 	"github.com/drewjst/crux/apps/api/internal/domain/valuation"
@@ -25,6 +27,7 @@ import (
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/external/polygon"
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers"
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/fmp"
+	infrarepo "github.com/drewjst/crux/apps/api/internal/infrastructure/repository"
 )
 
 func main() {
@@ -50,8 +53,10 @@ func run() error {
 
 	// Initialize database if configured
 	var cacheRepo *db.Repository
+	var gormDB *gorm.DB
 	if cfg.DatabaseURL != "" {
-		gormDB, err := db.NewConnection(cfg.DatabaseURL)
+		var err error
+		gormDB, err = db.NewConnection(cfg.DatabaseURL)
 		if err != nil {
 			return err
 		}
@@ -109,10 +114,16 @@ func run() error {
 
 	// Initialize institutional service with FMP client
 	var institutionalService *institutional.Service
+	var financialsRepo repository.FinancialsRepository
+	var fmpClient *fmp.Client
 	if cfg.FMPAPIKey != "" {
-		fmpClient := fmp.NewClient(fmp.Config{APIKey: cfg.FMPAPIKey})
+		fmpClient = fmp.NewClient(fmp.Config{APIKey: cfg.FMPAPIKey})
 		institutionalService = institutional.NewService(fmpClient)
 		slog.Info("institutional service initialized")
+
+		// Initialize financials repository (DB optional, FMP required)
+		financialsRepo = infrarepo.NewFinancialsRepository(gormDB, fmpClient)
+		slog.Info("financials repository initialized", "caching", gormDB != nil)
 	} else {
 		slog.Info("institutional service disabled (no FMP API key)")
 	}
@@ -175,6 +186,7 @@ func run() error {
 		ValuationService:     valuationService,
 		InstitutionalService: institutionalService,
 		InsightService:       insightService,
+		FinancialsRepo:       financialsRepo,
 		PolygonSearcher:      polygonSearcher,
 		AllowedOrigins:       cfg.AllowedOrigins,
 	})
