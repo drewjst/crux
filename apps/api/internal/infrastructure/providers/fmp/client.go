@@ -395,17 +395,26 @@ func (c *Client) GetInstitutionalHolderBreakdown(ctx context.Context, ticker str
 func (c *Client) GetInstitutionalOwnershipHistory(ctx context.Context, ticker string, quarters int) ([]InstitutionalPositionsSummary, error) {
 	var history []InstitutionalPositionsSummary
 
-	// Get current quarter
+	// Get the most recent quarter with complete 13F data
+	// Use conservative estimates - major institutions file close to the deadline
 	now := time.Now()
 	year := now.Year()
-	quarter := (int(now.Month())-1)/3 + 1
+	month := int(now.Month())
 
-	// 13F filings have a 45-day delay, so if we're early in a quarter, use previous
-	if now.Day() < 50 && quarter > 1 {
-		quarter--
-	} else if now.Day() < 50 && quarter == 1 {
+	var quarter int
+	switch {
+	case month <= 2: // Jan-Feb: use Q3 of previous year
+		year--
+		quarter = 3
+	case month <= 5: // Mar-May: use Q4 of previous year
 		year--
 		quarter = 4
+	case month <= 8: // Jun-Aug: use Q1
+		quarter = 1
+	case month <= 11: // Sep-Nov: use Q2
+		quarter = 2
+	default: // December: use Q3
+		quarter = 3
 	}
 
 	for i := 0; i < quarters; i++ {

@@ -41,18 +41,44 @@ func (s *Service) GetDetail(ctx context.Context, ticker string) (*models.Institu
 		breakdown     []fmp.InstitutionalHolderBreakdown
 	)
 
-	// Get current quarter
+	// Get the most recent quarter with complete 13F data
+	// 13F filings are due 45 days after quarter end:
+	// Q1 (Mar 31) -> due May 15, Q2 (Jun 30) -> due Aug 14
+	// Q3 (Sep 30) -> due Nov 14, Q4 (Dec 31) -> due Feb 14
+	// To be safe, we use data from 2 quarters ago if we're in the first half of a quarter
 	now := time.Now()
 	year := now.Year()
-	quarter := (int(now.Month())-1)/3 + 1
+	month := int(now.Month())
 
-	// Adjust for 13F filing delay (45+ days)
-	if now.Day() < 50 && quarter > 1 {
-		quarter--
-	} else if now.Day() < 50 && quarter == 1 {
+	// Determine the most recent quarter with COMPLETE data
+	// In Q1 (Jan-Mar): Q3 of prev year is complete, Q4 may be incomplete until mid-Feb
+	// In Q2 (Apr-Jun): Q4 of prev year is complete, Q1 may be incomplete until mid-May
+	// In Q3 (Jul-Sep): Q1 is complete, Q2 may be incomplete until mid-Aug
+	// In Q4 (Oct-Dec): Q2 is complete, Q3 may be incomplete until mid-Nov
+	var quarter int
+	switch {
+	case month <= 2: // Jan-Feb: use Q3 of previous year (safest)
+		year--
+		quarter = 3
+	case month == 3: // March: Q4 should be available
 		year--
 		quarter = 4
+	case month <= 5: // Apr-May: use Q4 of previous year
+		year--
+		quarter = 4
+	case month == 6: // June: Q1 should be available
+		quarter = 1
+	case month <= 8: // Jul-Aug: use Q1
+		quarter = 1
+	case month == 9: // September: Q2 should be available
+		quarter = 2
+	case month <= 11: // Oct-Nov: use Q2
+		quarter = 2
+	default: // December: Q3 should be available
+		quarter = 3
 	}
+
+	slog.Info("fetching institutional data", "ticker", ticker, "year", year, "quarter", quarter)
 
 	g, gctx := errgroup.WithContext(ctx)
 
