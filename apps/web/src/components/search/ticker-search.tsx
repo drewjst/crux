@@ -13,9 +13,19 @@ interface TickerSearchProps {
   size?: 'default' | 'lg';
   autoFocus?: boolean;
   className?: string;
+  placeholder?: string;
+  buttonLabel?: string;
+  onSelect?: (ticker: string) => void;
 }
 
-export function TickerSearch({ size = 'default', autoFocus = false, className }: TickerSearchProps) {
+export function TickerSearch({
+  size = 'default',
+  autoFocus = false,
+  className,
+  placeholder = 'Search ticker...',
+  buttonLabel = 'Distill',
+  onSelect,
+}: TickerSearchProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -48,12 +58,16 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
     (ticker?: string) => {
       const target = ticker || query;
       if (target.trim()) {
-        router.push(`/?ticker=${target.toUpperCase()}`);
+        if (onSelect) {
+          onSelect(target.toUpperCase());
+        } else {
+          router.push(`/?ticker=${target.toUpperCase()}`);
+        }
         setIsOpen(false);
         setQuery('');
       }
     },
-    [query, router, setQuery]
+    [query, router, setQuery, onSelect]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -123,7 +137,7 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
           id="ticker-search"
           ref={inputRef}
           type="text"
-          placeholder="Search ticker..."
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -159,7 +173,7 @@ export function TickerSearch({ size = 'default', autoFocus = false, className }:
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            'Distill'
+            buttonLabel
           )}
         </Button>
       </div>

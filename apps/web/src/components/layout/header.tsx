@@ -71,9 +71,19 @@ function Navigation({ className, onLinkClick }: { className?: string; onLinkClic
   const searchParams = useSearchParams();
   const hasTicker = Boolean(searchParams.get('ticker'));
 
+  // Extract ticker from URL if on a stock page
+  const tickerMatch = pathname.match(/\/stock\/([^/]+)/);
+  const currentTicker = tickerMatch ? tickerMatch[1] : null;
+
   const isDistillActive = pathname === '/' && hasTicker;
   const isCompareActive = pathname.startsWith('/compare');
   const isCryptoActive = pathname === '/crypto';
+  const is10KActive = pathname.includes('/financials');
+
+  // Build 10-K link - if viewing a stock, go to that stock's financials
+  const tenKHref = currentTicker
+    ? `/stock/${currentTicker}/financials`
+    : '/financials';
 
   return (
     <nav className={cn('flex items-center', className)}>
@@ -83,6 +93,9 @@ function Navigation({ className, onLinkClick }: { className?: string; onLinkClic
         </NavLink>
         <NavLink href="/compare" isActive={isCompareActive}>
           Compare
+        </NavLink>
+        <NavLink href={tenKHref} isActive={is10KActive}>
+          10-K
         </NavLink>
         <NavLink href="/crypto" isActive={isCryptoActive}>
           Crypto
@@ -97,9 +110,19 @@ function MobileNavigation({ onLinkClick }: { onLinkClick?: () => void }) {
   const searchParams = useSearchParams();
   const hasTicker = Boolean(searchParams.get('ticker'));
 
+  // Extract ticker from URL if on a stock page
+  const tickerMatch = pathname.match(/\/stock\/([^/]+)/);
+  const currentTicker = tickerMatch ? tickerMatch[1] : null;
+
+  // Build 10-K link - if viewing a stock, go to that stock's financials
+  const tenKHref = currentTicker
+    ? `/stock/${currentTicker}/financials`
+    : '/financials';
+
   const links = [
     { href: '/', label: 'Distill', active: pathname === '/' && hasTicker },
     { href: '/compare', label: 'Compare', active: pathname.startsWith('/compare') },
+    { href: tenKHref, label: '10-K', active: pathname.includes('/financials') },
     { href: '/crypto', label: 'Crypto', active: pathname === '/crypto' },
     { href: '/options', label: 'Options', disabled: true },
     { href: '/news', label: 'News', disabled: true },
