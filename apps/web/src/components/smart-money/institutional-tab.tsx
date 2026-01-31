@@ -35,6 +35,7 @@ import type {
   HolderTypeBreakdown,
   OwnershipHistoryPoint,
 } from '@/lib/api';
+import { SocialLinks } from './social-links';
 
 interface InstitutionalTabProps {
   data: StockDetailResponse;
@@ -445,8 +446,11 @@ function BasicOwnershipOverview({ data }: { data: StockDetailResponse }) {
 
   if (!hasOwnershipData && !hasHolderCounts && topBuyers.length === 0 && topSellers.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No institutional ownership data available
+      <div className="space-y-6">
+        <div className="text-center py-8 text-muted-foreground">
+          No institutional ownership data available
+        </div>
+        <SocialLinks />
       </div>
     );
   }
@@ -582,6 +586,8 @@ function BasicOwnershipOverview({ data }: { data: StockDetailResponse }) {
           )}
         </div>
       </div>
+
+      <SocialLinks />
     </div>
   );
 }
@@ -703,6 +709,8 @@ function EnhancedInstitutionalView({ detail }: { detail: InstitutionalDetail }) 
           decreases={biggestDecreases}
         />
       </div>
+
+      <SocialLinks />
     </div>
   );
 }

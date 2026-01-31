@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { Landmark, ExternalLink } from 'lucide-react';
 import type { StockDetailResponse, CongressTrade } from '@recon/shared';
+import { SocialLinks } from './social-links';
 
 interface CongressTabProps {
   data: StockDetailResponse;
@@ -159,6 +160,8 @@ export const CongressTab = memo(function CongressTab({
           )}
         </div>
       )}
+
+      <SocialLinks />
     </div>
   );
 });

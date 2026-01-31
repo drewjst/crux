@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { formatCurrency } from '@/lib/formatters';
 import type { StockDetailResponse, InsiderTrade } from '@recon/shared';
+import { SocialLinks } from './social-links';
 
 interface InsidersTabProps {
   data: StockDetailResponse;
@@ -138,6 +139,8 @@ export const InsidersTab = memo(function InsidersTab({
           )}
         </div>
       )}
+
+      <SocialLinks />
     </div>
   );
 });

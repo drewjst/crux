@@ -154,6 +154,13 @@ export function CruxAIInsight({ ticker, section, className }: CruxAIInsightProps
           {data.insight}
         </p>
       )}
+
+      {/* Powered by attribution */}
+      <div className="mt-3 pt-2 border-t border-border/30">
+        <span className="text-[10px] text-muted-foreground/50">
+          Powered by Google Gemini
+        </span>
+      </div>
     </div>
   );
 }
