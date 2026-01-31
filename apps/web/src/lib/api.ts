@@ -49,7 +49,7 @@ export async function fetchValuation(ticker: string): Promise<ValuationDeepDive>
 }
 
 // CruxAI Insight types
-export type InsightSection = 'valuation-summary' | 'position-summary' | 'news-sentiment' | 'smart-money-summary';
+export type InsightSection = 'valuation-summary' | 'position-summary' | 'news-sentiment' | 'smart-money-summary' | 'financial-summary';
 
 export interface InsightResponse {
   ticker: string;
@@ -159,4 +159,142 @@ export interface InstitutionalDetail {
 
 export async function fetchInstitutionalDetail(ticker: string): Promise<InstitutionalDetail> {
   return fetchApi<InstitutionalDetail>(`/api/stock/${ticker.toUpperCase()}/institutional`);
+}
+
+// =============================================================================
+// Financial Statements Types
+// =============================================================================
+
+export type FinancialsPeriodType = 'annual' | 'quarterly' | 'ttm';
+
+export interface IncomeStatementPeriod {
+  periodEnd: string;
+  fiscalYear: number;
+  fiscalQuarter: number | null;
+  filingDate?: string;
+  revenue: number;
+  revenueFormatted: string;
+  costOfRevenue: number;
+  grossProfit: number;
+  grossMargin: number;
+  operatingExpenses: number;
+  operatingIncome: number;
+  operatingMargin: number;
+  netIncome: number;
+  netIncomeFormatted: string;
+  netMargin: number;
+  epsDiluted: number;
+  ebitda: number;
+  ebitdaMargin: number;
+  revenueGrowth?: number;
+  netIncomeGrowth?: number;
+  epsGrowth?: number;
+}
+
+export interface IncomeStatementResponse {
+  ticker: string;
+  currency: string;
+  periodType: string;
+  periods: IncomeStatementPeriod[];
+}
+
+export interface BalanceSheetPeriod {
+  periodEnd: string;
+  fiscalYear: number;
+  fiscalQuarter: number | null;
+  filingDate?: string;
+  totalAssets: number;
+  totalAssetsFormatted: string;
+  cashAndEquivalents: number;
+  totalCurrentAssets: number;
+  totalNonCurrentAssets: number;
+  totalLiabilities: number;
+  totalLiabilitiesFormatted: string;
+  totalCurrentLiabilities: number;
+  totalNonCurrentLiabilities: number;
+  totalDebt: number;
+  netDebt: number;
+  totalEquity: number;
+  totalEquityFormatted: string;
+  currentRatio: number;
+  debtToEquity: number;
+  debtToAssets: number;
+  totalAssetsGrowth?: number;
+  totalEquityGrowth?: number;
+}
+
+export interface BalanceSheetResponse {
+  ticker: string;
+  currency: string;
+  periodType: string;
+  periods: BalanceSheetPeriod[];
+}
+
+export interface CashFlowPeriod {
+  periodEnd: string;
+  fiscalYear: number;
+  fiscalQuarter: number | null;
+  filingDate?: string;
+  operatingCashFlow: number;
+  operatingCashFlowFormatted: string;
+  capitalExpenditures: number;
+  investingCashFlow: number;
+  dividendsPaid: number;
+  stockBuybacks: number;
+  financingCashFlow: number;
+  freeCashFlow: number;
+  freeCashFlowFormatted: string;
+  operatingCashFlowGrowth?: number;
+  freeCashFlowGrowth?: number;
+}
+
+export interface CashFlowResponse {
+  ticker: string;
+  currency: string;
+  periodType: string;
+  periods: CashFlowPeriod[];
+}
+
+export interface FinancialsOptions {
+  period?: FinancialsPeriodType;
+  limit?: number;
+}
+
+export async function fetchIncomeStatements(
+  ticker: string,
+  options?: FinancialsOptions
+): Promise<IncomeStatementResponse> {
+  const params = new URLSearchParams();
+  if (options?.period) params.set('period', options.period);
+  if (options?.limit) params.set('limit', options.limit.toString());
+  const query = params.toString();
+  return fetchApi<IncomeStatementResponse>(
+    `/api/stock/${ticker.toUpperCase()}/financials/income${query ? `?${query}` : ''}`
+  );
+}
+
+export async function fetchBalanceSheets(
+  ticker: string,
+  options?: FinancialsOptions
+): Promise<BalanceSheetResponse> {
+  const params = new URLSearchParams();
+  if (options?.period) params.set('period', options.period);
+  if (options?.limit) params.set('limit', options.limit.toString());
+  const query = params.toString();
+  return fetchApi<BalanceSheetResponse>(
+    `/api/stock/${ticker.toUpperCase()}/financials/balance-sheet${query ? `?${query}` : ''}`
+  );
+}
+
+export async function fetchCashFlowStatements(
+  ticker: string,
+  options?: FinancialsOptions
+): Promise<CashFlowResponse> {
+  const params = new URLSearchParams();
+  if (options?.period) params.set('period', options.period);
+  if (options?.limit) params.set('limit', options.limit.toString());
+  const query = params.toString();
+  return fetchApi<CashFlowResponse>(
+    `/api/stock/${ticker.toUpperCase()}/financials/cash-flow${query ? `?${query}` : ''}`
+  );
 }
