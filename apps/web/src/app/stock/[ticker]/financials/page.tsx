@@ -1,24 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, FileText, BarChart3, Wallet, PieChart } from 'lucide-react';
+import { ArrowLeft, FileText, BarChart3, Wallet, PieChart, Download } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { useStock } from '@/hooks/use-stock';
-import { useIncomeStatements } from '@/hooks/use-financials';
+import { useIncomeStatements, useBalanceSheets, useCashFlowStatements } from '@/hooks/use-financials';
 import { CruxAIInsight } from '@/components/cruxai';
 import { DashboardDivider } from '@/components/dashboard/sections/section-card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   IncomeStatementTab,
+  BalanceSheetTab,
+  CashFlowTab,
+  SegmentsTab,
   FinancialsControls,
   type ViewMode,
   type PeriodCount,
 } from '@/components/financials';
-import type { FinancialsPeriodType } from '@/lib/api';
+import type { FinancialsPeriodType, IncomeStatementPeriod, BalanceSheetPeriod, CashFlowPeriod } from '@/lib/api';
 
 interface PageProps {
   params: { ticker: string };
 }
+
+type TabValue = 'income' | 'balance' | 'cashflow' | 'segments';
 
 export default function FinancialsPage({ params }: PageProps) {
   const { ticker } = params;
@@ -28,18 +33,31 @@ export default function FinancialsPage({ params }: PageProps) {
   const [periodType, setPeriodType] = useState<FinancialsPeriodType>('annual');
   const [periodCount, setPeriodCount] = useState<PeriodCount>(5);
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
+  const [activeTab, setActiveTab] = useState<TabValue>('income');
 
   // Compute limit based on period type and count
   const limit = periodType === 'quarterly'
     ? periodCount === 5 ? 4 : periodCount === 10 ? 8 : 12
     : periodCount;
 
-  // Fetch income statements
+  // Fetch financial data
   const {
     data: incomeData,
     isLoading: incomeLoading,
     error: incomeError,
   } = useIncomeStatements(ticker, { period: periodType, limit });
+
+  const {
+    data: balanceData,
+    isLoading: balanceLoading,
+    error: balanceError,
+  } = useBalanceSheets(ticker, { period: periodType, limit });
+
+  const {
+    data: cashFlowData,
+    isLoading: cashFlowLoading,
+    error: cashFlowError,
+  } = useCashFlowStatements(ticker, { period: periodType, limit });
 
   // Set dynamic page title
   useEffect(() => {
@@ -48,34 +66,86 @@ export default function FinancialsPage({ params }: PageProps) {
     }
   }, [stockData, ticker]);
 
+  // Generate CSV content based on active tab
+  const generateCSV = useCallback((): { content: string; filename: string } | null => {
+    const getPeriodHeader = (p: { fiscalQuarter: number | null; fiscalYear: number }) =>
+      p.fiscalQuarter ? `Q${p.fiscalQuarter} ${p.fiscalYear}` : `FY ${p.fiscalYear}`;
+
+    if (activeTab === 'income' && incomeData?.periods) {
+      const periods = incomeData.periods;
+      const headers = ['Metric', ...periods.map(getPeriodHeader)];
+      const rows = [
+        ['Revenue', ...periods.map(p => p.revenue.toString())],
+        ['Cost of Revenue', ...periods.map(p => p.costOfRevenue.toString())],
+        ['Gross Profit', ...periods.map(p => p.grossProfit.toString())],
+        ['Operating Expenses', ...periods.map(p => p.operatingExpenses.toString())],
+        ['Operating Income', ...periods.map(p => p.operatingIncome.toString())],
+        ['Net Income', ...periods.map(p => p.netIncome.toString())],
+        ['EBITDA', ...periods.map(p => p.ebitda.toString())],
+        ['EPS (Diluted)', ...periods.map(p => p.epsDiluted.toString())],
+        ['Gross Margin %', ...periods.map(p => p.grossMargin.toFixed(2))],
+        ['Operating Margin %', ...periods.map(p => p.operatingMargin.toFixed(2))],
+        ['Net Margin %', ...periods.map(p => p.netMargin.toFixed(2))],
+        ['EBITDA Margin %', ...periods.map(p => p.ebitdaMargin.toFixed(2))],
+      ];
+      const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      return { content: csv, filename: `${ticker.toUpperCase()}_income_statement_${periodType}.csv` };
+    }
+
+    if (activeTab === 'balance' && balanceData?.periods) {
+      const periods = balanceData.periods;
+      const headers = ['Metric', ...periods.map(getPeriodHeader)];
+      const rows = [
+        ['Cash & Equivalents', ...periods.map(p => p.cashAndEquivalents.toString())],
+        ['Total Current Assets', ...periods.map(p => p.totalCurrentAssets.toString())],
+        ['Total Non-Current Assets', ...periods.map(p => p.totalNonCurrentAssets.toString())],
+        ['Total Assets', ...periods.map(p => p.totalAssets.toString())],
+        ['Total Current Liabilities', ...periods.map(p => p.totalCurrentLiabilities.toString())],
+        ['Total Non-Current Liabilities', ...periods.map(p => p.totalNonCurrentLiabilities.toString())],
+        ['Total Liabilities', ...periods.map(p => p.totalLiabilities.toString())],
+        ['Total Debt', ...periods.map(p => p.totalDebt.toString())],
+        ['Net Debt', ...periods.map(p => p.netDebt.toString())],
+        ['Total Equity', ...periods.map(p => p.totalEquity.toString())],
+        ['Current Ratio', ...periods.map(p => p.currentRatio.toFixed(2))],
+        ['Debt to Equity', ...periods.map(p => p.debtToEquity.toFixed(2))],
+        ['Debt to Assets', ...periods.map(p => p.debtToAssets.toFixed(2))],
+      ];
+      const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      return { content: csv, filename: `${ticker.toUpperCase()}_balance_sheet_${periodType}.csv` };
+    }
+
+    if (activeTab === 'cashflow' && cashFlowData?.periods) {
+      const periods = cashFlowData.periods;
+      const headers = ['Metric', ...periods.map(getPeriodHeader)];
+      const rows = [
+        ['Operating Cash Flow', ...periods.map(p => p.operatingCashFlow.toString())],
+        ['Capital Expenditures', ...periods.map(p => p.capitalExpenditures.toString())],
+        ['Investing Cash Flow', ...periods.map(p => p.investingCashFlow.toString())],
+        ['Dividends Paid', ...periods.map(p => p.dividendsPaid.toString())],
+        ['Stock Buybacks', ...periods.map(p => p.stockBuybacks.toString())],
+        ['Financing Cash Flow', ...periods.map(p => p.financingCashFlow.toString())],
+        ['Free Cash Flow', ...periods.map(p => p.freeCashFlow.toString())],
+      ];
+      const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      return { content: csv, filename: `${ticker.toUpperCase()}_cash_flow_${periodType}.csv` };
+    }
+
+    return null;
+  }, [activeTab, incomeData, balanceData, cashFlowData, ticker, periodType]);
+
   // Export to CSV handler
   const handleExport = useCallback(() => {
-    if (!incomeData?.periods) return;
+    const result = generateCSV();
+    if (!result) return;
 
-    const headers = ['Metric', ...incomeData.periods.map(p =>
-      p.fiscalQuarter ? `Q${p.fiscalQuarter} ${p.fiscalYear}` : `FY ${p.fiscalYear}`
-    )];
-
-    const rows = [
-      ['Revenue', ...incomeData.periods.map(p => p.revenue.toString())],
-      ['Gross Profit', ...incomeData.periods.map(p => p.grossProfit.toString())],
-      ['Operating Income', ...incomeData.periods.map(p => p.operatingIncome.toString())],
-      ['Net Income', ...incomeData.periods.map(p => p.netIncome.toString())],
-      ['EPS Diluted', ...incomeData.periods.map(p => p.epsDiluted.toString())],
-      ['Gross Margin %', ...incomeData.periods.map(p => p.grossMargin.toString())],
-      ['Operating Margin %', ...incomeData.periods.map(p => p.operatingMargin.toString())],
-      ['Net Margin %', ...incomeData.periods.map(p => p.netMargin.toString())],
-    ];
-
-    const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([result.content], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${ticker.toUpperCase()}_income_statement_${periodType}.csv`;
+    a.download = result.filename;
     a.click();
     URL.revokeObjectURL(url);
-  }, [incomeData, ticker, periodType]);
+  }, [generateCSV]);
 
   // Loading state
   if (stockLoading) {
@@ -112,6 +182,12 @@ export default function FinancialsPage({ params }: PageProps) {
       </div>
     );
   }
+
+  // Check if export is available for current tab
+  const canExport =
+    (activeTab === 'income' && incomeData?.periods?.length) ||
+    (activeTab === 'balance' && balanceData?.periods?.length) ||
+    (activeTab === 'cashflow' && cashFlowData?.periods?.length);
 
   return (
     <div className="min-h-screen border-x border-border max-w-5xl mx-auto bg-background/50 shadow-sm px-4 sm:px-6 lg:px-8">
@@ -154,25 +230,29 @@ export default function FinancialsPage({ params }: PageProps) {
           onPeriodCountChange={setPeriodCount}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          onExport={handleExport}
+          onExport={canExport ? handleExport : undefined}
         />
 
         {/* Tabbed Content */}
-        <Tabs defaultValue="income" className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as TabValue)}
+          className="w-full"
+        >
           <TabsList className="w-full justify-start">
             <TabsTrigger value="income" className="gap-1.5">
               <FileText className="h-4 w-4" />
               Income Statement
             </TabsTrigger>
-            <TabsTrigger value="balance" className="gap-1.5" disabled>
+            <TabsTrigger value="balance" className="gap-1.5">
               <BarChart3 className="h-4 w-4" />
               Balance Sheet
             </TabsTrigger>
-            <TabsTrigger value="cashflow" className="gap-1.5" disabled>
+            <TabsTrigger value="cashflow" className="gap-1.5">
               <Wallet className="h-4 w-4" />
               Cash Flow
             </TabsTrigger>
-            <TabsTrigger value="segments" className="gap-1.5" disabled>
+            <TabsTrigger value="segments" className="gap-1.5">
               <PieChart className="h-4 w-4" />
               Segments
             </TabsTrigger>
@@ -197,21 +277,43 @@ export default function FinancialsPage({ params }: PageProps) {
           </TabsContent>
 
           <TabsContent value="balance" className="mt-4">
-            <div className="py-12 text-center text-muted-foreground">
-              Balance Sheet coming soon
-            </div>
+            {balanceLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-muted rounded" />
+                <div className="h-64 bg-muted rounded" />
+              </div>
+            ) : balanceError ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Error loading balance sheet data
+              </div>
+            ) : (
+              <BalanceSheetTab
+                periods={balanceData?.periods || []}
+                viewMode={viewMode}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="cashflow" className="mt-4">
-            <div className="py-12 text-center text-muted-foreground">
-              Cash Flow Statement coming soon
-            </div>
+            {cashFlowLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-muted rounded" />
+                <div className="h-64 bg-muted rounded" />
+              </div>
+            ) : cashFlowError ? (
+              <div className="py-8 text-center text-muted-foreground">
+                Error loading cash flow data
+              </div>
+            ) : (
+              <CashFlowTab
+                periods={cashFlowData?.periods || []}
+                viewMode={viewMode}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="segments" className="mt-4">
-            <div className="py-12 text-center text-muted-foreground">
-              Revenue Segments coming soon
-            </div>
+            <SegmentsTab ticker={ticker} />
           </TabsContent>
         </Tabs>
       </div>
