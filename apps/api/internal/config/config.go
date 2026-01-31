@@ -24,6 +24,7 @@ type Config struct {
 	PolygonAPIKey  string
 	DatabaseURL    string
 	AllowedOrigins []string
+	TrustedProxies []string
 	CruxAI         CruxAIConfig
 }
 
@@ -45,6 +46,18 @@ func Load() (*Config, error) {
 		for _, origin := range rawOrigins {
 			if trimmed := strings.TrimSpace(origin); trimmed != "" {
 				cfg.AllowedOrigins = append(cfg.AllowedOrigins, trimmed)
+			}
+		}
+	}
+
+	trustedProxies := os.Getenv("TRUSTED_PROXIES")
+	if trustedProxies == "" {
+		cfg.TrustedProxies = []string{"127.0.0.1", "::1"}
+	} else {
+		rawProxies := strings.Split(trustedProxies, ",")
+		for _, proxy := range rawProxies {
+			if trimmed := strings.TrimSpace(proxy); trimmed != "" {
+				cfg.TrustedProxies = append(cfg.TrustedProxies, trimmed)
 			}
 		}
 	}

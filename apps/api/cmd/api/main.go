@@ -189,6 +189,7 @@ func run() error {
 		FinancialsRepo:       financialsRepo,
 		PolygonSearcher:      polygonSearcher,
 		AllowedOrigins:       cfg.AllowedOrigins,
+		TrustedProxies:       cfg.TrustedProxies,
 	})
 
 	// Create server

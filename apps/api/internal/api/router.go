@@ -25,6 +25,7 @@ type RouterDeps struct {
 	FinancialsRepo       repository.FinancialsRepository
 	PolygonSearcher      *search.PolygonSearcher
 	AllowedOrigins       []string
+	TrustedProxies       []string
 }
 
 // NewRouter creates and configures the Chi router with all routes and middleware.
@@ -33,7 +34,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 
 	// Global middleware stack
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	r.Use(middleware.RealIP(deps.TrustedProxies))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.CORS(deps.AllowedOrigins))
