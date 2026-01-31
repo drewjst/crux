@@ -2,7 +2,7 @@
 
 **Stock fundamental analysis, distilled.** Enter a ticker, get the crux in 30 seconds.
 
-Recon synthesizes financial data into conviction scores and actionable signals—cutting through noise to surface what matters for investment decisions.
+Crux synthesizes financial data into conviction scores and actionable signals—cutting through noise to surface what matters for investment decisions.
 
 ## Features
 
@@ -11,7 +11,8 @@ Recon synthesizes financial data into conviction scores and actionable signals�
 - **Performance** — 1D, 1W, 1M, YTD, 1Y returns with 52-week range visualization
 - **Valuation** — P/E, Forward P/E, PEG, EV/EBITDA, P/FCF, P/B with sector percentiles
 - **Financials** — Revenue growth, margins (gross/operating/net/FCF), ROE, ROIC, leverage
-- **Smart Money** — Institutional ownership trends, insider buy/sell activity (90-day)
+- **Smart Money** — Institutional ownership trends, insider activity, congressional trades, short interest
+- **Smart Money Deep Dive** — Comprehensive institutional ownership analysis with holder breakdown and activity tracking
 - **Signals** — Automated bullish/bearish/warning flags based on score thresholds
 - **Stock Compare** — Side-by-side comparison of 2-4 stocks
 - **ETF Support** — Fund overview, holdings, and sector breakdown
@@ -31,9 +32,8 @@ Recon synthesizes financial data into conviction scores and actionable signals�
 
 | Provider | Data Type | Usage |
 |----------|-----------|-------|
-| [FMP](https://financialmodelingprep.com) | Fundamentals, ratios, financials, holdings, insider trades, estimates | Primary |
+| [FMP](https://financialmodelingprep.com) | Fundamentals, ratios, financials, holdings, insider trades, congress trades, estimates | Primary |
 | [Polygon.io](https://polygon.io) | Ticker search (stocks, ETFs, ADRs) | Search |
-| [EODHD](https://eodhd.com) | ETF holdings | Fallback |
 
 Data is cached in PostgreSQL for 24 hours to minimize API calls.
 
@@ -51,8 +51,8 @@ Data is cached in PostgreSQL for 24 hours to minimize API calls.
 
 ```bash
 # Clone and install
-git clone https://github.com/drewjst/recon.git
-cd recon
+git clone https://github.com/drewjst/crux.git
+cd crux
 pnpm install
 
 # Configure backend
@@ -83,7 +83,6 @@ cd apps/web && pnpm dev
 | `DATABASE_URL` | No | PostgreSQL connection (enables caching) |
 | `PORT` | No | Server port (default: 8080) |
 | `ALLOWED_ORIGINS` | No | CORS origins (default: http://localhost:3000) |
-| `EODHD_API_KEY` | No | EODHD API key (ETF holdings fallback) |
 | `CRUX_AI_ENABLED` | No | Enable AI insights (default: false) |
 | `GCP_PROJECT_ID` | No | Google Cloud project ID (required if AI enabled) |
 | `GCP_LOCATION` | No | Vertex AI region (default: us-central1) |
@@ -102,12 +101,15 @@ cd apps/web && pnpm dev
 | `GET` | `/health` | Health check |
 | `GET` | `/api/stock/{ticker}` | Complete stock/ETF analysis |
 | `GET` | `/api/stock/{ticker}/valuation` | Valuation deep dive |
+| `GET` | `/api/stock/{ticker}/institutional` | Institutional ownership detail |
 | `GET` | `/api/search?q={query}` | Ticker search (Polygon-powered) |
 | `GET` | `/api/v1/insights/{section}?ticker={ticker}` | AI-generated insights |
 
 **Insight Sections:**
 - `position-summary` — Executive summary for the main stock page
 - `valuation-summary` — Valuation analysis for the valuation deep dive
+- `smart-money-summary` — Smart money activity overview
+- `news-sentiment` — AI-analyzed news sentiment with key article links
 
 ## Scoring Systems
 
@@ -162,7 +164,7 @@ Insights are generated on-demand and cached for 24 hours. The AI receives struct
 ## Project Structure
 
 ```
-recon/
+crux/
 ├── apps/
 │   ├── api/                    # Go backend
 │   │   ├── cmd/api/            # Entry point
