@@ -354,21 +354,28 @@ type ETFCountryWeighting struct {
 
 
 // InstitutionalOwnershipHolder represents an institutional holder's position from 13F filings.
+// Field names match the FMP stable API /institutional-ownership/extract-analytics/holder endpoint.
 type InstitutionalOwnershipHolder struct {
-	InvestorName     string  `json:"investorName"`
-	CIK              string  `json:"cik"`
-	Shares           int64   `json:"shares"`
-	Value            int64   `json:"value"`
+	InvestorName string `json:"investorName"`
+	CIK          string `json:"cik"`
+	Date         string `json:"date"`
+	// Shares data
+	Shares           int64 `json:"sharesNumber"`
+	LastShares       int64 `json:"lastSharesNumber"`
+	SharesChange     int64 `json:"changeInSharesNumber"`
+	ChangePercentage float64 `json:"changeInSharesNumberPercentage"`
+	// Value/market data
+	Value            int64   `json:"marketValue"`
+	LastValue        int64   `json:"lastMarketValue"`
+	ValueChange      int64   `json:"changeInMarketValue"`
 	Weight           float64 `json:"weight"` // Portfolio weight percentage
-	SharesChange     int64   `json:"sharesChange"`
-	ChangePercentage float64 `json:"changePercentage"`
-	Date             string  `json:"date"`
-	// Additional fields that FMP may include
-	TotalHoldings      int     `json:"totalHoldings,omitempty"`
-	IsNewPosition      bool    `json:"isNewPosition,omitempty"`
-	IsSoldOut          bool    `json:"isSoldOut,omitempty"`
-	OwnershipPercent   float64 `json:"ownershipPercent,omitempty"`
-	LastOwnershipRatio float64 `json:"lastOwnershipRatio,omitempty"`
+	// Ownership data
+	OwnershipPercent     float64 `json:"ownership"`
+	LastOwnershipPercent float64 `json:"lastOwnership"`
+	OwnershipChange      float64 `json:"changeInOwnership"`
+	// Position flags
+	IsNewPosition bool `json:"isNew"`
+	IsSoldOut     bool `json:"isSoldOut"`
 }
 
 // InstitutionalPositionsSummary represents aggregated institutional ownership data.

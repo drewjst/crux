@@ -412,9 +412,11 @@ func (c *Client) GetInstitutionalOwnershipHistory(ctx context.Context, ticker st
 		summary, err := c.GetInstitutionalPositionsSummary(ctx, ticker, year, quarter)
 		if err != nil {
 			// Log and continue - some quarters may not have data
-			continue
-		}
-		if summary != nil && summary.OwnershipPercent > 0 {
+			slog.Debug("failed to fetch institutional summary for quarter", "ticker", ticker, "year", year, "quarter", quarter, "error", err)
+		} else if summary != nil && summary.OwnershipPercent > 0 {
+			// Set year/quarter since the API doesn't return them
+			summary.Year = year
+			summary.Quarter = quarter
 			history = append(history, *summary)
 		}
 
