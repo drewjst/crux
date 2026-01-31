@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShareButton } from '@/components/ui/share-button';
 import { MiniChart } from './mini-chart';
@@ -66,14 +66,22 @@ export function HeaderSection({ data }: HeaderSectionProps) {
                 <span className="truncate">{company.industry}</span>
               </div>
             </div>
-            {/* Share button and clickable indicator */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Share button and links */}
+            <div className="flex items-center gap-2 shrink-0">
               <ShareButton
                 ticker={company.ticker}
                 text={shareText}
                 size="icon"
                 className="h-8 w-8 opacity-70 hover:opacity-100"
               />
+              <Link
+                href={`/stock/${company.ticker}/financials`}
+                onClick={(e) => e.stopPropagation()}
+                className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted/50"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>10-K</span>
+              </Link>
               <div className="flex items-center gap-1 text-xs text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <span className="hidden sm:inline">Details</span>
                 <ChevronRight className="h-4 w-4" />
