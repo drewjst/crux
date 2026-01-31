@@ -69,7 +69,6 @@ const sections: SectionConfig[] = [
   },
 ];
 
-// Format a number for display
 function formatValue(value: number | undefined | null, isPercent = false, isEPS = false): string {
   if (value === undefined || value === null) return '--';
 
@@ -81,7 +80,6 @@ function formatValue(value: number | undefined | null, isPercent = false, isEPS 
     return `$${value.toFixed(2)}`;
   }
 
-  // Format as currency with B/M/K suffix
   const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
 
@@ -92,14 +90,12 @@ function formatValue(value: number | undefined | null, isPercent = false, isEPS 
   return `${sign}$${abs.toFixed(0)}`;
 }
 
-// Format growth rate
 function formatGrowth(value: number | undefined | null): string {
   if (value === undefined || value === null) return '--';
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(1)}%`;
 }
 
-// Get period label from period data
 function getPeriodLabel(period: IncomeStatementPeriod): string {
   if (period.fiscalQuarter) {
     return `Q${period.fiscalQuarter} ${period.fiscalYear}`;
@@ -107,17 +103,14 @@ function getPeriodLabel(period: IncomeStatementPeriod): string {
   return `FY ${period.fiscalYear}`;
 }
 
-// Check if a key represents a margin/percent value
 function isPercentKey(key: string): boolean {
   return key.includes('Margin') || key.includes('Growth');
 }
 
-// Check if a key is EPS
 function isEPSKey(key: string): boolean {
   return key.toLowerCase().includes('eps');
 }
 
-// Collapsible section component
 const CollapsibleSection = memo(function CollapsibleSection({
   title,
   rows,
@@ -134,11 +127,10 @@ const CollapsibleSection = memo(function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border/30 last:border-0">
-      {/* Section Header */}
+    <div className="border-b border-border/40 last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 py-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-2 py-2.5 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
       >
         {isOpen ? (
           <ChevronDown className="h-3.5 w-3.5" />
@@ -148,7 +140,6 @@ const CollapsibleSection = memo(function CollapsibleSection({
         {title}
       </button>
 
-      {/* Section Rows */}
       {isOpen && (
         <div>
           {rows.map((row) => (
@@ -156,23 +147,21 @@ const CollapsibleSection = memo(function CollapsibleSection({
               key={row.key}
               className={cn(
                 'flex items-center border-b border-border/20 last:border-0',
-                'hover:bg-muted/20 transition-colors',
-                row.isSubtotal && 'bg-muted/10 font-medium'
+                'hover:bg-muted/30 transition-colors',
+                row.isSubtotal && 'bg-muted/20'
               )}
             >
-              {/* Row Label - Sticky */}
               <div
                 className={cn(
                   'sticky left-0 z-10 bg-background',
-                  'min-w-[180px] w-[180px] py-2 px-3 text-sm',
+                  'min-w-[200px] w-[200px] py-2.5 px-4 text-sm',
                   row.isSubtotal && 'font-semibold',
-                  row.indent && `pl-${4 + row.indent * 2}`
+                  row.indent && 'pl-8'
                 )}
               >
                 {row.label}
               </div>
 
-              {/* Period Values */}
               {periods.map((period) => {
                 const key = row.key as keyof IncomeStatementPeriod;
                 const value = period[key] as number | undefined;
@@ -183,7 +172,6 @@ const CollapsibleSection = memo(function CollapsibleSection({
                 let colorClass = '';
 
                 if (viewMode === 'growth' && !isPercent) {
-                  // Show growth rate
                   const growthKey = `${row.key}Growth` as keyof IncomeStatementPeriod;
                   const growth = period[growthKey] as number | undefined;
                   displayValue = formatGrowth(growth);
@@ -191,7 +179,6 @@ const CollapsibleSection = memo(function CollapsibleSection({
                     colorClass = growth > 0 ? 'text-success' : growth < 0 ? 'text-destructive' : '';
                   }
                 } else if (viewMode === 'common-size' && !isPercent && !isEPS) {
-                  // Show as % of revenue
                   if (period.revenue && period.revenue > 0 && value !== undefined) {
                     const pctOfRevenue = (value / period.revenue) * 100;
                     displayValue = `${pctOfRevenue.toFixed(1)}%`;
@@ -200,7 +187,6 @@ const CollapsibleSection = memo(function CollapsibleSection({
                   }
                 } else {
                   displayValue = formatValue(value, isPercent, isEPS);
-                  // Color negative values
                   if (value !== undefined && value < 0 && !isPercent) {
                     colorClass = 'text-destructive';
                   }
@@ -210,7 +196,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
                   <div
                     key={period.periodEnd}
                     className={cn(
-                      'min-w-[100px] w-[100px] py-2 px-2 text-sm text-right font-mono',
+                      'min-w-[120px] flex-1 py-2.5 px-3 text-sm text-right font-mono tabular-nums',
                       colorClass,
                       row.isSubtotal && 'font-semibold'
                     )}
@@ -220,19 +206,14 @@ const CollapsibleSection = memo(function CollapsibleSection({
                 );
               })}
 
-              {/* YoY % Column (only for last period in standard view) */}
               {viewMode === 'standard' && !isPercentKey(row.key) && (
-                <div className="min-w-[80px] w-[80px] py-2 px-2 text-sm text-right font-mono">
+                <div className="min-w-[100px] w-[100px] py-2.5 px-3 text-sm text-right font-mono tabular-nums">
                   {(() => {
                     const growthKey = `${row.key}Growth` as keyof IncomeStatementPeriod;
                     const growth = periods[0]?.[growthKey] as number | undefined;
                     if (growth === undefined || growth === null) return '--';
                     const colorClass = growth > 0 ? 'text-success' : growth < 0 ? 'text-destructive' : '';
-                    return (
-                      <span className={colorClass}>
-                        {formatGrowth(growth)}
-                      </span>
-                    );
+                    return <span className={colorClass}>{formatGrowth(growth)}</span>;
                   })()}
                 </div>
               )}
@@ -250,39 +231,39 @@ export const IncomeStatementTab = memo(function IncomeStatementTab({
 }: IncomeStatementTabProps) {
   if (!periods || periods.length === 0) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
+      <div className="py-16 text-center text-muted-foreground">
         No income statement data available
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Table Container with Horizontal Scroll */}
-      <div className="border border-border/50 rounded-lg overflow-hidden">
+    <div className="space-y-6">
+      {/* Table Container */}
+      <div className="bg-card/50 border border-border/50 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {/* Header Row */}
-          <div className="flex items-center border-b border-border bg-muted/30 sticky top-0 z-20">
-            <div className="sticky left-0 z-30 bg-muted/30 min-w-[180px] w-[180px] py-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center border-b border-border/60 bg-muted/40 sticky top-0 z-20">
+            <div className="sticky left-0 z-30 bg-muted/40 min-w-[200px] w-[200px] py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Metric
             </div>
             {periods.map((period) => (
               <div
                 key={period.periodEnd}
-                className="min-w-[100px] w-[100px] py-3 px-2 text-xs font-semibold text-center text-muted-foreground"
+                className="min-w-[120px] flex-1 py-3.5 px-3 text-xs font-semibold text-center text-muted-foreground"
               >
                 {getPeriodLabel(period)}
               </div>
             ))}
             {viewMode === 'standard' && (
-              <div className="min-w-[80px] w-[80px] py-3 px-2 text-xs font-semibold text-center text-muted-foreground">
+              <div className="min-w-[100px] w-[100px] py-3.5 px-3 text-xs font-semibold text-center text-muted-foreground">
                 YoY %
               </div>
             )}
           </div>
 
           {/* Data Sections */}
-          <div>
+          <div className="bg-background">
             {sections.map((section) => (
               <CollapsibleSection
                 key={section.title}
@@ -296,18 +277,18 @@ export const IncomeStatementTab = memo(function IncomeStatementTab({
         </div>
       </div>
 
-      {/* Key Metrics Summary Card */}
-      <div className="bg-card/30 rounded-lg p-4 border border-border/30">
-        <h4 className="text-sm font-semibold mb-3">Key Metrics (Latest Period)</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Key Metrics Summary */}
+      <div className="bg-card/50 rounded-xl p-5 border border-border/50 shadow-sm">
+        <h4 className="text-sm font-semibold mb-4">Key Metrics (Latest Period)</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Revenue</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Revenue</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.revenueFormatted || '--'}
             </div>
             {periods[0]?.revenueGrowth !== undefined && (
               <div className={cn(
-                'text-xs font-mono',
+                'text-sm font-mono mt-0.5',
                 periods[0].revenueGrowth > 0 ? 'text-success' : periods[0].revenueGrowth < 0 ? 'text-destructive' : ''
               )}>
                 {formatGrowth(periods[0].revenueGrowth)} YoY
@@ -315,13 +296,13 @@ export const IncomeStatementTab = memo(function IncomeStatementTab({
             )}
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Net Income</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Income</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.netIncomeFormatted || '--'}
             </div>
             {periods[0]?.netIncomeGrowth !== undefined && (
               <div className={cn(
-                'text-xs font-mono',
+                'text-sm font-mono mt-0.5',
                 periods[0].netIncomeGrowth > 0 ? 'text-success' : periods[0].netIncomeGrowth < 0 ? 'text-destructive' : ''
               )}>
                 {formatGrowth(periods[0].netIncomeGrowth)} YoY
@@ -329,14 +310,14 @@ export const IncomeStatementTab = memo(function IncomeStatementTab({
             )}
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Gross Margin</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Gross Margin</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.grossMargin !== undefined ? `${periods[0].grossMargin.toFixed(1)}%` : '--'}
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Net Margin</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Margin</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.netMargin !== undefined ? `${periods[0].netMargin.toFixed(1)}%` : '--'}
             </div>
           </div>

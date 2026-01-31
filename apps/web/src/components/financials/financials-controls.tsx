@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Calendar, Hash, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FinancialsPeriodType } from '@/lib/api';
 
@@ -18,6 +18,33 @@ interface FinancialsControlsProps {
   onExport?: () => void;
 }
 
+interface ToggleButtonGroupProps {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function ToggleButtonGroup({ options, value, onChange }: ToggleButtonGroupProps) {
+  return (
+    <div className="inline-flex rounded-lg border border-border/60 bg-muted/30 p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+            value === option.value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export const FinancialsControls = memo(function FinancialsControls({
   periodType,
   onPeriodTypeChange,
@@ -27,92 +54,68 @@ export const FinancialsControls = memo(function FinancialsControls({
   onViewModeChange,
   onExport,
 }: FinancialsControlsProps) {
-  const periodTypeOptions: { value: FinancialsPeriodType; label: string }[] = [
+  const periodTypeOptions = [
     { value: 'annual', label: 'Annual' },
     { value: 'quarterly', label: 'Quarterly' },
   ];
 
-  const periodCountOptions: { value: PeriodCount; label: string }[] = periodType === 'quarterly'
+  const periodCountOptions = periodType === 'quarterly'
     ? [
-        { value: 5, label: '4Q' },
-        { value: 10, label: '8Q' },
-        { value: 3, label: '12Q' },
+        { value: '5', label: '4Q' },
+        { value: '10', label: '8Q' },
+        { value: '3', label: '12Q' },
       ]
     : [
-        { value: 3, label: '3Y' },
-        { value: 5, label: '5Y' },
-        { value: 10, label: '10Y' },
+        { value: '3', label: '3Y' },
+        { value: '5', label: '5Y' },
+        { value: '10', label: '10Y' },
       ];
 
-  const viewModeOptions: { value: ViewMode; label: string }[] = [
+  const viewModeOptions = [
     { value: 'standard', label: 'Standard' },
     { value: 'common-size', label: '% Revenue' },
     { value: 'growth', label: 'Growth' },
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-4 py-3 px-4 bg-muted/30 rounded-lg border border-border/30">
-      {/* Period Type Toggle */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground font-medium">Period:</span>
-        <div className="flex rounded-md border border-border/50 overflow-hidden">
-          {periodTypeOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => onPeriodTypeChange(option.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium transition-colors',
-                periodType === option.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-4 px-5 bg-card/50 rounded-xl border border-border/50 shadow-sm">
+      {/* Period Type */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <span className="text-xs font-medium uppercase tracking-wide">Period</span>
         </div>
+        <ToggleButtonGroup
+          options={periodTypeOptions}
+          value={periodType}
+          onChange={(v) => onPeriodTypeChange(v as FinancialsPeriodType)}
+        />
       </div>
 
-      {/* Period Count Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground font-medium">Range:</span>
-        <div className="flex rounded-md border border-border/50 overflow-hidden">
-          {periodCountOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => onPeriodCountChange(option.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium transition-colors',
-                periodCount === option.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+      {/* Period Count */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Hash className="h-4 w-4" />
+          <span className="text-xs font-medium uppercase tracking-wide">Range</span>
         </div>
+        <ToggleButtonGroup
+          options={periodCountOptions}
+          value={periodCount.toString()}
+          onChange={(v) => onPeriodCountChange(Number(v) as PeriodCount)}
+        />
       </div>
 
-      {/* View Mode Toggle */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground font-medium">View:</span>
-        <div className="flex rounded-md border border-border/50 overflow-hidden">
-          {viewModeOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => onViewModeChange(option.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium transition-colors',
-                viewMode === option.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background hover:bg-muted text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+      {/* View Mode */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Eye className="h-4 w-4" />
+          <span className="text-xs font-medium uppercase tracking-wide">View</span>
         </div>
+        <ToggleButtonGroup
+          options={viewModeOptions}
+          value={viewMode}
+          onChange={(v) => onViewModeChange(v as ViewMode)}
+        />
       </div>
 
       {/* Spacer */}
@@ -123,13 +126,13 @@ export const FinancialsControls = memo(function FinancialsControls({
         <button
           onClick={onExport}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium',
-            'rounded-md border border-border/50 bg-background',
-            'hover:bg-muted text-muted-foreground hover:text-foreground',
-            'transition-colors'
+            'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium',
+            'rounded-lg border border-border/60 bg-background',
+            'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+            'shadow-sm transition-all duration-200 hover:shadow'
           )}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-4 w-4" />
           Export CSV
         </button>
       )}

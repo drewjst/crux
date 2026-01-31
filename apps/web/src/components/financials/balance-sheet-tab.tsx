@@ -132,10 +132,10 @@ const CollapsibleSection = memo(function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border/30 last:border-0">
+    <div className="border-b border-border/40 last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 py-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-2 py-2.5 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
       >
         {isOpen ? (
           <ChevronDown className="h-3.5 w-3.5" />
@@ -152,16 +152,16 @@ const CollapsibleSection = memo(function CollapsibleSection({
               key={row.key}
               className={cn(
                 'flex items-center border-b border-border/20 last:border-0',
-                'hover:bg-muted/20 transition-colors',
-                row.isSubtotal && 'bg-muted/10 font-medium'
+                'hover:bg-muted/30 transition-colors',
+                row.isSubtotal && 'bg-muted/20'
               )}
             >
               <div
                 className={cn(
                   'sticky left-0 z-10 bg-background',
-                  'min-w-[180px] w-[180px] py-2 px-3 text-sm',
+                  'min-w-[200px] w-[200px] py-2.5 px-4 text-sm',
                   row.isSubtotal && 'font-semibold',
-                  row.indent && 'pl-6'
+                  row.indent && 'pl-8'
                 )}
               >
                 {row.label}
@@ -196,7 +196,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
                   <div
                     key={period.periodEnd}
                     className={cn(
-                      'min-w-[100px] w-[100px] py-2 px-2 text-sm text-right font-mono',
+                      'min-w-[120px] flex-1 py-2.5 px-3 text-sm text-right font-mono tabular-nums',
                       colorClass,
                       row.isSubtotal && 'font-semibold'
                     )}
@@ -207,7 +207,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
               })}
 
               {viewMode === 'standard' && !isRatioKey(row.key) && (
-                <div className="min-w-[80px] w-[80px] py-2 px-2 text-sm text-right font-mono">
+                <div className="min-w-[100px] w-[100px] py-2.5 px-3 text-sm text-right font-mono tabular-nums">
                   {(() => {
                     const growthKey = `${row.key}Growth` as keyof BalanceSheetPeriod;
                     const growth = periods[0]?.[growthKey] as number | undefined;
@@ -231,125 +231,127 @@ export const BalanceSheetTab = memo(function BalanceSheetTab({
 }: BalanceSheetTabProps) {
   if (!periods || periods.length === 0) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
+      <div className="py-16 text-center text-muted-foreground">
         No balance sheet data available
       </div>
     );
   }
 
-  // Check if balance sheet balances (L+E = A)
   const latestPeriod = periods[0];
   const totalLiabPlusEquity = latestPeriod.totalLiabilities + latestPeriod.totalEquity;
-  const isBalanced = Math.abs(totalLiabPlusEquity - latestPeriod.totalAssets) < 1000; // Allow small rounding
+  const isBalanced = Math.abs(totalLiabPlusEquity - latestPeriod.totalAssets) < 1000;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Table Container */}
-      <div className="border border-border/50 rounded-lg overflow-hidden">
+      <div className="bg-card/50 border border-border/50 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {/* Header Row */}
-          <div className="flex items-center border-b border-border bg-muted/30 sticky top-0 z-20">
-            <div className="sticky left-0 z-30 bg-muted/30 min-w-[180px] w-[180px] py-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center border-b border-border/60 bg-muted/40 sticky top-0 z-20">
+            <div className="sticky left-0 z-30 bg-muted/40 min-w-[200px] w-[200px] py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Metric
             </div>
             {periods.map((period) => (
               <div
                 key={period.periodEnd}
-                className="min-w-[100px] w-[100px] py-3 px-2 text-xs font-semibold text-center text-muted-foreground"
+                className="min-w-[120px] flex-1 py-3.5 px-3 text-xs font-semibold text-center text-muted-foreground"
               >
                 {getPeriodLabel(period)}
               </div>
             ))}
             {viewMode === 'standard' && (
-              <div className="min-w-[80px] w-[80px] py-3 px-2 text-xs font-semibold text-center text-muted-foreground">
+              <div className="min-w-[100px] w-[100px] py-3.5 px-3 text-xs font-semibold text-center text-muted-foreground">
                 YoY %
               </div>
             )}
           </div>
 
-          {/* Assets */}
-          {assetSections.map((section) => (
-            <CollapsibleSection
-              key={section.title}
-              title={section.title}
-              rows={section.rows}
-              periods={periods}
-              viewMode={viewMode}
-            />
-          ))}
+          {/* Data Sections */}
+          <div className="bg-background">
+            {/* Assets */}
+            {assetSections.map((section) => (
+              <CollapsibleSection
+                key={section.title}
+                title={section.title}
+                rows={section.rows}
+                periods={periods}
+                viewMode={viewMode}
+              />
+            ))}
 
-          {/* Liabilities */}
-          {liabilitySections.map((section) => (
-            <CollapsibleSection
-              key={section.title}
-              title={section.title}
-              rows={section.rows}
-              periods={periods}
-              viewMode={viewMode}
-            />
-          ))}
+            {/* Liabilities */}
+            {liabilitySections.map((section) => (
+              <CollapsibleSection
+                key={section.title}
+                title={section.title}
+                rows={section.rows}
+                periods={periods}
+                viewMode={viewMode}
+              />
+            ))}
 
-          {/* Equity */}
-          {equitySections.map((section) => (
-            <CollapsibleSection
-              key={section.title}
-              title={section.title}
-              rows={section.rows}
-              periods={periods}
-              viewMode={viewMode}
-            />
-          ))}
+            {/* Equity */}
+            {equitySections.map((section) => (
+              <CollapsibleSection
+                key={section.title}
+                title={section.title}
+                rows={section.rows}
+                periods={periods}
+                viewMode={viewMode}
+              />
+            ))}
 
-          {/* Balance Verification Row */}
-          <div className="flex items-center border-t border-border bg-muted/20">
-            <div className="sticky left-0 z-10 bg-muted/20 min-w-[180px] w-[180px] py-2 px-3 text-xs text-muted-foreground flex items-center gap-2">
-              {isBalanced ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-              ) : (
-                <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-              )}
-              L + E = Assets
+            {/* Balance Verification Row */}
+            <div className="flex items-center border-t border-border/60 bg-muted/30">
+              <div className="sticky left-0 z-10 bg-muted/30 min-w-[200px] w-[200px] py-2.5 px-4 text-xs text-muted-foreground flex items-center gap-2">
+                {isBalanced ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                ) : (
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                )}
+                L + E = Assets
+              </div>
+              {periods.map((period) => {
+                const sum = period.totalLiabilities + period.totalEquity;
+                const balanced = Math.abs(sum - period.totalAssets) < 1000;
+                return (
+                  <div
+                    key={period.periodEnd}
+                    className={cn(
+                      'min-w-[120px] flex-1 py-2.5 px-3 text-xs text-right font-mono',
+                      balanced ? 'text-success' : 'text-amber-500'
+                    )}
+                  >
+                    {balanced ? '✓' : '≈'}
+                  </div>
+                );
+              })}
+              {viewMode === 'standard' && <div className="min-w-[100px] w-[100px]" />}
             </div>
-            {periods.map((period) => {
-              const sum = period.totalLiabilities + period.totalEquity;
-              const balanced = Math.abs(sum - period.totalAssets) < 1000;
-              return (
-                <div
-                  key={period.periodEnd}
-                  className={cn(
-                    'min-w-[100px] w-[100px] py-2 px-2 text-xs text-right font-mono',
-                    balanced ? 'text-success' : 'text-amber-500'
-                  )}
-                >
-                  {balanced ? '✓' : '≈'}
-                </div>
-              );
-            })}
-            {viewMode === 'standard' && <div className="min-w-[80px] w-[80px]" />}
-          </div>
 
-          {/* Ratios Section */}
-          <CollapsibleSection
-            title="Key Ratios"
-            rows={ratioRows}
-            periods={periods}
-            viewMode={viewMode}
-          />
+            {/* Ratios Section */}
+            <CollapsibleSection
+              title="Key Ratios"
+              rows={ratioRows}
+              periods={periods}
+              viewMode={viewMode}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Key Metrics Summary Card */}
-      <div className="bg-card/30 rounded-lg p-4 border border-border/30">
-        <h4 className="text-sm font-semibold mb-3">Key Metrics (Latest Period)</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Key Metrics Summary */}
+      <div className="bg-card/50 rounded-xl p-5 border border-border/50 shadow-sm">
+        <h4 className="text-sm font-semibold mb-4">Key Metrics (Latest Period)</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Total Assets</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Assets</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.totalAssetsFormatted || '--'}
             </div>
             {periods[0]?.totalAssetsGrowth !== undefined && (
               <div className={cn(
-                'text-xs font-mono',
+                'text-sm font-mono mt-0.5',
                 periods[0].totalAssetsGrowth > 0 ? 'text-success' : periods[0].totalAssetsGrowth < 0 ? 'text-destructive' : ''
               )}>
                 {formatGrowth(periods[0].totalAssetsGrowth)} YoY
@@ -357,13 +359,13 @@ export const BalanceSheetTab = memo(function BalanceSheetTab({
             )}
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Total Equity</div>
-            <div className="text-lg font-mono font-semibold">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Equity</div>
+            <div className="text-xl font-mono font-semibold">
               {periods[0]?.totalEquityFormatted || '--'}
             </div>
             {periods[0]?.totalEquityGrowth !== undefined && (
               <div className={cn(
-                'text-xs font-mono',
+                'text-sm font-mono mt-0.5',
                 periods[0].totalEquityGrowth > 0 ? 'text-success' : periods[0].totalEquityGrowth < 0 ? 'text-destructive' : ''
               )}>
                 {formatGrowth(periods[0].totalEquityGrowth)} YoY
@@ -371,18 +373,18 @@ export const BalanceSheetTab = memo(function BalanceSheetTab({
             )}
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Current Ratio</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Current Ratio</div>
             <div className={cn(
-              'text-lg font-mono font-semibold',
+              'text-xl font-mono font-semibold',
               periods[0]?.currentRatio >= 1.5 ? 'text-success' : periods[0]?.currentRatio < 1 ? 'text-destructive' : ''
             )}>
               {periods[0]?.currentRatio?.toFixed(2) || '--'}
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Debt / Equity</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Debt / Equity</div>
             <div className={cn(
-              'text-lg font-mono font-semibold',
+              'text-xl font-mono font-semibold',
               periods[0]?.debtToEquity <= 0.5 ? 'text-success' : periods[0]?.debtToEquity > 2 ? 'text-destructive' : ''
             )}>
               {periods[0]?.debtToEquity?.toFixed(2) || '--'}

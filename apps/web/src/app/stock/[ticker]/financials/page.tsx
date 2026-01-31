@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, FileText, BarChart3, Wallet, PieChart, Download } from 'lucide-react';
+import { ArrowLeft, FileText, BarChart3, Wallet, PieChart } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { useStock } from '@/hooks/use-stock';
 import { useIncomeStatements, useBalanceSheets, useCashFlowStatements } from '@/hooks/use-financials';
 import { CruxAIInsight } from '@/components/cruxai';
-import { DashboardDivider } from '@/components/dashboard/sections/section-card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   IncomeStatementTab,
@@ -17,7 +16,7 @@ import {
   type ViewMode,
   type PeriodCount,
 } from '@/components/financials';
-import type { FinancialsPeriodType, IncomeStatementPeriod, BalanceSheetPeriod, CashFlowPeriod } from '@/lib/api';
+import type { FinancialsPeriodType } from '@/lib/api';
 
 interface PageProps {
   params: { ticker: string };
@@ -150,12 +149,14 @@ export default function FinancialsPage({ params }: PageProps) {
   // Loading state
   if (stockLoading) {
     return (
-      <div className="min-h-screen border-x border-border max-w-5xl mx-auto bg-background/50 shadow-sm px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-6 bg-muted rounded w-32" />
+          <div className="h-10 bg-muted rounded w-64" />
           <div className="h-24 bg-muted rounded" />
+          <div className="h-14 bg-muted rounded" />
           <div className="h-12 bg-muted rounded" />
-          <div className="h-64 bg-muted rounded" />
+          <div className="h-96 bg-muted rounded" />
         </div>
       </div>
     );
@@ -164,7 +165,7 @@ export default function FinancialsPage({ params }: PageProps) {
   // Error state
   if (stockError || !stockData) {
     return (
-      <div className="min-h-screen border-x border-border max-w-5xl mx-auto bg-background/50 shadow-sm px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold text-destructive">
             Error loading financial data
@@ -190,27 +191,27 @@ export default function FinancialsPage({ params }: PageProps) {
     (activeTab === 'cashflow' && cashFlowData?.periods?.length);
 
   return (
-    <div className="min-h-screen border-x border-border max-w-5xl mx-auto bg-background/50 shadow-sm px-4 sm:px-6 lg:px-8">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="py-8 space-y-6">
         {/* Back Link */}
         <Link
           href={`/stock/${ticker.toUpperCase()}`}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
           Back to {ticker.toUpperCase()}
         </Link>
 
         {/* Page Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight">
               Financial Statements
             </h1>
-            <p className="text-muted-foreground">{stockData.company.name}</p>
+            <p className="text-lg text-muted-foreground">{stockData.company.name}</p>
           </div>
-          <div className="text-right text-sm text-muted-foreground">
-            <div>Currency: USD</div>
+          <div className="text-right text-sm text-muted-foreground space-y-0.5">
+            <div className="font-medium">Currency: USD</div>
             {incomeData?.periods?.[0]?.filingDate && (
               <div>Last Filed: {new Date(incomeData.periods[0].filingDate).toLocaleDateString()}</div>
             )}
@@ -219,8 +220,6 @@ export default function FinancialsPage({ params }: PageProps) {
 
         {/* CruxAI Financial Summary */}
         <CruxAIInsight ticker={ticker} section="financial-summary" />
-
-        <DashboardDivider />
 
         {/* Controls Bar */}
         <FinancialsControls
@@ -239,33 +238,49 @@ export default function FinancialsPage({ params }: PageProps) {
           onValueChange={(v) => setActiveTab(v as TabValue)}
           className="w-full"
         >
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="income" className="gap-1.5">
+          <TabsList className="w-full h-auto p-1 bg-muted/50 border border-border/50 rounded-xl">
+            <TabsTrigger
+              value="income"
+              className="flex-1 gap-2 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+            >
               <FileText className="h-4 w-4" />
-              Income Statement
+              <span className="hidden sm:inline">Income Statement</span>
+              <span className="sm:hidden">Income</span>
             </TabsTrigger>
-            <TabsTrigger value="balance" className="gap-1.5">
+            <TabsTrigger
+              value="balance"
+              className="flex-1 gap-2 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+            >
               <BarChart3 className="h-4 w-4" />
-              Balance Sheet
+              <span className="hidden sm:inline">Balance Sheet</span>
+              <span className="sm:hidden">Balance</span>
             </TabsTrigger>
-            <TabsTrigger value="cashflow" className="gap-1.5">
+            <TabsTrigger
+              value="cashflow"
+              className="flex-1 gap-2 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+            >
               <Wallet className="h-4 w-4" />
-              Cash Flow
+              <span className="hidden sm:inline">Cash Flow</span>
+              <span className="sm:hidden">Cash</span>
             </TabsTrigger>
-            <TabsTrigger value="segments" className="gap-1.5">
+            <TabsTrigger
+              value="segments"
+              className="flex-1 gap-2 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+            >
               <PieChart className="h-4 w-4" />
-              Segments
+              <span className="hidden sm:inline">Segments</span>
+              <span className="sm:hidden">Seg</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="income" className="mt-4">
+          <TabsContent value="income" className="mt-6">
             {incomeLoading ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-10 bg-muted rounded" />
-                <div className="h-64 bg-muted rounded" />
+                <div className="h-96 bg-muted rounded" />
               </div>
             ) : incomeError ? (
-              <div className="py-8 text-center text-muted-foreground">
+              <div className="py-12 text-center text-muted-foreground">
                 Error loading income statement data
               </div>
             ) : (
@@ -276,14 +291,14 @@ export default function FinancialsPage({ params }: PageProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="balance" className="mt-4">
+          <TabsContent value="balance" className="mt-6">
             {balanceLoading ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-10 bg-muted rounded" />
-                <div className="h-64 bg-muted rounded" />
+                <div className="h-96 bg-muted rounded" />
               </div>
             ) : balanceError ? (
-              <div className="py-8 text-center text-muted-foreground">
+              <div className="py-12 text-center text-muted-foreground">
                 Error loading balance sheet data
               </div>
             ) : (
@@ -294,14 +309,14 @@ export default function FinancialsPage({ params }: PageProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="cashflow" className="mt-4">
+          <TabsContent value="cashflow" className="mt-6">
             {cashFlowLoading ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-10 bg-muted rounded" />
-                <div className="h-64 bg-muted rounded" />
+                <div className="h-96 bg-muted rounded" />
               </div>
             ) : cashFlowError ? (
-              <div className="py-8 text-center text-muted-foreground">
+              <div className="py-12 text-center text-muted-foreground">
                 Error loading cash flow data
               </div>
             ) : (
@@ -312,7 +327,7 @@ export default function FinancialsPage({ params }: PageProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="segments" className="mt-4">
+          <TabsContent value="segments" className="mt-6">
             <SegmentsTab ticker={ticker} />
           </TabsContent>
         </Tabs>
