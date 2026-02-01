@@ -30,11 +30,15 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
+  /* Semantic colors */
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
 
   --color-warning: hsl(var(--warning));
   --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-positive: hsl(var(--positive));
+  --color-negative: hsl(var(--negative));
 
   /* Border radius */
   --radius-lg: var(--radius);
@@ -45,7 +49,7 @@
 
   /* Font families */
   --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
-  --font-mono: var(--font-mono), "JetBrains Mono", "Fira Code", monospace;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace;
 
   /* Container */
   --container-2xl: 1400px;
@@ -89,58 +93,138 @@
   }
 }
 
-/* CSS variable definitions */
+/* ============================================
+   LIGHT MODE (Default)
+   Background: white/slate-50
+   Cards: white
+   Text: slate-900/600/400
+   ============================================ */
 :root {
-  /* Modern Fintech Theme - Light gray background, white cards */
-  --background: 220 14% 97%; /* soft cool gray background */
-  --foreground: 220 13% 18%; /* dark slate for text */
+  /* Core backgrounds */
+  --background: 210 20% 98%; /* slate-50 */
+  --foreground: 222 47% 11%; /* slate-900 */
 
-  --card: 0 0% 100%; /* pure white cards */
-  --card-foreground: 220 13% 18%;
+  /* Cards and surfaces */
+  --card: 0 0% 100%; /* white */
+  --card-foreground: 222 47% 11%; /* slate-900 */
 
   --popover: 0 0% 100%;
-  --popover-foreground: 220 13% 18%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 220 13% 18%; /* dark for primary actions */
+  /* Primary - indigo */
+  --primary: 239 84% 67%; /* indigo-500 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 14% 96%; /* matches background */
-  --secondary-foreground: 220 13% 18%;
+  /* Secondary */
+  --secondary: 210 40% 96%; /* slate-100 */
+  --secondary-foreground: 222 47% 11%;
 
-  --muted: 220 14% 92%; /* slightly darker than background */
-  --muted-foreground: 220 9% 46%; /* medium gray for secondary text */
+  /* Muted */
+  --muted: 210 40% 96%; /* slate-100 */
+  --muted-foreground: 215 16% 47%; /* slate-500 */
 
-  /* Bitcoin orange accent - #F7931A */
-  --accent: 33 94% 53%;
-  --accent-foreground: 0 0% 100%;
+  /* Accent - indigo tint */
+  --accent: 226 100% 97%; /* indigo-50 */
+  --accent-foreground: 239 84% 67%;
 
-  /* Fintech-style status colors - softer, more modern */
-  --destructive: 0 84% 60%; /* coral red - softer than pure red */
+  /* Borders */
+  --border: 214 32% 91%; /* slate-200 */
+  --input: 214 32% 91%;
+  --ring: 239 84% 67%; /* indigo-500 */
+
+  /* Semantic: Destructive/Negative */
+  --destructive: 0 84% 60%; /* red-500 */
   --destructive-foreground: 0 0% 100%;
 
-  --success: 158 64% 40%; /* mint/teal green */
+  /* Semantic: Success/Positive */
+  --success: 142 71% 45%; /* green-500 */
   --success-foreground: 0 0% 100%;
 
-  --warning: 38 92% 50%; /* amber */
+  /* Semantic: Warning */
+  --warning: 38 92% 50%; /* amber-500 */
   --warning-foreground: 0 0% 100%;
 
-  --border: 220 13% 90%; /* subtle border */
-  --input: 220 13% 90%;
-  --ring: 33 94% 53%; /* bitcoin orange ring */
+  /* Financial colors (same values, aliased) */
+  --positive: 142 71% 45%; /* green-500 */
+  --negative: 0 84% 60%; /* red-500 */
 
-  --radius: 0.625rem; /* slightly smaller radius for modern look */
+  /* Radius */
+  --radius: 0.625rem;
 
-  /* Custom properties */
-  --glow-color: 33 94% 53%; /* bitcoin orange glow */
+  /* Glow */
+  --glow-color: 239 84% 67%;
 }
 
-/* Base styles */
+/* ============================================
+   DARK MODE
+   Background: zinc-950 (#09090B)
+   Cards: zinc-900 (#18181B)
+   Text: zinc-50/400/500
+   ============================================ */
+.dark {
+  /* Core backgrounds */
+  --background: 240 10% 4%; /* zinc-950 */
+  --foreground: 0 0% 98%; /* zinc-50 */
+
+  /* Cards and surfaces */
+  --card: 240 6% 10%; /* zinc-900 */
+  --card-foreground: 0 0% 98%;
+
+  --popover: 240 6% 10%;
+  --popover-foreground: 0 0% 98%;
+
+  /* Primary - indigo (same hue, adjusted for dark) */
+  --primary: 239 84% 67%; /* indigo-500 */
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary */
+  --secondary: 240 4% 16%; /* zinc-800 */
+  --secondary-foreground: 0 0% 98%;
+
+  /* Muted */
+  --muted: 240 4% 16%; /* zinc-800 */
+  --muted-foreground: 240 5% 65%; /* zinc-400 */
+
+  /* Accent - indigo dark tint */
+  --accent: 240 4% 16%;
+  --accent-foreground: 239 84% 67%;
+
+  /* Borders */
+  --border: 240 4% 25%; /* zinc-700 */
+  --input: 240 4% 25%;
+  --ring: 239 84% 67%;
+
+  /* Semantic: Destructive/Negative - slightly brighter for dark mode */
+  --destructive: 0 72% 51%; /* red-600 adjusted */
+  --destructive-foreground: 0 0% 100%;
+
+  /* Semantic: Success/Positive - slightly brighter for dark mode */
+  --success: 142 69% 58%; /* green-400 */
+  --success-foreground: 0 0% 100%;
+
+  /* Semantic: Warning */
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+
+  /* Financial colors */
+  --positive: 142 69% 58%; /* green-400 */
+  --negative: 0 72% 51%; /* red-600 adjusted */
+
+  /* Glow */
+  --glow-color: 239 84% 67%;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
 * {
   border-color: hsl(var(--border));
 }
 
 html {
   scroll-behavior: smooth;
+  /* Smooth theme transitions */
+  color-scheme: light dark;
 }
 
 body {
@@ -149,19 +233,78 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "rlig" 1, "calt" 1;
+  /* Smooth transitions for theme switching */
+  transition: background-color 0.2s ease-out, color 0.2s ease-out;
 }
 
-/* Monospace for numbers */
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+
+/* Monospace with tabular numbers for financial data */
+.font-mono-numbers {
+  font-family: var(--font-mono), "JetBrains Mono", "Fira Code", monospace;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Standard mono with OpenType features */
 .font-mono {
   font-feature-settings: "tnum" 1, "zero" 1;
 }
 
-/* Custom utilities */
+/* ============================================
+   SEMANTIC COLOR UTILITIES
+   ============================================ */
+
+/* Positive (gains, up trends) */
+.text-positive {
+  color: hsl(var(--positive));
+}
+
+.bg-positive\/10 {
+  background-color: hsl(var(--positive) / 0.1);
+}
+
+.bg-positive\/20 {
+  background-color: hsl(var(--positive) / 0.2);
+}
+
+/* Negative (losses, down trends) */
+.text-negative {
+  color: hsl(var(--negative));
+}
+
+.bg-negative\/10 {
+  background-color: hsl(var(--negative) / 0.1);
+}
+
+.bg-negative\/20 {
+  background-color: hsl(var(--negative) / 0.2);
+}
+
+/* Warning */
+.text-warning {
+  color: hsl(var(--warning));
+}
+
+.bg-warning\/10 {
+  background-color: hsl(var(--warning) / 0.1);
+}
+
+.bg-warning\/20 {
+  background-color: hsl(var(--warning) / 0.2);
+}
+
+/* ============================================
+   VISUAL EFFECTS
+   ============================================ */
+
 .text-gradient {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  background-image: linear-gradient(to right, hsl(var(--primary)), rgb(71 85 105));
+  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--muted-foreground)));
 }
 
 .shadow-card {
@@ -192,7 +335,17 @@ body {
   transition-timing-function: ease-out;
 }
 
-/* Custom scrollbar */
+/* Theme transition for interactive elements */
+.transition-theme {
+  transition: background-color 0.2s ease-out,
+              border-color 0.2s ease-out,
+              color 0.2s ease-out,
+              box-shadow 0.2s ease-out;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -211,8 +364,23 @@ body {
   background: hsl(var(--muted-foreground) / 0.3);
 }
 
-/* Selection color */
+/* Dark mode scrollbar adjustment */
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
 ::selection {
-  background: hsl(var(--primary) / 0.1);
+  background: hsl(var(--primary) / 0.15);
   color: hsl(var(--foreground));
+}
+
+.dark ::selection {
+  background: hsl(var(--primary) / 0.25);
 }
