@@ -1,0 +1,46 @@
+# Ignore git directory
+.git/
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore test coverage
+coverage/
+*.out
+
+# Ignore node_modules (installed during build)
+node_modules/
+
+# Ignore build outputs (rebuilt during build)
+.next/
+out/
+dist/
+build/
+
+# Ignore Go binaries
+*.exe
+*.dll
+*.so
+*.dylib
+apps/api/api
+
+# Keep package-lock.json files (needed for npm ci)
+!apps/*/package-lock.json
+!packages/*/package-lock.json
+
+# Ignore local env files
+.env
+.env.local
+.env.*.local

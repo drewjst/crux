@@ -36,8 +36,7 @@ jobs:
         run: |
           gcloud builds submit . \
             --config=.github/cloudbuild-api.yaml \
-            --substitutions=_IMAGE_NAME=crux-dev-api,COMMIT_SHA=${{ github.sha }} \
-            --suppress-logs
+            --substitutions=_IMAGE_NAME=crux-dev-api,COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy API to Cloud Run
         run: |
@@ -80,8 +79,7 @@ jobs:
         run: |
           gcloud builds submit . \
             --config=.github/cloudbuild-web.yaml \
-            --substitutions=_IMAGE_NAME=crux-dev-web,_API_URL=https://crux-dev-api-273165967255.us-central1.run.app,COMMIT_SHA=${{ github.sha }} \
-            --suppress-logs
+            --substitutions=_IMAGE_NAME=crux-dev-web,_API_URL=https://crux-dev-api-273165967255.us-central1.run.app,COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy Web to Cloud Run
         run: |
