@@ -35,7 +35,6 @@ function Navigation() {
 
   const isScreenerActive = pathname === '/' || pathname.startsWith('/stock/');
   const isCompareActive = pathname.startsWith('/compare');
-  const isWatchlistActive = pathname === '/watchlist';
   const is10KActive = pathname.startsWith('/10k');
 
   return (
@@ -45,9 +44,6 @@ function Navigation() {
       </NavLink>
       <NavLink href="/compare" isActive={isCompareActive}>
         Compare
-      </NavLink>
-      <NavLink href="/watchlist" isActive={isWatchlistActive}>
-        Watchlist
       </NavLink>
       <NavLink href="/10k" isActive={is10KActive}>
         10-K
