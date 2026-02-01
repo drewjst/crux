@@ -562,6 +562,12 @@ func (r *FinancialsRepositoryImpl) fmpBalanceSheetToDomain(f fmp.BalanceSheet, p
 	fiscalYear := parseYear(f.FiscalYear)
 	fiscalQuarter := parseFiscalQuarter(f.Period)
 
+	// Use netReceivables if accountsReceivables is 0 (some companies report differently)
+	accountsReceivable := int64(f.AccountsReceivables)
+	if accountsReceivable == 0 {
+		accountsReceivable = int64(f.NetReceivables)
+	}
+
 	return repository.BalanceSheet{
 		Ticker:        f.Symbol,
 		PeriodEnd:     periodEnd,
@@ -570,27 +576,48 @@ func (r *FinancialsRepositoryImpl) fmpBalanceSheetToDomain(f fmp.BalanceSheet, p
 		FiscalQuarter: fiscalQuarter,
 		FilingDate:    filingDate,
 
-		CashAndEquivalents:  int64(f.CashAndCashEquivalents),
-		AccountsReceivable:  int64(f.AccountsReceivables),
-		Inventory:           int64(f.Inventory),
-		TotalCurrentAssets:  int64(f.TotalCurrentAssets),
+		// Current Assets
+		CashAndEquivalents:   int64(f.CashAndCashEquivalents),
+		ShortTermInvestments: int64(f.ShortTermInvestments),
+		CashAndShortTerm:     int64(f.CashAndShortTermInvest),
+		AccountsReceivable:   accountsReceivable,
+		Inventory:            int64(f.Inventory),
+		OtherCurrentAssets:   int64(f.OtherCurrentAssets),
+		TotalCurrentAssets:   int64(f.TotalCurrentAssets),
 
-		TotalNonCurrentAssets: int64(f.TotalNonCurrentAssets),
-		TotalAssets:          int64(f.TotalAssets),
+		// Non-current Assets
+		PropertyPlantEquipmentNet: int64(f.PropertyPlantEquipmentNet),
+		Goodwill:                  int64(f.Goodwill),
+		IntangibleAssets:          int64(f.IntangibleAssets),
+		LongTermInvestments:       int64(f.LongTermInvestments),
+		OtherNonCurrentAssets:     int64(f.OtherNonCurrentAssets),
+		TotalNonCurrentAssets:     int64(f.TotalNonCurrentAssets),
+		TotalAssets:               int64(f.TotalAssets),
 
+		// Current Liabilities
 		AccountsPayable:         int64(f.AccountPayables),
 		ShortTermDebt:           int64(f.ShortTermDebt),
+		DeferredRevenue:         int64(f.DeferredRevenue),
+		OtherCurrentLiabilities: int64(f.OtherCurrentLiabilities),
 		TotalCurrentLiabilities: int64(f.TotalCurrentLiabilities),
 
-		LongTermDebt:        int64(f.LongTermDebt),
-		TotalNonCurrentLiab: int64(f.TotalNonCurrentLiab),
-		TotalLiabilities:    int64(f.TotalLiabilities),
+		// Non-current Liabilities
+		LongTermDebt:           int64(f.LongTermDebt),
+		DeferredTaxLiabilities: int64(f.DeferredTaxLiabilitiesNonCur),
+		OtherNonCurrentLiab:    int64(f.OtherNonCurrentLiabilities),
+		TotalNonCurrentLiab:    int64(f.TotalNonCurrentLiab),
+		TotalLiabilities:       int64(f.TotalLiabilities),
 
-		CommonStock:             int64(f.CommonStock),
-		RetainedEarnings:        int64(f.RetainedEarnings),
-		TotalStockholdersEquity: int64(f.TotalStockholdersEquity),
-		TotalEquity:             int64(f.TotalEquity),
+		// Equity
+		CommonStock:                   int64(f.CommonStock),
+		RetainedEarnings:              int64(f.RetainedEarnings),
+		AccumulatedOtherComprehensive: int64(f.AccumulatedOtherComprehensive),
+		TreasuryStock:                 int64(f.TreasuryStock),
+		TotalStockholdersEquity:       int64(f.TotalStockholdersEquity),
+		MinorityInterest:              int64(f.MinorityInterest),
+		TotalEquity:                   int64(f.TotalEquity),
 
+		// Computed/Derived
 		TotalDebt: int64(f.TotalDebt),
 		NetDebt:   int64(f.NetDebt),
 

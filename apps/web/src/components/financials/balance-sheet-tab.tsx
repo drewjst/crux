@@ -28,14 +28,21 @@ const assetSections: SectionConfig[] = [
     title: 'Current Assets',
     rows: [
       { label: 'Cash & Equivalents', key: 'cashAndEquivalents', indent: 1 },
+      { label: 'Short-Term Investments', key: 'shortTermInvestments', indent: 1 },
       { label: 'Accounts Receivable', key: 'accountsReceivable', indent: 1 },
       { label: 'Inventory', key: 'inventory', indent: 1 },
+      { label: 'Other Current Assets', key: 'otherCurrentAssets', indent: 1 },
       { label: 'Total Current Assets', key: 'totalCurrentAssets', isSubtotal: true },
     ],
   },
   {
     title: 'Non-Current Assets',
     rows: [
+      { label: 'Property, Plant & Equipment', key: 'propertyPlantEquipment', indent: 1 },
+      { label: 'Goodwill', key: 'goodwill', indent: 1 },
+      { label: 'Intangible Assets', key: 'intangibleAssets', indent: 1 },
+      { label: 'Long-Term Investments', key: 'longTermInvestments', indent: 1 },
+      { label: 'Other Non-Current Assets', key: 'otherNonCurrentAssets', indent: 1 },
       { label: 'Total Non-Current Assets', key: 'totalNonCurrentAssets', isSubtotal: true },
     ],
   },
@@ -53,6 +60,8 @@ const liabilitySections: SectionConfig[] = [
     rows: [
       { label: 'Accounts Payable', key: 'accountsPayable', indent: 1 },
       { label: 'Short-Term Debt', key: 'shortTermDebt', indent: 1 },
+      { label: 'Deferred Revenue', key: 'deferredRevenue', indent: 1 },
+      { label: 'Other Current Liabilities', key: 'otherCurrentLiabilities', indent: 1 },
       { label: 'Total Current Liabilities', key: 'totalCurrentLiabilities', isSubtotal: true },
     ],
   },
@@ -60,6 +69,8 @@ const liabilitySections: SectionConfig[] = [
     title: 'Non-Current Liabilities',
     rows: [
       { label: 'Long-Term Debt', key: 'longTermDebt', indent: 1 },
+      { label: 'Deferred Tax Liabilities', key: 'deferredTaxLiabilities', indent: 1 },
+      { label: 'Other Non-Current Liabilities', key: 'otherNonCurrentLiabilities', indent: 1 },
       { label: 'Total Non-Current Liabilities', key: 'totalNonCurrentLiabilities', isSubtotal: true },
     ],
   },
@@ -77,6 +88,10 @@ const equitySections: SectionConfig[] = [
     rows: [
       { label: 'Common Stock', key: 'commonStock', indent: 1 },
       { label: 'Retained Earnings', key: 'retainedEarnings', indent: 1 },
+      { label: 'Accumulated Other Comprehensive Income', key: 'accumulatedOtherComprehensive', indent: 1 },
+      { label: 'Treasury Stock', key: 'treasuryStock', indent: 1 },
+      { label: 'Total Stockholders\' Equity', key: 'totalStockholdersEquity', isSubtotal: true },
+      { label: 'Minority Interest', key: 'minorityInterest', indent: 1 },
       { label: 'Total Equity', key: 'totalEquity', isSubtotal: true },
     ],
   },
@@ -184,7 +199,13 @@ const CollapsibleSection = memo(function CollapsibleSection({
               const val = p[row.key as keyof BalanceSheetPeriod] as number;
               return val !== 0 && val !== undefined && val !== null;
             });
-            if (!hasData && ['accountsReceivable', 'inventory', 'accountsPayable', 'shortTermDebt', 'longTermDebt', 'commonStock', 'retainedEarnings'].includes(row.key)) {
+            if (!hasData && [
+              'shortTermInvestments', 'accountsReceivable', 'inventory', 'otherCurrentAssets',
+              'propertyPlantEquipment', 'goodwill', 'intangibleAssets', 'longTermInvestments', 'otherNonCurrentAssets',
+              'accountsPayable', 'shortTermDebt', 'deferredRevenue', 'otherCurrentLiabilities',
+              'longTermDebt', 'deferredTaxLiabilities', 'otherNonCurrentLiabilities',
+              'commonStock', 'retainedEarnings', 'accumulatedOtherComprehensive', 'treasuryStock', 'minorityInterest'
+            ].includes(row.key)) {
               return null;
             }
 

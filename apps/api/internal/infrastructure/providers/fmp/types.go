@@ -81,29 +81,65 @@ type IncomeStatement struct {
 
 // BalanceSheet represents the FMP balance sheet response (stable API).
 type BalanceSheet struct {
-	Date                    string  `json:"date"`
-	Symbol                  string  `json:"symbol"`
-	FilingDate              string  `json:"filingDate"`
-	FiscalYear              string  `json:"fiscalYear"`
-	Period                  string  `json:"period"`
-	TotalAssets             float64 `json:"totalAssets"`
-	TotalCurrentAssets      float64 `json:"totalCurrentAssets"`
-	TotalNonCurrentAssets   float64 `json:"totalNonCurrentAssets"`
-	TotalLiabilities        float64 `json:"totalLiabilities"`
-	TotalCurrentLiabilities float64 `json:"totalCurrentLiabilities"`
-	TotalNonCurrentLiab     float64 `json:"totalNonCurrentLiabilities"`
-	LongTermDebt            float64 `json:"longTermDebt"`
-	ShortTermDebt           float64 `json:"shortTermDebt"`
-	TotalDebt               float64 `json:"totalDebt"`
-	NetDebt                 float64 `json:"netDebt"`
-	TotalStockholdersEquity float64 `json:"totalStockholdersEquity"`
-	TotalEquity             float64 `json:"totalEquity"`
-	RetainedEarnings        float64 `json:"retainedEarnings"`
-	CommonStock             float64 `json:"commonStock"`
-	CashAndCashEquivalents  float64 `json:"cashAndCashEquivalents"`
-	Inventory               float64 `json:"inventory"`
-	AccountsReceivables     float64 `json:"accountsReceivables"`
-	AccountPayables         float64 `json:"accountPayables"`
+	Date       string `json:"date"`
+	Symbol     string `json:"symbol"`
+	FilingDate string `json:"filingDate"`
+	FiscalYear string `json:"fiscalYear"`
+	Period     string `json:"period"`
+
+	// Current Assets
+	CashAndCashEquivalents    float64 `json:"cashAndCashEquivalents"`
+	ShortTermInvestments      float64 `json:"shortTermInvestments"`
+	CashAndShortTermInvest    float64 `json:"cashAndShortTermInvestments"`
+	AccountsReceivables       float64 `json:"accountsReceivables"`
+	NetReceivables            float64 `json:"netReceivables"`
+	Inventory                 float64 `json:"inventory"`
+	OtherCurrentAssets        float64 `json:"otherCurrentAssets"`
+	TotalCurrentAssets        float64 `json:"totalCurrentAssets"`
+
+	// Non-current Assets
+	PropertyPlantEquipmentNet float64 `json:"propertyPlantEquipmentNet"`
+	Goodwill                  float64 `json:"goodwill"`
+	IntangibleAssets          float64 `json:"intangibleAssets"`
+	GoodwillAndIntangibles    float64 `json:"goodwillAndIntangibleAssets"`
+	LongTermInvestments       float64 `json:"longTermInvestments"`
+	TaxAssets                 float64 `json:"taxAssets"`
+	OtherNonCurrentAssets     float64 `json:"otherNonCurrentAssets"`
+	TotalNonCurrentAssets     float64 `json:"totalNonCurrentAssets"`
+	TotalAssets               float64 `json:"totalAssets"`
+
+	// Current Liabilities
+	AccountPayables              float64 `json:"accountPayables"`
+	ShortTermDebt                float64 `json:"shortTermDebt"`
+	DeferredRevenue              float64 `json:"deferredRevenue"`
+	TaxPayables                  float64 `json:"taxPayables"`
+	OtherCurrentLiabilities      float64 `json:"otherCurrentLiabilities"`
+	TotalCurrentLiabilities      float64 `json:"totalCurrentLiabilities"`
+
+	// Non-current Liabilities
+	LongTermDebt                 float64 `json:"longTermDebt"`
+	DeferredRevenueNonCurrent    float64 `json:"deferredRevenueNonCurrent"`
+	DeferredTaxLiabilitiesNonCur float64 `json:"deferredTaxLiabilitiesNonCurrent"`
+	OtherNonCurrentLiabilities   float64 `json:"otherNonCurrentLiabilities"`
+	TotalNonCurrentLiab          float64 `json:"totalNonCurrentLiabilities"`
+	CapitalLeaseObligations      float64 `json:"capitalLeaseObligations"`
+	TotalLiabilities             float64 `json:"totalLiabilities"`
+
+	// Equity
+	PreferredStock                    float64 `json:"preferredStock"`
+	CommonStock                       float64 `json:"commonStock"`
+	RetainedEarnings                  float64 `json:"retainedEarnings"`
+	AccumulatedOtherComprehensive     float64 `json:"accumulatedOtherComprehensiveIncomeLoss"`
+	TreasuryStock                     float64 `json:"treasuryStock"`
+	TotalStockholdersEquity           float64 `json:"totalStockholdersEquity"`
+	MinorityInterest                  float64 `json:"minorityInterest"`
+	TotalEquity                       float64 `json:"totalEquity"`
+	TotalLiabilitiesAndEquity         float64 `json:"totalLiabilitiesAndTotalEquity"`
+
+	// Computed/Derived
+	TotalInvestments float64 `json:"totalInvestments"`
+	TotalDebt        float64 `json:"totalDebt"`
+	NetDebt          float64 `json:"netDebt"`
 }
 
 // CashFlowStatement represents the FMP cash flow statement response (stable API).

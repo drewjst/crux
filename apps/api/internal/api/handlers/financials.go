@@ -115,13 +115,20 @@ type BalanceSheetPeriod struct {
 	FilingDate    string `json:"filingDate,omitempty"`
 
 	// Current Assets
-	CashAndEquivalents int64 `json:"cashAndEquivalents"`
-	AccountsReceivable int64 `json:"accountsReceivable"`
-	Inventory          int64 `json:"inventory"`
-	TotalCurrentAssets int64 `json:"totalCurrentAssets"`
+	CashAndEquivalents   int64 `json:"cashAndEquivalents"`
+	ShortTermInvestments int64 `json:"shortTermInvestments"`
+	AccountsReceivable   int64 `json:"accountsReceivable"`
+	Inventory            int64 `json:"inventory"`
+	OtherCurrentAssets   int64 `json:"otherCurrentAssets"`
+	TotalCurrentAssets   int64 `json:"totalCurrentAssets"`
 
 	// Non-Current Assets
-	TotalNonCurrentAssets int64 `json:"totalNonCurrentAssets"`
+	PropertyPlantEquipment int64 `json:"propertyPlantEquipment"`
+	Goodwill               int64 `json:"goodwill"`
+	IntangibleAssets       int64 `json:"intangibleAssets"`
+	LongTermInvestments    int64 `json:"longTermInvestments"`
+	OtherNonCurrentAssets  int64 `json:"otherNonCurrentAssets"`
+	TotalNonCurrentAssets  int64 `json:"totalNonCurrentAssets"`
 
 	// Total Assets
 	TotalAssets          int64  `json:"totalAssets"`
@@ -130,11 +137,15 @@ type BalanceSheetPeriod struct {
 	// Current Liabilities
 	AccountsPayable         int64 `json:"accountsPayable"`
 	ShortTermDebt           int64 `json:"shortTermDebt"`
+	DeferredRevenue         int64 `json:"deferredRevenue"`
+	OtherCurrentLiabilities int64 `json:"otherCurrentLiabilities"`
 	TotalCurrentLiabilities int64 `json:"totalCurrentLiabilities"`
 
 	// Non-Current Liabilities
-	LongTermDebt        int64 `json:"longTermDebt"`
-	TotalNonCurrentLiab int64 `json:"totalNonCurrentLiabilities"`
+	LongTermDebt               int64 `json:"longTermDebt"`
+	DeferredTaxLiabilities     int64 `json:"deferredTaxLiabilities"`
+	OtherNonCurrentLiabilities int64 `json:"otherNonCurrentLiabilities"`
+	TotalNonCurrentLiab        int64 `json:"totalNonCurrentLiabilities"`
 
 	// Total Liabilities
 	TotalLiabilities   int64  `json:"totalLiabilities"`
@@ -145,10 +156,14 @@ type BalanceSheetPeriod struct {
 	NetDebt   int64 `json:"netDebt"`
 
 	// Equity
-	CommonStock      int64 `json:"commonStock"`
-	RetainedEarnings int64 `json:"retainedEarnings"`
-	TotalEquity      int64 `json:"totalEquity"`
-	TotalEquityFormatted string `json:"totalEquityFormatted"`
+	CommonStock                   int64  `json:"commonStock"`
+	RetainedEarnings              int64  `json:"retainedEarnings"`
+	AccumulatedOtherComprehensive int64  `json:"accumulatedOtherComprehensive"`
+	TreasuryStock                 int64  `json:"treasuryStock"`
+	TotalStockholdersEquity       int64  `json:"totalStockholdersEquity"`
+	MinorityInterest              int64  `json:"minorityInterest"`
+	TotalEquity                   int64  `json:"totalEquity"`
+	TotalEquityFormatted          string `json:"totalEquityFormatted"`
 
 	// Computed Metrics
 	WorkingCapital int64 `json:"workingCapital"`
@@ -383,13 +398,20 @@ func (h *FinancialsHandler) GetBalanceSheets(w http.ResponseWriter, r *http.Requ
 			FiscalQuarter: sheet.FiscalQuarter,
 
 			// Current Assets
-			CashAndEquivalents: sheet.CashAndEquivalents,
-			AccountsReceivable: sheet.AccountsReceivable,
-			Inventory:          sheet.Inventory,
-			TotalCurrentAssets: sheet.TotalCurrentAssets,
+			CashAndEquivalents:   sheet.CashAndEquivalents,
+			ShortTermInvestments: sheet.ShortTermInvestments,
+			AccountsReceivable:   sheet.AccountsReceivable,
+			Inventory:            sheet.Inventory,
+			OtherCurrentAssets:   sheet.OtherCurrentAssets,
+			TotalCurrentAssets:   sheet.TotalCurrentAssets,
 
 			// Non-Current Assets
-			TotalNonCurrentAssets: sheet.TotalNonCurrentAssets,
+			PropertyPlantEquipment: sheet.PropertyPlantEquipmentNet,
+			Goodwill:               sheet.Goodwill,
+			IntangibleAssets:       sheet.IntangibleAssets,
+			LongTermInvestments:    sheet.LongTermInvestments,
+			OtherNonCurrentAssets:  sheet.OtherNonCurrentAssets,
+			TotalNonCurrentAssets:  sheet.TotalNonCurrentAssets,
 
 			// Total Assets
 			TotalAssets:          sheet.TotalAssets,
@@ -398,11 +420,15 @@ func (h *FinancialsHandler) GetBalanceSheets(w http.ResponseWriter, r *http.Requ
 			// Current Liabilities
 			AccountsPayable:         sheet.AccountsPayable,
 			ShortTermDebt:           sheet.ShortTermDebt,
+			DeferredRevenue:         sheet.DeferredRevenue,
+			OtherCurrentLiabilities: sheet.OtherCurrentLiabilities,
 			TotalCurrentLiabilities: sheet.TotalCurrentLiabilities,
 
 			// Non-Current Liabilities
-			LongTermDebt:        sheet.LongTermDebt,
-			TotalNonCurrentLiab: sheet.TotalNonCurrentLiab,
+			LongTermDebt:               sheet.LongTermDebt,
+			DeferredTaxLiabilities:     sheet.DeferredTaxLiabilities,
+			OtherNonCurrentLiabilities: sheet.OtherNonCurrentLiab,
+			TotalNonCurrentLiab:        sheet.TotalNonCurrentLiab,
 
 			// Total Liabilities
 			TotalLiabilities:   sheet.TotalLiabilities,
@@ -413,10 +439,14 @@ func (h *FinancialsHandler) GetBalanceSheets(w http.ResponseWriter, r *http.Requ
 			NetDebt:   sheet.NetDebt,
 
 			// Equity
-			CommonStock:          sheet.CommonStock,
-			RetainedEarnings:     sheet.RetainedEarnings,
-			TotalEquity:          sheet.TotalEquity,
-			TotalEquityFormatted: formatLargeNumber(sheet.TotalEquity),
+			CommonStock:                   sheet.CommonStock,
+			RetainedEarnings:              sheet.RetainedEarnings,
+			AccumulatedOtherComprehensive: sheet.AccumulatedOtherComprehensive,
+			TreasuryStock:                 sheet.TreasuryStock,
+			TotalStockholdersEquity:       sheet.TotalStockholdersEquity,
+			MinorityInterest:              sheet.MinorityInterest,
+			TotalEquity:                   sheet.TotalEquity,
+			TotalEquityFormatted:          formatLargeNumber(sheet.TotalEquity),
 
 			// Computed Metrics
 			WorkingCapital: workingCapital,

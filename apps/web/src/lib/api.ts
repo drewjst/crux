@@ -228,10 +228,17 @@ export interface BalanceSheetPeriod {
   filingDate?: string;
   // Current Assets
   cashAndEquivalents: number;
+  shortTermInvestments: number;
   accountsReceivable: number;
   inventory: number;
+  otherCurrentAssets: number;
   totalCurrentAssets: number;
   // Non-Current Assets
+  propertyPlantEquipment: number;
+  goodwill: number;
+  intangibleAssets: number;
+  longTermInvestments: number;
+  otherNonCurrentAssets: number;
   totalNonCurrentAssets: number;
   // Total Assets
   totalAssets: number;
@@ -239,9 +246,13 @@ export interface BalanceSheetPeriod {
   // Current Liabilities
   accountsPayable: number;
   shortTermDebt: number;
+  deferredRevenue: number;
+  otherCurrentLiabilities: number;
   totalCurrentLiabilities: number;
   // Non-Current Liabilities
   longTermDebt: number;
+  deferredTaxLiabilities: number;
+  otherNonCurrentLiabilities: number;
   totalNonCurrentLiabilities: number;
   // Total Liabilities
   totalLiabilities: number;
@@ -252,6 +263,10 @@ export interface BalanceSheetPeriod {
   // Equity
   commonStock: number;
   retainedEarnings: number;
+  accumulatedOtherComprehensive: number;
+  treasuryStock: number;
+  totalStockholdersEquity: number;
+  minorityInterest: number;
   totalEquity: number;
   totalEquityFormatted: string;
   // Computed Metrics
