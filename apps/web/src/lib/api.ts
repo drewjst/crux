@@ -358,3 +358,38 @@ export async function fetchCashFlowStatements(
     `/api/stock/${ticker.toUpperCase()}/financials/cash-flow${query ? `?${query}` : ''}`
   );
 }
+
+// =============================================================================
+// Health / Status Types
+// =============================================================================
+
+export interface HealthCheck {
+  name: string;
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  message?: string;
+  latency?: string;
+}
+
+export interface SystemInfo {
+  goVersion: string;
+  numGoroutine: number;
+  numCPU: number;
+}
+
+export interface HealthResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  timestamp: string;
+  version: string;
+  uptime: string;
+  checks: HealthCheck[];
+  system?: SystemInfo;
+}
+
+export async function fetchHealth(detailed = false): Promise<HealthResponse> {
+  const url = detailed ? '/health?detailed=true' : '/health';
+  const response = await fetch(`${API_BASE}${url}`);
+  if (!response.ok) {
+    throw new ApiError('HEALTH_ERROR', `Health check failed: ${response.statusText}`, response.status);
+  }
+  return response.json();
+}

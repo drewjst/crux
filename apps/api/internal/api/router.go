@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 
 	"github.com/drewjst/crux/apps/api/internal/api/handlers"
 	"github.com/drewjst/crux/apps/api/internal/api/middleware"
@@ -26,6 +27,7 @@ type RouterDeps struct {
 	PolygonSearcher      *search.PolygonSearcher
 	AllowedOrigins       []string
 	APIKeys              []string // Valid API keys (empty = auth disabled)
+	DB                   *gorm.DB // Database connection (for health checks)
 }
 
 // NewRouter creates and configures the Chi router with all routes and middleware.
@@ -42,7 +44,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	r.Use(middleware.RateLimit(10)) // 10 requests per second per IP
 
 	// Health check (no auth required)
-	healthHandler := handlers.NewHealthHandler()
+	healthHandler := handlers.NewHealthHandler(deps.DB)
 	r.Get("/health", healthHandler.Health)
 
 	// API routes

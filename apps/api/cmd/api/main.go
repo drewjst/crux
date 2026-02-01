@@ -190,6 +190,7 @@ func run() error {
 		PolygonSearcher:      polygonSearcher,
 		AllowedOrigins:       cfg.AllowedOrigins,
 		APIKeys:              cfg.APIKeys,
+		DB:                   gormDB,
 	})
 
 	// Log auth status
