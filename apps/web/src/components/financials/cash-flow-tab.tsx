@@ -1,8 +1,9 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Sparkline } from '@/components/ui/sparkline';
 import type { CashFlowPeriod } from '@/lib/api';
 
 interface CashFlowTabProps {
@@ -106,6 +107,19 @@ const CollapsibleSection = memo(function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  // Pre-compute sparkline data for all rows (reversed: oldest→newest)
+  const sparklineData = useMemo(() => {
+    const data: Record<string, (number | null)[]> = {};
+    rows.forEach((row) => {
+      const values = periods
+        .map((p) => p[row.key as keyof CashFlowPeriod] as number | undefined)
+        .map((v) => (v !== undefined ? v : null))
+        .reverse();
+      data[row.key] = values;
+    });
+    return data;
+  }, [rows, periods]);
+
   return (
     <div className="border-b border-border/40 last:border-0">
       <button
@@ -132,6 +146,9 @@ const CollapsibleSection = memo(function CollapsibleSection({
               return null;
             }
 
+            const rowSparklineData = sparklineData[row.key] || [];
+            const hasSparklineData = rowSparklineData.filter((v) => v !== null && v !== 0).length >= 2;
+
             return (
               <div
                 key={row.key}
@@ -150,6 +167,13 @@ const CollapsibleSection = memo(function CollapsibleSection({
                   )}
                 >
                   {row.label}
+                </div>
+
+                {/* Sparkline column */}
+                <div className="min-w-[80px] w-[80px] py-1 px-2 flex items-center justify-center">
+                  {hasSparklineData && (
+                    <Sparkline data={rowSparklineData} width={70} height={24} color="auto" />
+                  )}
                 </div>
 
                 {periods.map((period) => {
@@ -288,6 +312,9 @@ export const CashFlowTab = memo(function CashFlowTab({
           <div className="flex items-center border-b border-border/60 bg-muted/40 sticky top-0 z-20">
             <div className="sticky left-0 z-30 bg-muted/40 min-w-[200px] w-[200px] py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Metric
+            </div>
+            <div className="min-w-[80px] w-[80px] py-3.5 px-2 text-xs font-semibold text-center text-muted-foreground">
+              Trend
             </div>
             {periods.map((period) => (
               <div
