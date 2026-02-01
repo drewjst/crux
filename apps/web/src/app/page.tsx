@@ -87,26 +87,28 @@ function HomeContent() {
       {/* Content */}
       <div className="relative">
         {/* Hero Section */}
-        <section className="py-20 md:py-32 text-center px-4">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Stock research,{' '}
-            <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
-              distilled
-            </span>
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-md mx-auto">
-            Enter a ticker. Get the crux in 30 seconds.
-          </p>
+        <section className="py-20 md:py-32 text-center">
+          <div className="max-w-4xl mx-auto px-4">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              Stock research,{' '}
+              <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+                distilled
+              </span>
+            </h1>
+            <p className="mt-4 text-lg text-muted-foreground max-w-md mx-auto">
+              Enter a ticker. Get the crux in 30 seconds.
+            </p>
+          </div>
 
           {/* Search box with subtle glow on focus */}
-          <div className="mt-8 max-w-xl mx-auto">
+          <div className="mt-8 max-w-xl mx-auto px-4">
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition duration-300" />
               <div className="relative">
                 <TickerSearch size="lg" autoFocus />
               </div>
             </div>
-            <div className="mt-3 text-sm text-muted-foreground text-left">
+            <div className="mt-3 text-sm text-muted-foreground text-center">
               Try:{' '}
               {quickTickers.map((ticker, index) => (
                 <span key={ticker}>
@@ -124,35 +126,36 @@ function HomeContent() {
         </section>
 
         {/* Features Section */}
-        <section className="py-16 border-t border-border/50 px-4">
-          <h2 className="text-2xl font-semibold text-center mb-12">
-            What you get in seconds
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="p-6 rounded-xl border border-border bg-card hover:border-orange-500/30 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 hover:scale-[1.02]"
-              >
-                <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
-                  <feature.icon className="w-5 h-5 text-orange-500" />
+        <section className="py-16 border-t border-border/50">
+          <div className="max-w-5xl mx-auto px-4">
+            <h2 className="text-2xl font-semibold text-center mb-12">
+              What you get in seconds
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {features.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="p-6 rounded-xl border border-border bg-card hover:border-orange-500/30 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 hover:scale-[1.02]"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
+                    <feature.icon className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <h3 className="font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
                 </div>
-                <h3 className="font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
         {/* Roadmap Timeline Section */}
-        <section className="py-16 border-t border-border/50 px-4">
-          <div className="text-center mb-12">
-            <Badge variant="outline" className="mb-4">Roadmap</Badge>
-            <h2 className="text-2xl font-semibold">What&apos;s Next</h2>
-            <p className="text-muted-foreground mt-2">Building the future of stock research</p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
+        <section className="py-16 border-t border-border/50">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <Badge variant="outline" className="mb-4">Roadmap</Badge>
+              <h2 className="text-2xl font-semibold">What&apos;s Next</h2>
+              <p className="text-muted-foreground mt-2">Building the future of stock research</p>
+            </div>
             <div className="relative">
               {/* Timeline line */}
               <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-orange-500/50 via-border to-border" />
@@ -203,17 +206,19 @@ function HomeContent() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 px-4">
-          <div className="max-w-2xl mx-auto text-center p-8 md:p-12 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent border border-orange-500/10">
-            <h2 className="text-2xl md:text-3xl font-semibold mb-4">
-              Ready to get started?
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Stop drowning in financial data. Crux distills what matters so you can make informed decisions faster.
-            </p>
-            <Button size="lg" onClick={scrollToSearch}>
-              Distill a Stock
-            </Button>
+        <section className="py-16">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="text-center p-8 md:p-12 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent border border-orange-500/10">
+              <h2 className="text-2xl md:text-3xl font-semibold mb-4">
+                Ready to get started?
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Stop drowning in financial data. Crux distills what matters so you can make informed decisions faster.
+              </p>
+              <Button size="lg" onClick={scrollToSearch}>
+                Distill a Stock
+              </Button>
+            </div>
           </div>
         </section>
       </div>
@@ -223,7 +228,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
       <Suspense fallback={<div className="min-h-screen" />}>
         <HomeContent />
       </Suspense>

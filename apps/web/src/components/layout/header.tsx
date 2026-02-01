@@ -36,6 +36,7 @@ function Navigation() {
   const isScreenerActive = pathname === '/' || pathname.startsWith('/stock/');
   const isCompareActive = pathname.startsWith('/compare');
   const isWatchlistActive = pathname === '/watchlist';
+  const is10KActive = pathname.startsWith('/10k');
 
   return (
     <nav className="flex items-center gap-1">
@@ -47,6 +48,9 @@ function Navigation() {
       </NavLink>
       <NavLink href="/watchlist" isActive={isWatchlistActive}>
         Watchlist
+      </NavLink>
+      <NavLink href="/10k" isActive={is10KActive}>
+        10-K
       </NavLink>
     </nav>
   );
@@ -98,33 +102,32 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Left side - Logo + Nav */}
-          <div className="flex items-center gap-6">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 shrink-0">
+        <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+          {/* Left - Logo (fixed width for balance) */}
+          <div className="w-24 shrink-0">
+            <Link href="/" className="flex items-center">
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                 Cruxit
               </span>
             </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex">
-              <Suspense fallback={null}>
-                <Navigation />
-              </Suspense>
-            </div>
           </div>
 
-          {/* Center - Search (desktop only) */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* Center - Navigation */}
+          <div className="hidden md:flex flex-1 justify-center">
             <Suspense fallback={null}>
-              <TickerSearch placeholder="Search stocks..." />
+              <Navigation />
             </Suspense>
           </div>
 
-          {/* Right side - Mobile search + Theme toggle */}
-          <div className="flex items-center gap-2">
+          {/* Right - Search + Theme toggle */}
+          <div className="flex items-center justify-end gap-3 flex-1 md:flex-none md:w-80">
+            {/* Desktop Search */}
+            <div className="hidden md:flex flex-1">
+              <Suspense fallback={null}>
+                <TickerSearch placeholder="Search stocks..." />
+              </Suspense>
+            </div>
+
             {/* Mobile Search Button */}
             <button
               onClick={() => setMobileSearchOpen(true)}
