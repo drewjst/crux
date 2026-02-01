@@ -166,6 +166,13 @@ export const COMPARE_METRICS: Record<string, MetricConfig[]> = {
       format: (v) => `${v.toFixed(1)}%`,
     },
     {
+      key: 'fcfMargin',
+      label: 'FCF Margin',
+      path: 'financials.fcfMargin',
+      higherIsBetter: true,
+      format: (v) => `${(v * 100).toFixed(1)}%`,
+    },
+    {
       key: 'roe',
       label: 'ROE',
       path: 'profitability.roe.value',
@@ -201,6 +208,13 @@ export const COMPARE_METRICS: Record<string, MetricConfig[]> = {
       path: 'financialHealth.assetTurnover.value',
       higherIsBetter: true,
       format: (v) => `${v.toFixed(2)}x`,
+    },
+    {
+      key: 'interestCoverage',
+      label: 'Interest Coverage',
+      path: 'financials.interestCoverage',
+      higherIsBetter: true,
+      format: (v) => `${v.toFixed(1)}x`,
     },
   ],
   growth: [
@@ -322,6 +336,45 @@ export const COMPARE_METRICS: Record<string, MetricConfig[]> = {
       higherIsBetter: true,
       format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`,
     },
+    {
+      key: 'priceTargetAvg',
+      label: 'Price Target',
+      path: 'analystEstimates.priceTargetAverage',
+      higherIsBetter: true,
+      format: (v) => `$${v.toFixed(0)}`,
+    },
+  ],
+  shortInterest: [
+    {
+      key: 'shortPercentFloat',
+      label: 'Short % of Float',
+      path: 'shortInterest.shortPercentFloat',
+      higherIsBetter: false,
+      format: (v) => `${v.toFixed(1)}%`,
+    },
+    {
+      key: 'daysToCover',
+      label: 'Days to Cover',
+      path: 'shortInterest.daysToCover',
+      higherIsBetter: false,
+      format: (v) => v.toFixed(1),
+    },
+    {
+      key: 'shortRatio',
+      label: 'Short Ratio',
+      path: 'shortInterest.shortRatio',
+      higherIsBetter: false,
+      format: (v) => v.toFixed(2),
+    },
+  ],
+  dcfValuation: [
+    {
+      key: 'dcfUpside',
+      label: 'DCF Upside',
+      path: 'scores.dcfValuation.differencePercent',
+      higherIsBetter: true,
+      format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`,
+    },
   ],
 };
 
@@ -387,6 +440,8 @@ export function calculateRankings(stocks: StockDetailResponse[]): RankingResult[
     ...COMPARE_METRICS.earningsQuality,
     ...COMPARE_METRICS.smartMoney,
     ...COMPARE_METRICS.analyst,
+    ...COMPARE_METRICS.shortInterest,
+    ...COMPARE_METRICS.dcfValuation,
   ];
 
   const wins: number[] = stocks.map(() => 0);

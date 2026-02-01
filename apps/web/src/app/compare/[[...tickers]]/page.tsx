@@ -151,14 +151,16 @@ function CompareContent() {
   const pathTickers = params.tickers as string[] | undefined;
 
   const [tickers, setTickers] = useState<string[]>(() => {
-    // First check path params (from shared links)
+    // First check path params (from shared links like /compare/AAPL/MSFT)
     if (pathTickers && pathTickers.length > 0) {
+      // Decode and flatten: handle both /compare/AAPL/MSFT and malformed /compare/AAPL,MSFT
       return pathTickers
+        .flatMap((t) => decodeURIComponent(t).split(','))
         .map((t) => t.trim().toUpperCase())
         .filter(Boolean)
         .slice(0, MAX_TICKERS);
     }
-    // Then check query params
+    // Then check query params (like /compare?tickers=AAPL,MSFT)
     if (tickersParam) {
       return tickersParam
         .split(',')
@@ -174,7 +176,8 @@ function CompareContent() {
     if (!tickers.includes(upperTicker) && tickers.length < MAX_TICKERS) {
       const newTickers = [...tickers, upperTicker];
       setTickers(newTickers);
-      const newUrl = newTickers.length > 0 ? `/compare?tickers=${newTickers.join(',')}` : '/compare';
+      // Use path-based URL for consistency with share links
+      const newUrl = newTickers.length > 0 ? `/compare/${newTickers.join('/')}` : '/compare';
       router.replace(newUrl, { scroll: false });
     }
   };
@@ -182,7 +185,8 @@ function CompareContent() {
   const removeTicker = (ticker: string) => {
     const newTickers = tickers.filter((t) => t !== ticker);
     setTickers(newTickers);
-    const newUrl = newTickers.length > 0 ? `/compare?tickers=${newTickers.join(',')}` : '/compare';
+    // Use path-based URL for consistency with share links
+    const newUrl = newTickers.length > 0 ? `/compare/${newTickers.join('/')}` : '/compare';
     router.replace(newUrl, { scroll: false });
   };
 

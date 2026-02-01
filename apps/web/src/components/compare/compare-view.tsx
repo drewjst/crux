@@ -175,6 +175,22 @@ export function CompareView({ tickers }: CompareViewProps) {
         layout="table"
       />
 
+      {/* DCF Valuation Comparison */}
+      <MetricTable
+        title="DCF Valuation"
+        stocks={validStocks}
+        metrics={COMPARE_METRICS.dcfValuation}
+        layout="table"
+      />
+
+      {/* Short Interest Comparison */}
+      <MetricTable
+        title="Short Interest"
+        stocks={validStocks}
+        metrics={COMPARE_METRICS.shortInterest}
+        layout="table"
+      />
+
       {/* Performance Comparison */}
       <MetricTable
         title="Performance"
