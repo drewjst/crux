@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, TrendingUp, Users, Link, Database, Sparkles, PieChart } from 'lucide-react';
+import { FileText, TrendingUp, Users, Database, Sparkles, PieChart, Bookmark, UserCheck, FileSearch } from 'lucide-react';
 import { StockDashboard } from '@/components/dashboard/stock-dashboard';
 import { TickerSearch } from '@/components/search/ticker-search';
 import { Badge } from '@/components/ui/badge';
@@ -46,32 +46,29 @@ function HomeContent() {
 
   const roadmap = [
     {
+      icon: Bookmark,
+      title: 'Watchlists',
+      description: 'Save and track your favorite stocks with personalized watchlists',
+    },
+    {
+      icon: UserCheck,
+      title: 'Deeper Insider & Congress Insights',
+      description: 'Enhanced tracking of insider transactions and congressional trades with detailed analysis',
+    },
+    {
+      icon: FileSearch,
+      title: 'SEC Ingestion Engine',
+      description: 'Direct SEC filing data for comprehensive and timely financial information',
+    },
+    {
       icon: PieChart,
       title: 'Sector Comparisons',
       description: 'Compare stocks against sector peers with relative metrics and rankings',
-      timeline: 'Q1 2025',
-      status: 'in-progress' as const,
-    },
-    {
-      icon: Database,
-      title: 'Enhanced Data Sources',
-      description: 'Expanded financial data coverage with more metrics and historical depth',
-      timeline: 'Q2 2025',
-      status: 'planned' as const,
     },
     {
       icon: Sparkles,
       title: 'AI Insights',
-      description: 'Vertex AI-powered summaries and analysis for faster research',
-      timeline: 'Q2 2025',
-      status: 'planned' as const,
-    },
-    {
-      icon: Link,
-      title: 'Creator Portfolios',
-      description: 'Track picks from finance creators and Substack newsletters',
-      timeline: 'Q3 2025',
-      status: 'planned' as const,
+      description: 'AI-powered summaries and analysis for faster research',
     },
   ];
 
@@ -160,42 +157,17 @@ function HomeContent() {
               {/* Timeline line */}
               <div className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-orange-500/50 via-border to-border" />
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {roadmap.map((item) => (
                   <div key={item.title} className="relative flex gap-6 group">
                     {/* Timeline dot */}
-                    <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                      item.status === 'in-progress'
-                        ? 'border-orange-500 bg-orange-500/10 shadow-lg shadow-orange-500/20'
-                        : 'border-border bg-background group-hover:border-orange-500/50'
-                    }`}>
-                      <item.icon className={`w-4 h-4 transition-colors ${
-                        item.status === 'in-progress' ? 'text-orange-500' : 'text-muted-foreground group-hover:text-orange-500/70'
-                      }`} />
+                    <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full border-2 border-border bg-background flex items-center justify-center transition-all duration-300 group-hover:border-orange-500/50">
+                      <item.icon className="w-4 h-4 text-muted-foreground transition-colors group-hover:text-orange-500/70" />
                     </div>
 
                     {/* Content */}
-                    <div className={`flex-1 pb-2 transition-all duration-300 ${
-                      item.status === 'in-progress' ? '' : 'opacity-70 group-hover:opacity-100'
-                    }`}>
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-medium">{item.title}</h3>
-                        <Badge
-                          variant={item.status === 'in-progress' ? 'default' : 'secondary'}
-                          className={`text-xs ${item.status === 'in-progress' ? 'bg-orange-500 hover:bg-orange-500' : ''}`}
-                        >
-                          {item.timeline}
-                        </Badge>
-                        {item.status === 'in-progress' && (
-                          <span className="flex items-center gap-1.5 text-xs text-orange-500">
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
-                            </span>
-                            In Progress
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex-1 pb-2 transition-all duration-300 group-hover:opacity-100">
+                      <h3 className="font-medium mb-1">{item.title}</h3>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
                   </div>
