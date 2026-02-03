@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Info, ExternalLink } from 'lucide-react';
 import { SectionCard } from './section-card';
 import { Card } from '@/components/ui/card';
@@ -188,26 +188,27 @@ function ConvictionScoresSectionComponent({ data }: ConvictionScoresSectionProps
   const { company, scores, analystEstimates, quote } = data;
   if (!scores) return null;
 
-  // Build rich share text
-  const piotroskiVerdict = scores.piotroski.score >= 7 ? 'Strong' : scores.piotroski.score >= 4 ? 'Moderate' : 'Weak';
-  const ruleOf40Verdict = scores.ruleOf40.passed ? 'Passed' : 'Failed';
-  const altmanVerdict = scores.altmanZ.zone === 'safe' ? 'Safe' : scores.altmanZ.zone === 'gray' ? 'Gray Zone' : 'Distress';
+  const shareText = useMemo(() => {
+    const piotroskiVerdict = scores.piotroski.score >= 7 ? 'Strong' : scores.piotroski.score >= 4 ? 'Moderate' : 'Weak';
+    const ruleOf40Verdict = scores.ruleOf40.passed ? 'Passed' : 'Failed';
+    const altmanVerdict = scores.altmanZ.zone === 'safe' ? 'Safe' : scores.altmanZ.zone === 'gray' ? 'Gray Zone' : 'Distress';
 
-  const ruleOf40Breakdown = `Growth ${scores.ruleOf40.revenueGrowthPercent >= 0 ? '+' : ''}${scores.ruleOf40.revenueGrowthPercent.toFixed(0)}% + Margin ${scores.ruleOf40.profitMarginPercent >= 0 ? '+' : ''}${scores.ruleOf40.profitMarginPercent.toFixed(0)}%`;
+    const ruleOf40Breakdown = `Growth ${scores.ruleOf40.revenueGrowthPercent >= 0 ? '+' : ''}${scores.ruleOf40.revenueGrowthPercent.toFixed(0)}% + Margin ${scores.ruleOf40.profitMarginPercent >= 0 ? '+' : ''}${scores.ruleOf40.profitMarginPercent.toFixed(0)}%`;
 
-  const shareMetrics = [
-    `Piotroski F-Score: ${scores.piotroski.score}/9 (${piotroskiVerdict})`,
-    `Rule of 40: ${scores.ruleOf40.score.toFixed(0)}% (${ruleOf40Verdict}) [${ruleOf40Breakdown}]`,
-    `Altman Z-Score: ${scores.altmanZ.score.toFixed(2)} (${altmanVerdict})`,
-  ];
+    const metrics = [
+      `Piotroski F-Score: ${scores.piotroski.score}/9 (${piotroskiVerdict})`,
+      `Rule of 40: ${scores.ruleOf40.score.toFixed(0)}% (${ruleOf40Verdict}) [${ruleOf40Breakdown}]`,
+      `Altman Z-Score: ${scores.altmanZ.score.toFixed(2)} (${altmanVerdict})`,
+    ];
 
-  if (analystEstimates && analystEstimates.analystCount > 0) {
-    const buyCount = analystEstimates.strongBuyCount + analystEstimates.buyCount;
-    const sellCount = analystEstimates.sellCount + analystEstimates.strongSellCount;
-    shareMetrics.push(`Analyst Rating: ${buyCount} Buy / ${analystEstimates.holdCount} Hold / ${sellCount} Sell`);
-  }
+    if (analystEstimates && analystEstimates.analystCount > 0) {
+      const buyCount = analystEstimates.strongBuyCount + analystEstimates.buyCount;
+      const sellCount = analystEstimates.sellCount + analystEstimates.strongSellCount;
+      metrics.push(`Analyst Rating: ${buyCount} Buy / ${analystEstimates.holdCount} Hold / ${sellCount} Sell`);
+    }
 
-  const shareText = `$${company.ticker} Financial Health\n\n${shareMetrics.join('\n')}`;
+    return `$${company.ticker} Financial Health\n\n${metrics.join('\n')}`;
+  }, [scores, analystEstimates, company.ticker]);
 
   return (
     <SectionCard

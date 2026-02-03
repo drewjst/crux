@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { CheckCircle2, AlertTriangle, TrendingDown, Target } from 'lucide-react';
 import { SectionCard } from './section-card';
 import { Badge } from '@/components/ui/badge';
@@ -116,54 +116,55 @@ const getSignalIcon = (type: string) => {
 function SignalsSectionComponent({ data }: SignalsSectionProps) {
   const { signals: rawSignals, performance, quote, analystEstimates } = data;
 
-  const signals = rawSignals ?? [];
+  const indicators = useMemo(() => ({
+    momentum: calculateMomentum(performance),
+    trend: calculateTrendPosition(quote),
+    volatility: calculateVolatility(quote),
+    strength: calculateRelativeStrength(performance),
+  }), [performance, quote]);
 
-  // Calculate technical indicators
-  const momentum = calculateMomentum(performance);
-  const trend = calculateTrendPosition(quote);
-  const volatility = calculateVolatility(quote);
-  const strength = calculateRelativeStrength(performance);
+  const { signalsByType, totalBullish, totalBearish, totalWarning, topSignals } = useMemo(() => {
+    const signals = rawSignals ?? [];
 
-  // Categorize signals in a single pass
-  const signalsByType = signals.reduce(
-    (acc, s) => {
-      acc[s.type].push(s);
-      return acc;
-    },
-    { bullish: [], warning: [], bearish: [] } as Record<string, typeof signals>
-  );
+    const byType = signals.reduce(
+      (acc, s) => {
+        acc[s.type].push(s);
+        return acc;
+      },
+      { bullish: [], warning: [], bearish: [] } as Record<string, typeof signals>
+    );
 
-  // Count technical signals
-  const technicalIndicators = [momentum, trend, strength];
-  const technicalBullish = technicalIndicators.filter((i) => i.signal === 'bullish').length;
-  const technicalBearish = technicalIndicators.filter((i) => i.signal === 'bearish').length;
-  const volatilityWarning = volatility.signal === 'warning' ? 1 : 0;
+    const technicalIndicators = [indicators.momentum, indicators.trend, indicators.strength];
+    const techBullish = technicalIndicators.filter((i) => i.signal === 'bullish').length;
+    const techBearish = technicalIndicators.filter((i) => i.signal === 'bearish').length;
+    const volWarning = indicators.volatility.signal === 'warning' ? 1 : 0;
 
-  // Combined counts
-  const totalBullish = signalsByType.bullish.length + technicalBullish;
-  const totalBearish = signalsByType.bearish.length + technicalBearish;
-  const totalWarning = signalsByType.warning.length + volatilityWarning;
+    return {
+      signalsByType: byType,
+      totalBullish: byType.bullish.length + techBullish,
+      totalBearish: byType.bearish.length + techBearish,
+      totalWarning: byType.warning.length + volWarning,
+      topSignals: [
+        ...byType.bullish,
+        ...byType.warning,
+        ...byType.bearish,
+      ].slice(0, 3),
+    };
+  }, [rawSignals, indicators]);
 
-  // Get top 3 signals (prioritized: bullish, warning, bearish)
-  const topSignals = [
-    ...signalsByType.bullish,
-    ...signalsByType.warning,
-    ...signalsByType.bearish,
-  ].slice(0, 3);
-
-  // Analyst price target
-  const priceTargetUpside = analystEstimates && quote.price > 0
-    ? ((analystEstimates.priceTargetAverage - quote.price) / quote.price) * 100
-    : null;
+  const priceTargetUpside = useMemo(() => {
+    if (!analystEstimates || quote.price <= 0) return null;
+    return ((analystEstimates.priceTargetAverage - quote.price) / quote.price) * 100;
+  }, [analystEstimates, quote.price]);
 
   return (
     <SectionCard title="Key Signals">
       {/* Technical Indicators - compact inline row */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3 border-b border-border/30">
-        <CompactIndicator indicator={momentum} />
-        <CompactIndicator indicator={trend} />
-        <CompactIndicator indicator={volatility} />
-        <CompactIndicator indicator={strength} />
+        <CompactIndicator indicator={indicators.momentum} />
+        <CompactIndicator indicator={indicators.trend} />
+        <CompactIndicator indicator={indicators.volatility} />
+        <CompactIndicator indicator={indicators.strength} />
         {priceTargetUpside !== null && (
           <div className="flex items-center gap-1.5">
             <Target className="h-3.5 w-3.5 text-muted-foreground" />

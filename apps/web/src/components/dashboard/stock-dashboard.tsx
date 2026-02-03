@@ -11,7 +11,6 @@ import {
   HeaderSection,
   ConvictionScoresSection,
 } from './sections';
-import { ETFView } from './etf-view';
 import { CruxAIInsight } from '@/components/cruxai/cruxai-insight';
 import { SnapshotSidebar } from '@/components/stock/snapshot-sidebar';
 
@@ -83,6 +82,16 @@ const EarningsQualityCompact = dynamic(
 const FooterSection = dynamic(
   () => import('./sections/footer-section').then((mod) => mod.FooterSection),
   { loading: () => <SectionSkeleton /> }
+);
+
+const ETFView = dynamic(
+  () => import('./etf-view').then((mod) => mod.ETFView),
+  { loading: () => (
+    <div className="flex flex-col items-center justify-center py-24">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="mt-4 text-muted-foreground">Loading ETF data...</p>
+    </div>
+  )}
 );
 
 interface StockDashboardProps {
