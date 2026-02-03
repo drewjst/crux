@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { Metadata } from 'next';
 import { StockDetailResponse } from '@recon/shared';
 import { StockDashboard } from '@/components/dashboard/stock-dashboard';
@@ -26,7 +27,7 @@ function getOverallGrade(scores: StockDetailResponse['scores']): string {
   return 'F';
 }
 
-async function getStockData(ticker: string): Promise<StockDetailResponse | null> {
+const getStockData = cache(async (ticker: string): Promise<StockDetailResponse | null> => {
   try {
     const res = await fetch(`${API_BASE}/api/stock/${ticker.toUpperCase()}`, {
       next: { revalidate: 300 },
@@ -36,7 +37,7 @@ async function getStockData(ticker: string): Promise<StockDetailResponse | null>
   } catch {
     return null;
   }
-}
+});
 
 interface PageProps {
   params: Promise<{ ticker: string }>;
