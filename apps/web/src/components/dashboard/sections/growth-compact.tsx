@@ -28,12 +28,42 @@ function GrowthCompactComponent({ data, defaultOpen = false }: GrowthCompactProp
     }),
   ];
 
+  if (growth.netIncomeGrowthYoY) {
+    metrics.push(
+      toMetric('netIncomeGrowthYoY', 'Net Income Growth (YoY)', growth.netIncomeGrowthYoY, {
+        format: 'percent',
+        higherIsBetter: true,
+        info: 'Year-over-year net income growth shows how much bottom-line profit has grown.',
+      })
+    );
+  }
+
+  if (growth.operatingIncomeGrowthYoY) {
+    metrics.push(
+      toMetric('operatingIncomeGrowthYoY', 'Operating Income Growth (YoY)', growth.operatingIncomeGrowthYoY, {
+        format: 'percent',
+        higherIsBetter: true,
+        info: 'Year-over-year operating income growth shows how much core operating profit has grown.',
+      })
+    );
+  }
+
   if (growth.projectedEpsGrowth) {
     metrics.push(
       toMetric('projectedEpsGrowth', 'Projected EPS Growth', growth.projectedEpsGrowth, {
         format: 'percent',
         higherIsBetter: true,
         info: 'Projected EPS growth based on analyst estimates.',
+      })
+    );
+  }
+
+  if (growth.projectedRevenueGrowth) {
+    metrics.push(
+      toMetric('projectedRevenueGrowth', 'Projected Revenue Growth', growth.projectedRevenueGrowth, {
+        format: 'percent',
+        higherIsBetter: true,
+        info: 'Projected revenue growth based on analyst estimates for next fiscal year.',
       })
     );
   }
@@ -50,10 +80,20 @@ function GrowthCompactComponent({ data, defaultOpen = false }: GrowthCompactProp
 
   if (growth.cashFlowGrowthYoY) {
     metrics.push(
-      toMetric('cashFlowGrowthYoY', 'Cash Flow Growth (YoY)', growth.cashFlowGrowthYoY, {
+      toMetric('cashFlowGrowthYoY', 'FCF Growth (YoY)', growth.cashFlowGrowthYoY, {
         format: 'percent',
         higherIsBetter: true,
-        info: "Year-over-year growth in free cash flow.",
+        info: 'Year-over-year growth in free cash flow.',
+      })
+    );
+  }
+
+  if (growth.operatingCFGrowthYoY) {
+    metrics.push(
+      toMetric('operatingCFGrowthYoY', 'Operating Cash Flow Growth (YoY)', growth.operatingCFGrowthYoY, {
+        format: 'percent',
+        higherIsBetter: true,
+        info: 'Year-over-year growth in operating cash flow, measuring core business cash generation trends.',
       })
     );
   }

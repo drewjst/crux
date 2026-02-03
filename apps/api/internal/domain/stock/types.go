@@ -119,11 +119,15 @@ type FinancialHealth struct {
 
 // Growth contains growth metrics with sector comparisons.
 type Growth struct {
-	RevenueGrowthYoY   SectorMetric  `json:"revenueGrowthYoY"`
-	EPSGrowthYoY       SectorMetric  `json:"epsGrowthYoY"`
-	ProjectedEPSGrowth *SectorMetric `json:"projectedEpsGrowth,omitempty"`
-	FreeCashFlowTTM    *SectorMetric `json:"freeCashFlowTTM,omitempty"`
-	CashFlowGrowthYoY  *SectorMetric `json:"cashFlowGrowthYoY,omitempty"`
+	RevenueGrowthYoY         SectorMetric  `json:"revenueGrowthYoY"`
+	EPSGrowthYoY             SectorMetric  `json:"epsGrowthYoY"`
+	NetIncomeGrowthYoY       *SectorMetric `json:"netIncomeGrowthYoY,omitempty"`
+	OperatingIncomeGrowthYoY *SectorMetric `json:"operatingIncomeGrowthYoY,omitempty"`
+	ProjectedEPSGrowth       *SectorMetric `json:"projectedEpsGrowth,omitempty"`
+	ProjectedRevenueGrowth   *SectorMetric `json:"projectedRevenueGrowth,omitempty"`
+	FreeCashFlowTTM          *SectorMetric `json:"freeCashFlowTTM,omitempty"`
+	CashFlowGrowthYoY        *SectorMetric `json:"cashFlowGrowthYoY,omitempty"`
+	OperatingCFGrowthYoY     *SectorMetric `json:"operatingCFGrowthYoY,omitempty"`
 }
 
 // EarningsQuality contains earnings quality and operating metrics with sector comparisons.

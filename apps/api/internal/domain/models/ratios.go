@@ -40,6 +40,11 @@ type Ratios struct {
 	RevenueGrowthYoY   float64
 	EPSGrowthYoY       float64
 
+	// Growth (from FMP FinancialGrowth)
+	NetIncomeGrowthYoY       float64
+	OperatingIncomeGrowthYoY float64
+	OperatingCFGrowthYoY     float64
+
 	// Cash Flow
 	FreeCashFlowTTM   float64
 	CashFlowGrowthYoY float64

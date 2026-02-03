@@ -118,11 +118,17 @@ func (p *Provider) GetRatios(ctx context.Context, ticker string) (*models.Ratios
 		ratios.RevenueGrowthYoY = g.RevenueGrowth * 100
 		ratios.EPSGrowthYoY = g.EPSDilutedGrowth * 100
 		ratios.CashFlowGrowthYoY = g.FreeCashFlowGrowth * 100
+		ratios.NetIncomeGrowthYoY = g.NetIncomeGrowth * 100
+		ratios.OperatingIncomeGrowthYoY = g.OperatingIncomeGrowth * 100
+		ratios.OperatingCFGrowthYoY = g.OperatingCFGrowth * 100
 		slog.Debug("FMP financial growth",
 			"ticker", ticker,
 			"revenueGrowth", ratios.RevenueGrowthYoY,
 			"epsGrowth", ratios.EPSGrowthYoY,
-			"fcfGrowth", ratios.CashFlowGrowthYoY)
+			"fcfGrowth", ratios.CashFlowGrowthYoY,
+			"netIncomeGrowth", ratios.NetIncomeGrowthYoY,
+			"operatingIncomeGrowth", ratios.OperatingIncomeGrowthYoY,
+			"operatingCFGrowth", ratios.OperatingCFGrowthYoY)
 	}
 
 	// Fetch income statements for RevenueTTM and NetIncomeTTM (still needed for other calculations)

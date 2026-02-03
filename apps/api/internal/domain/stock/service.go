@@ -519,7 +519,7 @@ func (s *Service) buildResponseFromProviders(
 	// Calculate sector metrics
 	profitability := calculateProfitability(ratios, company.Sector)
 	financialHealth := calculateFinancialHealth(ratios, company.Sector)
-	growth := calculateGrowthFromRatios(ratios, company.Sector)
+	growth := calculateGrowthFromRatios(ratios, company.Sector, analystEstimates)
 	earningsQuality := calculateEarningsQualityFromRatios(ratios, company.Sector)
 
 	// Convert financials to score data and calculate scores
@@ -1207,7 +1207,7 @@ func calculateFinancialHealth(r *models.Ratios, sector string) *FinancialHealth 
 	}
 }
 
-func calculateGrowthFromRatios(r *models.Ratios, sector string) *Growth {
+func calculateGrowthFromRatios(r *models.Ratios, sector string, estimates *models.AnalystEstimates) *Growth {
 	if r == nil {
 		return &Growth{}
 	}
@@ -1231,6 +1231,28 @@ func calculateGrowthFromRatios(r *models.Ratios, sector string) *Growth {
 		},
 	}
 
+	// Add net income growth if available
+	if r.NetIncomeGrowthYoY != 0 {
+		growth.NetIncomeGrowthYoY = &SectorMetric{
+			Value:        r.NetIncomeGrowthYoY,
+			SectorMin:    ranges.NetIncomeGrowth.Min,
+			SectorMedian: ranges.NetIncomeGrowth.Median,
+			SectorMax:    ranges.NetIncomeGrowth.Max,
+			Percentile:   calculatePercentile(r.NetIncomeGrowthYoY, ranges.NetIncomeGrowth.Min, ranges.NetIncomeGrowth.Max),
+		}
+	}
+
+	// Add operating income growth if available
+	if r.OperatingIncomeGrowthYoY != 0 {
+		growth.OperatingIncomeGrowthYoY = &SectorMetric{
+			Value:        r.OperatingIncomeGrowthYoY,
+			SectorMin:    ranges.OperatingIncomeGrowth.Min,
+			SectorMedian: ranges.OperatingIncomeGrowth.Median,
+			SectorMax:    ranges.OperatingIncomeGrowth.Max,
+			Percentile:   calculatePercentile(r.OperatingIncomeGrowthYoY, ranges.OperatingIncomeGrowth.Min, ranges.OperatingIncomeGrowth.Max),
+		}
+	}
+
 	// Add projected EPS growth if estimates available
 	if r.EPSEstimateCurrent > 0 && r.EPSEstimateNext > 0 {
 		projectedGrowth := ((r.EPSEstimateNext - r.EPSEstimateCurrent) / r.EPSEstimateCurrent) * 100
@@ -1240,6 +1262,17 @@ func calculateGrowthFromRatios(r *models.Ratios, sector string) *Growth {
 			SectorMedian: ranges.EPSGrowth.Median,
 			SectorMax:    ranges.EPSGrowth.Max,
 			Percentile:   calculatePercentile(projectedGrowth, ranges.EPSGrowth.Min, ranges.EPSGrowth.Max),
+		}
+	}
+
+	// Add projected revenue growth from analyst estimates
+	if estimates != nil && estimates.RevenueGrowthNextY != 0 {
+		growth.ProjectedRevenueGrowth = &SectorMetric{
+			Value:        estimates.RevenueGrowthNextY,
+			SectorMin:    ranges.RevenueGrowth.Min,
+			SectorMedian: ranges.RevenueGrowth.Median,
+			SectorMax:    ranges.RevenueGrowth.Max,
+			Percentile:   calculatePercentile(estimates.RevenueGrowthNextY, ranges.RevenueGrowth.Min, ranges.RevenueGrowth.Max),
 		}
 	}
 
@@ -1263,6 +1296,17 @@ func calculateGrowthFromRatios(r *models.Ratios, sector string) *Growth {
 			SectorMedian: ranges.CashFlowGrowth.Median,
 			SectorMax:    ranges.CashFlowGrowth.Max,
 			Percentile:   calculatePercentile(r.CashFlowGrowthYoY, ranges.CashFlowGrowth.Min, ranges.CashFlowGrowth.Max),
+		}
+	}
+
+	// Add operating cash flow growth if available
+	if r.OperatingCFGrowthYoY != 0 {
+		growth.OperatingCFGrowthYoY = &SectorMetric{
+			Value:        r.OperatingCFGrowthYoY,
+			SectorMin:    ranges.OperatingCFGrowth.Min,
+			SectorMedian: ranges.OperatingCFGrowth.Median,
+			SectorMax:    ranges.OperatingCFGrowth.Max,
+			Percentile:   calculatePercentile(r.OperatingCFGrowthYoY, ranges.OperatingCFGrowth.Min, ranges.OperatingCFGrowth.Max),
 		}
 	}
 
@@ -1376,11 +1420,14 @@ type sectorRanges struct {
 	DebtToEquity       metricRange
 	CurrentRatio       metricRange
 	AssetTurnover      metricRange
-	RevenueGrowth      metricRange
-	EPSGrowth          metricRange
-	FCF                metricRange
-	CashFlowGrowth     metricRange
-	RevenuePerEmployee metricRange
+	RevenueGrowth         metricRange
+	EPSGrowth             metricRange
+	NetIncomeGrowth       metricRange
+	OperatingIncomeGrowth metricRange
+	FCF                   metricRange
+	CashFlowGrowth        metricRange
+	OperatingCFGrowth     metricRange
+	RevenuePerEmployee    metricRange
 	IncomePerEmployee  metricRange
 }
 
@@ -1404,88 +1451,110 @@ var sectorRangeData = map[string]sectorRanges{
 		ROIC: metricRange{5, 15, 40}, ROE: metricRange{10, 25, 50}, OperatingMargin: metricRange{10, 20, 40},
 		GrossMargin: metricRange{40, 60, 85}, NetMargin: metricRange{5, 15, 30},
 		DebtToEquity: metricRange{0, 0.4, 1.5}, CurrentRatio: metricRange{1, 2, 4}, AssetTurnover: metricRange{0.3, 0.6, 1.2},
-		RevenueGrowth: metricRange{-5, 15, 50}, EPSGrowth: metricRange{-10, 20, 80}, FCF: metricRange{0, 5000, 50000},
-		CashFlowGrowth: metricRange{-20, 15, 60}, RevenuePerEmployee: metricRange{200000, 500000, 1500000}, IncomePerEmployee: metricRange{20000, 80000, 300000},
+		RevenueGrowth: metricRange{-5, 15, 50}, EPSGrowth: metricRange{-10, 20, 80},
+		NetIncomeGrowth: metricRange{-15, 18, 70}, OperatingIncomeGrowth: metricRange{-10, 18, 65},
+		FCF: metricRange{0, 5000, 50000}, CashFlowGrowth: metricRange{-20, 15, 60}, OperatingCFGrowth: metricRange{-15, 15, 55},
+		RevenuePerEmployee: metricRange{200000, 500000, 1500000}, IncomePerEmployee: metricRange{20000, 80000, 300000},
 	},
 	"Healthcare": {
 		PE: metricRange{8, 22, 50}, PEG: metricRange{0.4, 1.6, 3.5}, EVToEBITDA: metricRange{6, 14, 35}, PriceToFCF: metricRange{8, 20, 50}, PriceToBook: metricRange{1.5, 4, 12},
 		ROIC: metricRange{3, 12, 30}, ROE: metricRange{8, 18, 40}, OperatingMargin: metricRange{5, 15, 30},
 		GrossMargin: metricRange{30, 55, 80}, NetMargin: metricRange{2, 12, 25},
 		DebtToEquity: metricRange{0, 0.5, 1.8}, CurrentRatio: metricRange{1, 1.8, 3.5}, AssetTurnover: metricRange{0.3, 0.5, 1.0},
-		RevenueGrowth: metricRange{-3, 10, 40}, EPSGrowth: metricRange{-15, 15, 60}, FCF: metricRange{0, 3000, 30000},
-		CashFlowGrowth: metricRange{-25, 12, 50}, RevenuePerEmployee: metricRange{150000, 350000, 800000}, IncomePerEmployee: metricRange{15000, 50000, 150000},
+		RevenueGrowth: metricRange{-3, 10, 40}, EPSGrowth: metricRange{-15, 15, 60},
+		NetIncomeGrowth: metricRange{-20, 12, 55}, OperatingIncomeGrowth: metricRange{-18, 12, 50},
+		FCF: metricRange{0, 3000, 30000}, CashFlowGrowth: metricRange{-25, 12, 50}, OperatingCFGrowth: metricRange{-20, 10, 45},
+		RevenuePerEmployee: metricRange{150000, 350000, 800000}, IncomePerEmployee: metricRange{15000, 50000, 150000},
 	},
 	"Financial Services": {
 		PE: metricRange{6, 14, 25}, PEG: metricRange{0.3, 1.2, 2.5}, EVToEBITDA: metricRange{4, 10, 20}, PriceToFCF: metricRange{5, 12, 25}, PriceToBook: metricRange{0.5, 1.5, 3},
 		ROIC: metricRange{2, 8, 18}, ROE: metricRange{8, 12, 20}, OperatingMargin: metricRange{15, 30, 50},
 		GrossMargin: metricRange{50, 70, 90}, NetMargin: metricRange{10, 22, 40},
 		DebtToEquity: metricRange{0.5, 2, 8}, CurrentRatio: metricRange{0.8, 1.2, 2}, AssetTurnover: metricRange{0.02, 0.05, 0.1},
-		RevenueGrowth: metricRange{-5, 8, 25}, EPSGrowth: metricRange{-10, 10, 35}, FCF: metricRange{0, 8000, 80000},
-		CashFlowGrowth: metricRange{-30, 10, 45}, RevenuePerEmployee: metricRange{300000, 600000, 2000000}, IncomePerEmployee: metricRange{80000, 150000, 500000},
+		RevenueGrowth: metricRange{-5, 8, 25}, EPSGrowth: metricRange{-10, 10, 35},
+		NetIncomeGrowth: metricRange{-15, 8, 35}, OperatingIncomeGrowth: metricRange{-12, 8, 30},
+		FCF: metricRange{0, 8000, 80000}, CashFlowGrowth: metricRange{-30, 10, 45}, OperatingCFGrowth: metricRange{-25, 8, 40},
+		RevenuePerEmployee: metricRange{300000, 600000, 2000000}, IncomePerEmployee: metricRange{80000, 150000, 500000},
 	},
 	"Consumer Cyclical": {
 		PE: metricRange{8, 18, 40}, PEG: metricRange{0.4, 1.4, 3}, EVToEBITDA: metricRange{5, 12, 28}, PriceToFCF: metricRange{8, 18, 45}, PriceToBook: metricRange{1.5, 4, 10},
 		ROIC: metricRange{4, 12, 28}, ROE: metricRange{10, 20, 40}, OperatingMargin: metricRange{5, 12, 25},
 		GrossMargin: metricRange{20, 35, 55}, NetMargin: metricRange{2, 8, 18},
 		DebtToEquity: metricRange{0.2, 0.8, 2}, CurrentRatio: metricRange{1, 1.5, 3}, AssetTurnover: metricRange{0.8, 1.5, 2.5},
-		RevenueGrowth: metricRange{-8, 10, 35}, EPSGrowth: metricRange{-15, 12, 50}, FCF: metricRange{0, 2000, 20000},
-		CashFlowGrowth: metricRange{-25, 10, 45}, RevenuePerEmployee: metricRange{100000, 250000, 600000}, IncomePerEmployee: metricRange{10000, 30000, 100000},
+		RevenueGrowth: metricRange{-8, 10, 35}, EPSGrowth: metricRange{-15, 12, 50},
+		NetIncomeGrowth: metricRange{-20, 10, 45}, OperatingIncomeGrowth: metricRange{-15, 10, 40},
+		FCF: metricRange{0, 2000, 20000}, CashFlowGrowth: metricRange{-25, 10, 45}, OperatingCFGrowth: metricRange{-20, 10, 40},
+		RevenuePerEmployee: metricRange{100000, 250000, 600000}, IncomePerEmployee: metricRange{10000, 30000, 100000},
 	},
 	"Consumer Defensive": {
 		PE: metricRange{10, 20, 35}, PEG: metricRange{1, 2.2, 4}, EVToEBITDA: metricRange{8, 14, 25}, PriceToFCF: metricRange{12, 22, 45}, PriceToBook: metricRange{2, 5, 12},
 		ROIC: metricRange{5, 14, 30}, ROE: metricRange{12, 22, 45}, OperatingMargin: metricRange{8, 15, 28},
 		GrossMargin: metricRange{25, 40, 60}, NetMargin: metricRange{4, 10, 20},
 		DebtToEquity: metricRange{0.2, 0.6, 1.5}, CurrentRatio: metricRange{0.8, 1.2, 2}, AssetTurnover: metricRange{0.8, 1.2, 2.0},
-		RevenueGrowth: metricRange{-3, 5, 20}, EPSGrowth: metricRange{-8, 8, 30}, FCF: metricRange{0, 4000, 40000},
-		CashFlowGrowth: metricRange{-15, 8, 35}, RevenuePerEmployee: metricRange{150000, 350000, 800000}, IncomePerEmployee: metricRange{20000, 50000, 120000},
+		RevenueGrowth: metricRange{-3, 5, 20}, EPSGrowth: metricRange{-8, 8, 30},
+		NetIncomeGrowth: metricRange{-10, 7, 28}, OperatingIncomeGrowth: metricRange{-8, 7, 25},
+		FCF: metricRange{0, 4000, 40000}, CashFlowGrowth: metricRange{-15, 8, 35}, OperatingCFGrowth: metricRange{-12, 7, 30},
+		RevenuePerEmployee: metricRange{150000, 350000, 800000}, IncomePerEmployee: metricRange{20000, 50000, 120000},
 	},
 	"Industrials": {
 		PE: metricRange{10, 20, 40}, PEG: metricRange{0.5, 1.5, 3}, EVToEBITDA: metricRange{6, 12, 25}, PriceToFCF: metricRange{8, 18, 40}, PriceToBook: metricRange{1.5, 3.5, 8},
 		ROIC: metricRange{4, 11, 25}, ROE: metricRange{10, 18, 35}, OperatingMargin: metricRange{6, 12, 22},
 		GrossMargin: metricRange{20, 32, 50}, NetMargin: metricRange{3, 8, 16},
 		DebtToEquity: metricRange{0.3, 0.8, 2}, CurrentRatio: metricRange{1, 1.5, 2.5}, AssetTurnover: metricRange{0.5, 0.9, 1.5},
-		RevenueGrowth: metricRange{-5, 8, 25}, EPSGrowth: metricRange{-12, 12, 40}, FCF: metricRange{0, 3000, 30000},
-		CashFlowGrowth: metricRange{-20, 10, 40}, RevenuePerEmployee: metricRange{150000, 300000, 700000}, IncomePerEmployee: metricRange{15000, 40000, 100000},
+		RevenueGrowth: metricRange{-5, 8, 25}, EPSGrowth: metricRange{-12, 12, 40},
+		NetIncomeGrowth: metricRange{-15, 10, 38}, OperatingIncomeGrowth: metricRange{-12, 10, 35},
+		FCF: metricRange{0, 3000, 30000}, CashFlowGrowth: metricRange{-20, 10, 40}, OperatingCFGrowth: metricRange{-18, 10, 38},
+		RevenuePerEmployee: metricRange{150000, 300000, 700000}, IncomePerEmployee: metricRange{15000, 40000, 100000},
 	},
 	"Energy": {
 		PE: metricRange{5, 12, 25}, PEG: metricRange{0.3, 1.0, 2.5}, EVToEBITDA: metricRange{3, 6, 15}, PriceToFCF: metricRange{4, 10, 25}, PriceToBook: metricRange{0.8, 1.8, 4},
 		ROIC: metricRange{2, 8, 20}, ROE: metricRange{5, 15, 30}, OperatingMargin: metricRange{5, 15, 35},
 		GrossMargin: metricRange{15, 30, 55}, NetMargin: metricRange{2, 10, 25},
 		DebtToEquity: metricRange{0.2, 0.5, 1.5}, CurrentRatio: metricRange{0.8, 1.2, 2}, AssetTurnover: metricRange{0.3, 0.6, 1.0},
-		RevenueGrowth: metricRange{-20, 5, 40}, EPSGrowth: metricRange{-30, 10, 80}, FCF: metricRange{0, 5000, 50000},
-		CashFlowGrowth: metricRange{-40, 8, 60}, RevenuePerEmployee: metricRange{500000, 1200000, 3000000}, IncomePerEmployee: metricRange{50000, 150000, 400000},
+		RevenueGrowth: metricRange{-20, 5, 40}, EPSGrowth: metricRange{-30, 10, 80},
+		NetIncomeGrowth: metricRange{-35, 8, 70}, OperatingIncomeGrowth: metricRange{-30, 8, 65},
+		FCF: metricRange{0, 5000, 50000}, CashFlowGrowth: metricRange{-40, 8, 60}, OperatingCFGrowth: metricRange{-35, 8, 55},
+		RevenuePerEmployee: metricRange{500000, 1200000, 3000000}, IncomePerEmployee: metricRange{50000, 150000, 400000},
 	},
 	"Basic Materials": {
 		PE: metricRange{6, 14, 30}, PEG: metricRange{0.3, 1.2, 2.5}, EVToEBITDA: metricRange{4, 8, 18}, PriceToFCF: metricRange{5, 12, 30}, PriceToBook: metricRange{0.8, 2, 5},
 		ROIC: metricRange{3, 9, 20}, ROE: metricRange{8, 15, 28}, OperatingMargin: metricRange{8, 15, 28},
 		GrossMargin: metricRange{15, 28, 45}, NetMargin: metricRange{3, 9, 18},
 		DebtToEquity: metricRange{0.2, 0.5, 1.5}, CurrentRatio: metricRange{1, 1.8, 3}, AssetTurnover: metricRange{0.4, 0.7, 1.2},
-		RevenueGrowth: metricRange{-15, 5, 30}, EPSGrowth: metricRange{-25, 8, 50}, FCF: metricRange{0, 2000, 20000},
-		CashFlowGrowth: metricRange{-30, 8, 50}, RevenuePerEmployee: metricRange{300000, 600000, 1500000}, IncomePerEmployee: metricRange{30000, 70000, 200000},
+		RevenueGrowth: metricRange{-15, 5, 30}, EPSGrowth: metricRange{-25, 8, 50},
+		NetIncomeGrowth: metricRange{-28, 7, 45}, OperatingIncomeGrowth: metricRange{-25, 7, 42},
+		FCF: metricRange{0, 2000, 20000}, CashFlowGrowth: metricRange{-30, 8, 50}, OperatingCFGrowth: metricRange{-25, 7, 45},
+		RevenuePerEmployee: metricRange{300000, 600000, 1500000}, IncomePerEmployee: metricRange{30000, 70000, 200000},
 	},
 	"Utilities": {
 		PE: metricRange{10, 18, 30}, PEG: metricRange{1.5, 2.5, 4.5}, EVToEBITDA: metricRange{8, 12, 20}, PriceToFCF: metricRange{8, 15, 30}, PriceToBook: metricRange{1, 2, 3.5},
 		ROIC: metricRange{2, 5, 10}, ROE: metricRange{6, 10, 15}, OperatingMargin: metricRange{15, 25, 40},
 		GrossMargin: metricRange{30, 45, 65}, NetMargin: metricRange{5, 12, 22},
 		DebtToEquity: metricRange{0.8, 1.2, 2.5}, CurrentRatio: metricRange{0.6, 0.9, 1.5}, AssetTurnover: metricRange{0.2, 0.3, 0.5},
-		RevenueGrowth: metricRange{-3, 4, 15}, EPSGrowth: metricRange{-8, 5, 20}, FCF: metricRange{0, 2000, 15000},
-		CashFlowGrowth: metricRange{-15, 5, 25}, RevenuePerEmployee: metricRange{400000, 800000, 1800000}, IncomePerEmployee: metricRange{50000, 100000, 250000},
+		RevenueGrowth: metricRange{-3, 4, 15}, EPSGrowth: metricRange{-8, 5, 20},
+		NetIncomeGrowth: metricRange{-10, 5, 20}, OperatingIncomeGrowth: metricRange{-8, 5, 18},
+		FCF: metricRange{0, 2000, 15000}, CashFlowGrowth: metricRange{-15, 5, 25}, OperatingCFGrowth: metricRange{-12, 5, 22},
+		RevenuePerEmployee: metricRange{400000, 800000, 1800000}, IncomePerEmployee: metricRange{50000, 100000, 250000},
 	},
 	"Real Estate": {
 		PE: metricRange{15, 35, 70}, PEG: metricRange{1, 2, 4}, EVToEBITDA: metricRange{10, 18, 35}, PriceToFCF: metricRange{12, 25, 50}, PriceToBook: metricRange{1, 2.5, 5},
 		ROIC: metricRange{2, 5, 12}, ROE: metricRange{4, 8, 15}, OperatingMargin: metricRange{20, 35, 55},
 		GrossMargin: metricRange{40, 60, 80}, NetMargin: metricRange{10, 25, 45},
 		DebtToEquity: metricRange{0.5, 1, 2.5}, CurrentRatio: metricRange{0.5, 1, 2}, AssetTurnover: metricRange{0.05, 0.1, 0.2},
-		RevenueGrowth: metricRange{-5, 5, 20}, EPSGrowth: metricRange{-10, 5, 25}, FCF: metricRange{0, 500, 5000},
-		CashFlowGrowth: metricRange{-20, 5, 30}, RevenuePerEmployee: metricRange{200000, 500000, 1500000}, IncomePerEmployee: metricRange{30000, 100000, 400000},
+		RevenueGrowth: metricRange{-5, 5, 20}, EPSGrowth: metricRange{-10, 5, 25},
+		NetIncomeGrowth: metricRange{-12, 5, 22}, OperatingIncomeGrowth: metricRange{-10, 5, 20},
+		FCF: metricRange{0, 500, 5000}, CashFlowGrowth: metricRange{-20, 5, 30}, OperatingCFGrowth: metricRange{-15, 5, 25},
+		RevenuePerEmployee: metricRange{200000, 500000, 1500000}, IncomePerEmployee: metricRange{30000, 100000, 400000},
 	},
 	"Communication Services": {
 		PE: metricRange{8, 18, 40}, PEG: metricRange{0.4, 1.3, 3}, EVToEBITDA: metricRange{5, 10, 22}, PriceToFCF: metricRange{6, 15, 35}, PriceToBook: metricRange{1.2, 3, 8},
 		ROIC: metricRange{4, 10, 22}, ROE: metricRange{8, 16, 32}, OperatingMargin: metricRange{10, 20, 35},
 		GrossMargin: metricRange{35, 55, 75}, NetMargin: metricRange{5, 15, 28},
 		DebtToEquity: metricRange{0.3, 0.8, 2}, CurrentRatio: metricRange{0.8, 1.3, 2.5}, AssetTurnover: metricRange{0.3, 0.5, 0.9},
-		RevenueGrowth: metricRange{-5, 10, 35}, EPSGrowth: metricRange{-15, 15, 50}, FCF: metricRange{0, 5000, 50000},
-		CashFlowGrowth: metricRange{-20, 12, 45}, RevenuePerEmployee: metricRange{300000, 700000, 2000000}, IncomePerEmployee: metricRange{40000, 120000, 400000},
+		RevenueGrowth: metricRange{-5, 10, 35}, EPSGrowth: metricRange{-15, 15, 50},
+		NetIncomeGrowth: metricRange{-18, 12, 45}, OperatingIncomeGrowth: metricRange{-15, 12, 42},
+		FCF: metricRange{0, 5000, 50000}, CashFlowGrowth: metricRange{-20, 12, 45}, OperatingCFGrowth: metricRange{-18, 10, 40},
+		RevenuePerEmployee: metricRange{300000, 700000, 2000000}, IncomePerEmployee: metricRange{40000, 120000, 400000},
 	},
 }
 

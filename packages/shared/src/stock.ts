@@ -748,12 +748,20 @@ export interface Growth {
   revenueGrowthYoY: SectorMetric;
   /** Year-over-year earnings per share growth rate percentage */
   epsGrowthYoY: SectorMetric;
+  /** Year-over-year net income growth rate percentage */
+  netIncomeGrowthYoY?: SectorMetric;
+  /** Year-over-year operating income growth rate percentage */
+  operatingIncomeGrowthYoY?: SectorMetric;
   /** Projected EPS growth based on analyst estimates */
   projectedEpsGrowth?: SectorMetric;
+  /** Projected revenue growth based on analyst estimates for next fiscal year */
+  projectedRevenueGrowth?: SectorMetric;
   /** Free Cash Flow (TTM) in millions */
   freeCashFlowTTM?: SectorMetric;
-  /** Year-over-year operating cash flow growth rate percentage */
+  /** Year-over-year free cash flow growth rate percentage */
   cashFlowGrowthYoY?: SectorMetric;
+  /** Year-over-year operating cash flow growth rate percentage */
+  operatingCFGrowthYoY?: SectorMetric;
 }
 
 // =============================================================================
