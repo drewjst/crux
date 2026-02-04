@@ -131,21 +131,34 @@ func (p *Provider) GetRatios(ctx context.Context, ticker string) (*models.Ratios
 			"operatingCFGrowth", ratios.OperatingCFGrowthYoY)
 	}
 
-	// Fetch income statements for RevenueTTM and NetIncomeTTM (still needed for other calculations)
-	income, err := p.client.GetIncomeStatement(ctx, ticker, 1)
+	// Fetch 2 years of income statements for RevenueTTM, NetIncomeTTM, and YoY growth calculation
+	income, err := p.client.GetIncomeStatement(ctx, ticker, 2)
 	if err != nil {
 		slog.Debug("failed to fetch income statement", "ticker", ticker, "error", err)
 	} else if len(income) >= 1 {
 		ratios.RevenueTTM = income[0].Revenue
 		ratios.NetIncomeTTM = income[0].NetIncome
+
+		// Calculate YoY growth from statements when financial-growth endpoint didn't provide them
+		if len(income) >= 2 && income[1].NetIncome != 0 && ratios.NetIncomeGrowthYoY == 0 {
+			ratios.NetIncomeGrowthYoY = (income[0].NetIncome - income[1].NetIncome) / abs(income[1].NetIncome) * 100
+		}
+		if len(income) >= 2 && income[1].OperatingIncome != 0 && ratios.OperatingIncomeGrowthYoY == 0 {
+			ratios.OperatingIncomeGrowthYoY = (income[0].OperatingIncome - income[1].OperatingIncome) / abs(income[1].OperatingIncome) * 100
+		}
 	}
 
-	// Fetch cash flow statements for FCF TTM value
-	cashFlow, err := p.client.GetCashFlowStatement(ctx, ticker, 1)
+	// Fetch 2 years of cash flow statements for FCF TTM and operating CF growth
+	cashFlow, err := p.client.GetCashFlowStatement(ctx, ticker, 2)
 	if err != nil {
 		slog.Debug("failed to fetch cash flow for FCF", "ticker", ticker, "error", err)
 	} else if len(cashFlow) >= 1 {
 		ratios.FreeCashFlowTTM = cashFlow[0].FreeCashFlow
+
+		// Calculate operating CF growth when financial-growth endpoint didn't provide it
+		if len(cashFlow) >= 2 && cashFlow[1].OperatingCashFlow != 0 && ratios.OperatingCFGrowthYoY == 0 {
+			ratios.OperatingCFGrowthYoY = (cashFlow[0].OperatingCashFlow - cashFlow[1].OperatingCashFlow) / abs(cashFlow[1].OperatingCashFlow) * 100
+		}
 	}
 
 	return ratios, nil
