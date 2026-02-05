@@ -19,7 +19,7 @@ import (
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/massive"
 )
 
-// ValidSectors lists the supported GICS sector names.
+// ValidSectors lists the supported GICS sector names plus custom watchlists.
 var ValidSectors = []string{
 	"Technology",
 	"Healthcare",
@@ -32,6 +32,20 @@ var ValidSectors = []string{
 	"Basic Materials",
 	"Real Estate",
 	"Utilities",
+	// Custom curated watchlists
+	"Software",
+}
+
+// CustomSectors maps custom sector names to their curated ticker lists.
+// These bypass the FMP screener and use batch quotes instead.
+var CustomSectors = map[string][]string{
+	"Software": {
+		"FIG", "TTD", "DUOL", "HUBS", "MNDY", "WIX", "TEAM", "ASAN",
+		"CVLT", "DOCS", "KVYO", "BRZE", "IOT", "GTLB", "NOW", "DOCU",
+		"GWRE", "ESTC", "CLBT", "CRM", "WDAY", "INTU", "ADBE", "SAP",
+		"DDOG", "VEEV", "SNOW", "ZETA", "ADP", "FSLY", "ADSK", "CFLT",
+		"TWLO", "MDB", "ZM",
+	},
 }
 
 // validSectorSet provides O(1) lookup for sector validation.
@@ -47,6 +61,12 @@ func init() {
 // IsValidSector reports whether the sector name is recognized.
 func IsValidSector(sector string) bool {
 	return validSectorSet[sector]
+}
+
+// IsCustomSector reports whether the sector uses a curated ticker list.
+func IsCustomSector(sector string) bool {
+	_, ok := CustomSectors[sector]
+	return ok
 }
 
 // NormalizeSectorParam converts a URL-safe sector param (hyphens) to the
@@ -148,12 +168,20 @@ func (s *Service) GetSectorOverview(ctx context.Context, sectorName string, limi
 		return &cached, nil
 	}
 
-	// 2. Get stock list from FMP screener
-	screenerResults, err := s.getScreenerResults(ctx, sectorName, limit)
-	if err != nil {
-		return nil, fmt.Errorf("screener for %s: %w", sectorName, err)
+	// 2. Get stock list — custom watchlist or FMP screener
+	var tickers []string
+	var entries []StockEntry
+	var err error
+
+	if customTickers, ok := CustomSectors[sectorName]; ok {
+		tickers, entries, err = s.getCustomSectorEntries(ctx, customTickers)
+	} else {
+		tickers, entries, err = s.getScreenerEntries(ctx, sectorName, limit)
 	}
-	if len(screenerResults) == 0 {
+	if err != nil {
+		return nil, fmt.Errorf("stock list for %s: %w", sectorName, err)
+	}
+	if len(entries) == 0 {
 		return &SectorOverviewResponse{
 			Sector:     sectorName,
 			StockCount: 0,
@@ -161,20 +189,6 @@ func (s *Service) GetSectorOverview(ctx context.Context, sectorName string, limi
 			Summary:    OverviewSummary{},
 			Stocks:     []StockEntry{},
 		}, nil
-	}
-
-	// Build initial stock entries from screener
-	tickers := make([]string, len(screenerResults))
-	entries := make([]StockEntry, len(screenerResults))
-	for i, sr := range screenerResults {
-		tickers[i] = sr.Symbol
-		entries[i] = StockEntry{
-			Ticker:    sr.Symbol,
-			Name:      sr.Name,
-			LogoURL:   sr.Image,
-			Price:     sr.Price,
-			MarketCap: sr.MarketCap,
-		}
 	}
 
 	// 3-6: Fetch all enrichment data in parallel
@@ -205,8 +219,8 @@ func (s *Service) GetSectorOverview(ctx context.Context, sectorName string, limi
 	return resp, nil
 }
 
-// getScreenerResults fetches screener results, using the tiered cache.
-func (s *Service) getScreenerResults(ctx context.Context, sector string, limit int) ([]fmp.ScreenerResult, error) {
+// getScreenerEntries fetches stocks via FMP screener and returns tickers + entries.
+func (s *Service) getScreenerEntries(ctx context.Context, sector string, limit int) ([]string, []StockEntry, error) {
 	cacheKey := sector
 	var cached []fmp.ScreenerResult
 	if hit, err := s.cache.Get(ctx, "screener", cacheKey, &cached); err != nil {
@@ -215,19 +229,60 @@ func (s *Service) getScreenerResults(ctx context.Context, sector string, limit i
 		if len(cached) > limit {
 			cached = cached[:limit]
 		}
-		return cached, nil
+		t, e := screenerToEntries(cached)
+		return t, e, nil
 	}
 
 	results, err := s.fmp.GetStockScreener(ctx, sector, limit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := s.cache.Set(ctx, "screener", cacheKey, results); err != nil {
 		slog.Warn("screener cache set failed", "error", err)
 	}
 
-	return results, nil
+	t, e := screenerToEntries(results)
+	return t, e, nil
+}
+
+// screenerToEntries converts screener results to tickers and stock entries.
+func screenerToEntries(results []fmp.ScreenerResult) ([]string, []StockEntry) {
+	tickers := make([]string, len(results))
+	entries := make([]StockEntry, len(results))
+	for i, sr := range results {
+		tickers[i] = sr.Symbol
+		entries[i] = StockEntry{
+			Ticker:    sr.Symbol,
+			Name:      sr.Name,
+			LogoURL:   sr.Image,
+			Price:     sr.Price,
+			MarketCap: sr.MarketCap,
+		}
+	}
+	return tickers, entries
+}
+
+// getCustomSectorEntries fetches stock data for a curated ticker list via batch quotes.
+func (s *Service) getCustomSectorEntries(ctx context.Context, tickers []string) ([]string, []StockEntry, error) {
+	quotes, err := s.fmp.GetBatchQuotes(ctx, tickers)
+	if err != nil {
+		return nil, nil, fmt.Errorf("batch quotes: %w", err)
+	}
+
+	resultTickers := make([]string, 0, len(quotes))
+	entries := make([]StockEntry, 0, len(quotes))
+	for _, q := range quotes {
+		resultTickers = append(resultTickers, q.Symbol)
+		entries = append(entries, StockEntry{
+			Ticker:    q.Symbol,
+			Name:      q.Name,
+			Price:     q.Price,
+			MarketCap: q.MarketCap,
+		})
+	}
+
+	return resultTickers, entries, nil
 }
 
 // enrichEntries fetches snapshots, technicals, ratios, and bars in parallel

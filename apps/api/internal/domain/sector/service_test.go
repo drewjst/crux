@@ -24,6 +24,7 @@ func TestIsValidSector(t *testing.T) {
 		{"Real Estate", true},
 		{"Utilities", true},
 		{"technology", false},
+		{"Software", true},
 		{"Tech", false},
 		{"", false},
 	}
@@ -34,6 +35,18 @@ func TestIsValidSector(t *testing.T) {
 				t.Errorf("IsValidSector(%q) = %v, want %v", tt.sector, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestIsCustomSector(t *testing.T) {
+	if !IsCustomSector("Software") {
+		t.Error("Software should be a custom sector")
+	}
+	if IsCustomSector("Technology") {
+		t.Error("Technology should not be a custom sector")
+	}
+	if IsCustomSector("") {
+		t.Error("empty string should not be a custom sector")
 	}
 }
 

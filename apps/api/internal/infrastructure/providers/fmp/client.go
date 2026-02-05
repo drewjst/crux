@@ -85,6 +85,19 @@ func (c *Client) GetQuote(ctx context.Context, ticker string) (*Quote, error) {
 	return &quotes[0], nil
 }
 
+// GetBatchQuotes retrieves real-time quote data for multiple tickers in a single call.
+func (c *Client) GetBatchQuotes(ctx context.Context, tickers []string) ([]Quote, error) {
+	symbols := strings.Join(tickers, ",")
+	url := fmt.Sprintf("%s/quote?symbol=%s&apikey=%s", c.baseURL, symbols, c.apiKey)
+
+	var quotes []Quote
+	if err := c.get(ctx, url, &quotes); err != nil {
+		return nil, fmt.Errorf("fetching batch quotes: %w", err)
+	}
+
+	return quotes, nil
+}
+
 // GetIncomeStatement retrieves income statement data.
 func (c *Client) GetIncomeStatement(ctx context.Context, ticker string, limit int) ([]IncomeStatement, error) {
 	url := fmt.Sprintf("%s/income-statement?symbol=%s&period=annual&limit=%d&apikey=%s", c.baseURL, normalizeTicker(ticker), limit, c.apiKey)
