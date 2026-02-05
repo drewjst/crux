@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/massive"
+	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/fmp"
 )
 
 func TestIsValidSector(t *testing.T) {
@@ -59,48 +59,48 @@ func TestNormalizeSectorParam(t *testing.T) {
 	}
 }
 
-func TestSampleSparkline(t *testing.T) {
-	// 10 bars, sample to 5 points
-	bars := make([]massive.Bar, 10)
-	for i := range bars {
-		bars[i].Close = float64(i + 1) * 10
+func TestSampleSparklinePrices(t *testing.T) {
+	// 10 prices, sample to 5 points
+	prices := make([]fmp.HistoricalPrice, 10)
+	for i := range prices {
+		prices[i].Close = float64(i+1) * 10
 	}
 
-	sparkline := sampleSparkline(bars, 5)
+	sparkline := sampleSparklinePrices(prices, 5)
 	if len(sparkline) != 5 {
 		t.Fatalf("expected 5 points, got %d", len(sparkline))
 	}
 
-	// First point should be bar[0].Close = 10
+	// First point should be prices[0].Close = 10
 	if sparkline[0] != 10 {
 		t.Errorf("expected first point 10, got %f", sparkline[0])
 	}
 }
 
-func TestSampleSparkline_FewerBarsThanPoints(t *testing.T) {
-	bars := []massive.Bar{
+func TestSampleSparklinePrices_FewerThanPoints(t *testing.T) {
+	prices := []fmp.HistoricalPrice{
 		{Close: 10},
 		{Close: 20},
 		{Close: 30},
 	}
 
-	sparkline := sampleSparkline(bars, 50)
+	sparkline := sampleSparklinePrices(prices, 50)
 	if len(sparkline) != 3 {
 		t.Fatalf("expected 3 points, got %d", len(sparkline))
 	}
 }
 
-func TestCalculateReturns(t *testing.T) {
+func TestCalculateReturnsPrices(t *testing.T) {
 	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
 
-	bars := []massive.Bar{
-		{Close: 100, Timestamp: time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC).UnixMilli()},
-		{Close: 105, Timestamp: time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC).UnixMilli()},
-		{Close: 110, Timestamp: time.Date(2026, 5, 16, 0, 0, 0, 0, time.UTC).UnixMilli()},
-		{Close: 120, Timestamp: time.Date(2026, 6, 14, 0, 0, 0, 0, time.UTC).UnixMilli()},
+	prices := []fmp.HistoricalPrice{
+		{Close: 100, Date: "2025-06-15"},
+		{Close: 105, Date: "2026-01-02"},
+		{Close: 110, Date: "2026-05-16"},
+		{Close: 120, Date: "2026-06-14"},
 	}
 
-	ytd, oneMonth, oneYear := calculateReturns(bars, now)
+	ytd, oneMonth, oneYear := calculateReturnsPrices(prices, now)
 
 	// 1Y return: (120-100)/100 = 20%
 	if oneYear == nil {
@@ -127,14 +127,14 @@ func TestCalculateReturns(t *testing.T) {
 	}
 }
 
-func TestCalculateHighLow(t *testing.T) {
-	bars := []massive.Bar{
+func TestCalculateHighLowPrices(t *testing.T) {
+	prices := []fmp.HistoricalPrice{
 		{High: 150, Low: 140},
 		{High: 160, Low: 130},
 		{High: 155, Low: 135},
 	}
 
-	high, low := calculateHighLow(bars)
+	high, low := calculateHighLowPrices(prices)
 	if high == nil || *high != 160 {
 		t.Errorf("high = %v, want 160", high)
 	}

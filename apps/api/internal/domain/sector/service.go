@@ -439,25 +439,26 @@ func (s *Service) getCachedRatios(ctx context.Context, ticker string) (*float64,
 	return cr.Ps, cr.Pe
 }
 
-// fetchHistorical fetches 1Y daily bars for sparklines and return calculations.
+// fetchHistorical fetches 1Y daily prices from FMP for sparklines and return calculations.
 func (s *Service) fetchHistorical(ctx context.Context, tickers []string, entries []StockEntry, tickerIndex map[string]int, mu *sync.Mutex) {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(maxConcurrent)
 
 	now := time.Now()
 	oneYearAgo := now.AddDate(-1, 0, 0)
+	fromDate := oneYearAgo.Format("2006-01-02")
 
 	for _, ticker := range tickers {
 		g.Go(func() error {
-			bars := s.getCachedBars(gCtx, ticker, oneYearAgo, now)
-			if len(bars) == 0 {
+			prices := s.getCachedPrices(gCtx, ticker, fromDate)
+			if len(prices) == 0 {
 				return nil
 			}
 
-			sparkline := sampleSparkline(bars, sparklinePoints)
-			chartData := extractCloses(bars)
-			ytd, oneMonth, oneYear := calculateReturns(bars, now)
-			yearHigh, yearLow := calculateHighLow(bars)
+			sparkline := sampleSparklinePrices(prices, sparklinePoints)
+			chartData := extractClosePrices(prices)
+			ytd, oneMonth, oneYear := calculateReturnsPrices(prices, now)
+			yearHigh, yearLow := calculateHighLowPrices(prices)
 
 			mu.Lock()
 			idx := tickerIndex[ticker]
@@ -479,65 +480,71 @@ func (s *Service) fetchHistorical(ctx context.Context, tickers []string, entries
 	_ = g.Wait()
 }
 
-// getCachedBars retrieves daily bars from cache or Massive.
-func (s *Service) getCachedBars(ctx context.Context, ticker string, from, to time.Time) []massive.Bar {
-	var cached []massive.Bar
+// getCachedPrices retrieves daily prices from cache or FMP.
+func (s *Service) getCachedPrices(ctx context.Context, ticker string, fromDate string) []fmp.HistoricalPrice {
+	var cached []fmp.HistoricalPrice
 	if hit, err := s.cache.Get(ctx, "daily_bars", ticker, &cached); err == nil && hit {
 		return cached
 	}
 
-	bars, err := s.massive.GetDailyBars(ctx, ticker, from, to)
+	prices, err := s.fmp.GetHistoricalPrices(ctx, ticker, fromDate)
 	if err != nil {
-		slog.Debug("daily bars failed", "ticker", ticker, "error", err)
+		slog.Warn("historical prices failed", "ticker", ticker, "error", err)
 		return nil
 	}
-	if len(bars) == 0 {
+	if len(prices) == 0 {
 		return nil
 	}
 
-	if err := s.cache.Set(ctx, "daily_bars", ticker, bars); err != nil {
-		slog.Debug("daily bars cache set failed", "ticker", ticker, "error", err)
+	// FMP returns newest-first; reverse to oldest-first for calculations
+	for i, j := 0, len(prices)-1; i < j; i, j = i+1, j-1 {
+		prices[i], prices[j] = prices[j], prices[i]
 	}
 
-	return bars
+	if err := s.cache.Set(ctx, "daily_bars", ticker, prices); err != nil {
+		slog.Debug("daily prices cache set failed", "ticker", ticker, "error", err)
+	}
+
+	return prices
 }
 
-// --- Computation helpers ---
+// --- Computation helpers (FMP HistoricalPrice-based, oldest-first order) ---
 
-// sampleSparkline samples N evenly-spaced close prices from bars.
-func sampleSparkline(bars []massive.Bar, points int) []float64 {
-	if len(bars) <= points {
-		return extractCloses(bars)
+// sampleSparklinePrices samples N evenly-spaced close prices from historical prices.
+func sampleSparklinePrices(prices []fmp.HistoricalPrice, points int) []float64 {
+	if len(prices) <= points {
+		return extractClosePrices(prices)
 	}
 
 	sparkline := make([]float64, 0, points)
-	step := float64(len(bars)) / float64(points)
+	step := float64(len(prices)) / float64(points)
 	for i := 0; i < points; i++ {
 		idx := int(float64(i) * step)
-		if idx >= len(bars) {
-			idx = len(bars) - 1
+		if idx >= len(prices) {
+			idx = len(prices) - 1
 		}
-		sparkline = append(sparkline, bars[idx].Close)
+		sparkline = append(sparkline, prices[idx].Close)
 	}
 	return sparkline
 }
 
-// extractCloses returns all close prices from bars.
-func extractCloses(bars []massive.Bar) []float64 {
-	closes := make([]float64, len(bars))
-	for i, b := range bars {
-		closes[i] = b.Close
+// extractClosePrices returns all close prices from historical prices.
+func extractClosePrices(prices []fmp.HistoricalPrice) []float64 {
+	closes := make([]float64, len(prices))
+	for i, p := range prices {
+		closes[i] = p.Close
 	}
 	return closes
 }
 
-// calculateReturns computes YTD, 1-month, and 1-year returns from bar data.
-func calculateReturns(bars []massive.Bar, now time.Time) (ytd, oneMonth, oneYear *float64) {
-	if len(bars) < 2 {
+// calculateReturnsPrices computes YTD, 1-month, and 1-year returns from FMP price data.
+// Expects prices sorted oldest-first.
+func calculateReturnsPrices(prices []fmp.HistoricalPrice, now time.Time) (ytd, oneMonth, oneYear *float64) {
+	if len(prices) < 2 {
 		return nil, nil, nil
 	}
 
-	currentPrice := bars[len(bars)-1].Close
+	currentPrice := prices[len(prices)-1].Close
 	if currentPrice == 0 {
 		return nil, nil, nil
 	}
@@ -545,28 +552,34 @@ func calculateReturns(bars []massive.Bar, now time.Time) (ytd, oneMonth, oneYear
 	ytdStart := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
 	oneMonthAgo := now.AddDate(0, -1, 0)
 
-	// 1-year return: first bar vs last
-	firstClose := bars[0].Close
+	// 1-year return: first price vs last
+	firstClose := prices[0].Close
 	if firstClose > 0 {
 		ret := ((currentPrice - firstClose) / firstClose) * 100
 		oneYear = float64Ptr(math.Round(ret*100) / 100)
 	}
 
-	// YTD: find first bar on or after Jan 1
-	for _, b := range bars {
-		barTime := time.UnixMilli(b.Timestamp).UTC()
-		if !barTime.Before(ytdStart) && b.Close > 0 {
-			ret := ((currentPrice - b.Close) / b.Close) * 100
+	// YTD: find first price on or after Jan 1
+	for _, p := range prices {
+		barDate, err := time.Parse("2006-01-02", p.Date)
+		if err != nil {
+			continue
+		}
+		if !barDate.Before(ytdStart) && p.Close > 0 {
+			ret := ((currentPrice - p.Close) / p.Close) * 100
 			ytd = float64Ptr(math.Round(ret*100) / 100)
 			break
 		}
 	}
 
-	// 1-month: find first bar on or after 1 month ago
-	for _, b := range bars {
-		barTime := time.UnixMilli(b.Timestamp).UTC()
-		if !barTime.Before(oneMonthAgo) && b.Close > 0 {
-			ret := ((currentPrice - b.Close) / b.Close) * 100
+	// 1-month: find first price on or after 1 month ago
+	for _, p := range prices {
+		barDate, err := time.Parse("2006-01-02", p.Date)
+		if err != nil {
+			continue
+		}
+		if !barDate.Before(oneMonthAgo) && p.Close > 0 {
+			ret := ((currentPrice - p.Close) / p.Close) * 100
 			oneMonth = float64Ptr(math.Round(ret*100) / 100)
 			break
 		}
@@ -575,20 +588,20 @@ func calculateReturns(bars []massive.Bar, now time.Time) (ytd, oneMonth, oneYear
 	return ytd, oneMonth, oneYear
 }
 
-// calculateHighLow finds the 52-week high and low from bars.
-func calculateHighLow(bars []massive.Bar) (*float64, *float64) {
-	if len(bars) == 0 {
+// calculateHighLowPrices finds the 52-week high and low from historical prices.
+func calculateHighLowPrices(prices []fmp.HistoricalPrice) (*float64, *float64) {
+	if len(prices) == 0 {
 		return nil, nil
 	}
 
-	high := bars[0].High
-	low := bars[0].Low
-	for _, b := range bars[1:] {
-		if b.High > high {
-			high = b.High
+	high := prices[0].High
+	low := prices[0].Low
+	for _, p := range prices[1:] {
+		if p.High > high {
+			high = p.High
 		}
-		if b.Low < low && b.Low > 0 {
-			low = b.Low
+		if p.Low < low && p.Low > 0 {
+			low = p.Low
 		}
 	}
 

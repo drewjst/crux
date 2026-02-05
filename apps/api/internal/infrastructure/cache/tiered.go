@@ -44,7 +44,7 @@ func (c CacheConfig) maxTTL() time.Duration {
 var CacheConfigs = map[string]CacheConfig{
 	// Massive (price) data — fresh during market hours
 	"snapshot":   {TTL: 5 * time.Minute, Source: "massive"},
-	"daily_bars": {TTL: 24 * time.Hour, Source: "massive"},
+	"daily_bars": {TTL: 24 * time.Hour, Source: "fmp"},
 	"sma_20":     {TTL: 15 * time.Minute, Source: "massive"},
 	"sma_50":     {TTL: 15 * time.Minute, Source: "massive"},
 	"sma_200":    {TTL: 1 * time.Hour, Source: "massive"},

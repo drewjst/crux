@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -630,7 +631,7 @@ func (c *Client) GetNews(ctx context.Context, ticker string, limit int) ([]NewsA
 func (c *Client) GetStockScreener(ctx context.Context, sector string, limit int) ([]ScreenerResult, error) {
 	url := fmt.Sprintf(
 		"%s/company-screener?sector=%s&limit=%d&country=US&exchange=NYSE,NASDAQ&isActivelyTrading=true&apikey=%s",
-		c.baseURL, sector, limit, c.apiKey,
+		c.baseURL, url.QueryEscape(sector), limit, c.apiKey,
 	)
 
 	var results []ScreenerResult
