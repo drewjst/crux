@@ -2,6 +2,7 @@
 
 import { memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Info } from 'lucide-react';
 import type { SectorStock } from '@/lib/api';
 import type { ColumnKey } from './use-column-visibility';
 import { formatCurrency } from '@/lib/format';
@@ -9,6 +10,11 @@ import { HeatmapCell } from './heatmap-cell';
 import { SparklineSvg } from './sparkline-svg';
 import { SmaIndicator } from './sma-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface ColumnDef {
   key: ColumnKey;
@@ -99,6 +105,7 @@ const HeatmapRow = memo(function HeatmapRow({
                 value={stock.ytdChange}
                 scale="performance"
                 className="text-sm"
+                compact
               />
             );
           case '1m':
@@ -108,6 +115,7 @@ const HeatmapRow = memo(function HeatmapRow({
                 value={stock.oneMonthChange}
                 scale="performance"
                 className="text-sm"
+                compact
               />
             );
           case '1y':
@@ -117,6 +125,7 @@ const HeatmapRow = memo(function HeatmapRow({
                 value={stock.oneYearChange}
                 scale="performance"
                 className="text-sm"
+                compact
               />
             );
           case 'from52wHigh':
@@ -126,6 +135,7 @@ const HeatmapRow = memo(function HeatmapRow({
                 value={stock.from52wHigh}
                 scale="from52w"
                 className="text-sm"
+                compact
               />
             );
           case 'chart1Y':
@@ -193,11 +203,35 @@ export function HeatmapTable({ stocks, visibleColumns }: HeatmapTableProps) {
             {activeCols.map((col) => (
               <th
                 key={col.key}
-                className={`py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  col.key === 'name' ? 'text-left' : 'text-right'
-                } ${col.hiddenOnMobile ? 'hidden md:table-cell' : ''}`}
+                className={`py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
+                  col.key === 'name' ? 'text-left px-2' : 'text-right'
+                } ${col.key === 'ytd' || col.key === '1y' || col.key === '1m' ? 'px-1' : 'px-2'} ${col.hiddenOnMobile ? 'hidden md:table-cell' : ''}`}
               >
-                {col.label}
+                {col.key === 'rsRank' ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 cursor-help">
+                        {col.label}
+                        <Info className="h-3 w-3 text-muted-foreground/60" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px]">
+                      <p className="text-xs">Relative Strength rank (1-99). Measures 1Y price performance vs. all stocks in this sector.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : col.key === 'sma' ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-0.5 cursor-help">
+                        {col.label}
+                        <Info className="h-3 w-3 text-muted-foreground/60" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px]">
+                      <p className="text-xs">Simple Moving Averages (20, 50, 200 day). Green = price above SMA, Red = price below.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : col.label}
               </th>
             ))}
           </tr>

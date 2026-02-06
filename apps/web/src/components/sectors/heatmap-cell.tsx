@@ -8,6 +8,7 @@ interface HeatmapCellProps {
   value: number | null;
   scale: HeatmapScale;
   className?: string;
+  compact?: boolean;
 }
 
 function getHeatmapStyle(
@@ -57,10 +58,12 @@ function formatValue(value: number, scale: HeatmapScale): string {
   return `${sign}${value.toFixed(1)}%`;
 }
 
-export function HeatmapCell({ value, scale, className }: HeatmapCellProps) {
+export function HeatmapCell({ value, scale, className, compact }: HeatmapCellProps) {
+  const padding = compact ? 'py-2 px-1' : 'py-2 px-2';
+
   if (value == null) {
     return (
-      <td className={cn('py-2 px-2 text-right text-muted-foreground', className)}>
+      <td className={cn(`${padding} text-right text-muted-foreground`, className)}>
         --
       </td>
     );
@@ -70,7 +73,7 @@ export function HeatmapCell({ value, scale, className }: HeatmapCellProps) {
 
   return (
     <td
-      className={cn('py-2 px-2 text-right tabular-nums font-medium', className)}
+      className={cn(`${padding} text-right tabular-nums font-medium`, className)}
       style={style}
     >
       {formatValue(value, scale)}
