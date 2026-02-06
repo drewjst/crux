@@ -17,6 +17,7 @@ const COLUMN_LABELS: { key: ColumnKey; label: string }[] = [
   { key: 'marketCap', label: 'Market Cap' },
   { key: 'ps', label: 'P/S' },
   { key: 'pe', label: 'P/E' },
+  { key: 'roic', label: 'ROIC' },
   { key: 'ytd', label: '% YTD' },
   { key: '1m', label: '% 1M' },
   { key: '1y', label: '% 1Y' },

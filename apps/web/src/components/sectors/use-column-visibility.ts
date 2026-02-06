@@ -6,6 +6,7 @@ export type ColumnKey =
   | 'marketCap'
   | 'ps'
   | 'pe'
+  | 'roic'
   | 'ytd'
   | '1m'
   | '1y'
@@ -17,7 +18,7 @@ export type ColumnKey =
 const STORAGE_KEY = 'sector-columns';
 
 const DEFAULT_COLUMNS: ColumnKey[] = [
-  'name', 'price', 'marketCap', 'ps', 'pe',
+  'name', 'price', 'marketCap', 'ps', 'pe', 'roic',
   'ytd', '1y', 'from52wHigh', 'chart1Y', 'rsRank', 'sma',
 ];
 

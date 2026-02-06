@@ -28,6 +28,7 @@ const COLUMNS: ColumnDef[] = [
   { key: 'marketCap', label: 'Mkt Cap' },
   { key: 'ps', label: 'P/S' },
   { key: 'pe', label: 'P/E' },
+  { key: 'roic', label: 'ROIC' },
   { key: 'ytd', label: '% YTD' },
   { key: '1m', label: '% 1M' },
   { key: '1y', label: '% 1Y' },
@@ -96,6 +97,12 @@ const HeatmapRow = memo(function HeatmapRow({
             return (
               <td key={col.key} className="py-2 px-2 text-right tabular-nums text-sm">
                 {stock.pe != null ? stock.pe.toFixed(1) + 'x' : '--'}
+              </td>
+            );
+          case 'roic':
+            return (
+              <td key={col.key} className="py-2 px-2 text-right tabular-nums text-sm">
+                {stock.roic != null ? stock.roic.toFixed(1) + '%' : '--'}
               </td>
             );
           case 'ytd':
@@ -260,7 +267,7 @@ export function HeatmapTableSkeleton() {
             <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Ticker
             </th>
-            {['Company', 'Price', 'Mkt Cap', 'P/S', 'P/E', '% YTD', '% 1Y', '% 52W Hi', 'Chart', 'RS', 'SMA'].map(
+            {['Company', 'Price', 'Mkt Cap', 'P/S', 'P/E', 'ROIC', '% YTD', '% 1Y', '% 52W Hi', 'Chart', 'RS', 'SMA'].map(
               (label) => (
                 <th
                   key={label}
@@ -278,7 +285,7 @@ export function HeatmapTableSkeleton() {
               <td className="py-2 px-3">
                 <Skeleton className="h-4 w-12" />
               </td>
-              {Array.from({ length: 11 }, (_, j) => (
+              {Array.from({ length: 12 }, (_, j) => (
                 <td key={j} className="py-2 px-2">
                   <Skeleton className="h-4 w-14 ml-auto" />
                 </td>

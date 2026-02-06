@@ -126,6 +126,7 @@ type StockEntry struct {
 	MarketCap      float64   `json:"marketCap"`
 	Ps             *float64  `json:"ps"`
 	Pe             *float64  `json:"pe"`
+	Roic           *float64  `json:"roic"`
 	YtdChange      *float64  `json:"ytdChange"`
 	OneMonthChange *float64  `json:"oneMonthChange"`
 	OneYearChange  *float64  `json:"oneYearChange"`
@@ -446,11 +447,12 @@ func (s *Service) fetchRatios(ctx context.Context, tickers []string, entries []S
 
 	for _, ticker := range tickers {
 		g.Go(func() error {
-			ps, pe := s.getCachedRatios(gCtx, ticker)
+			ps, pe, roic := s.getCachedRatios(gCtx, ticker)
 			mu.Lock()
 			idx := tickerIndex[ticker]
 			entries[idx].Ps = ps
 			entries[idx].Pe = pe
+			entries[idx].Roic = roic
 			mu.Unlock()
 			return nil
 		})
@@ -458,40 +460,50 @@ func (s *Service) fetchRatios(ctx context.Context, tickers []string, entries []S
 	_ = g.Wait()
 }
 
-// getCachedRatios retrieves P/S and P/E from cache or FMP.
-func (s *Service) getCachedRatios(ctx context.Context, ticker string) (*float64, *float64) {
+// getCachedRatios retrieves P/S, P/E, and ROIC from cache or FMP.
+func (s *Service) getCachedRatios(ctx context.Context, ticker string) (*float64, *float64, *float64) {
 	type cachedRatios struct {
-		Ps *float64 `json:"ps"`
-		Pe *float64 `json:"pe"`
+		Ps   *float64 `json:"ps"`
+		Pe   *float64 `json:"pe"`
+		Roic *float64 `json:"roic"`
 	}
 
 	var cr cachedRatios
 	if hit, err := s.cache.Get(ctx, "ratios_ttm", ticker, &cr); err == nil && hit {
-		return cr.Ps, cr.Pe
+		return cr.Ps, cr.Pe, cr.Roic
 	}
 
-	ratios, err := s.fmp.GetRatiosTTM(ctx, ticker)
-	if err != nil || len(ratios) == 0 {
-		if err != nil {
-			slog.Debug("ratios TTM failed", "ticker", ticker, "error", err)
-		}
-		return nil, nil
-	}
-
-	r := ratios[0]
 	cr = cachedRatios{}
-	if r.PriceToSalesRatioTTM != 0 {
-		cr.Ps = float64Ptr(r.PriceToSalesRatioTTM)
+
+	// Fetch ratios TTM (P/S, P/E)
+	ratios, err := s.fmp.GetRatiosTTM(ctx, ticker)
+	if err != nil {
+		slog.Debug("ratios TTM failed", "ticker", ticker, "error", err)
+	} else if len(ratios) > 0 {
+		r := ratios[0]
+		if r.PriceToSalesRatioTTM != 0 {
+			cr.Ps = float64Ptr(r.PriceToSalesRatioTTM)
+		}
+		if r.PriceToEarningsRatioTTM != 0 {
+			cr.Pe = float64Ptr(r.PriceToEarningsRatioTTM)
+		}
 	}
-	if r.PriceToEarningsRatioTTM != 0 {
-		cr.Pe = float64Ptr(r.PriceToEarningsRatioTTM)
+
+	// Fetch key metrics TTM (ROIC)
+	metrics, err := s.fmp.GetKeyMetricsTTM(ctx, ticker)
+	if err != nil {
+		slog.Debug("key metrics TTM failed", "ticker", ticker, "error", err)
+	} else if len(metrics) > 0 {
+		if metrics[0].ReturnOnInvestedCapitalTTM != 0 {
+			cr.Roic = float64Ptr(metrics[0].ReturnOnInvestedCapitalTTM * 100)
+		}
 	}
 
 	if err := s.cache.Set(ctx, "ratios_ttm", ticker, &cr); err != nil {
 		slog.Debug("ratios cache set failed", "ticker", ticker, "error", err)
 	}
 
-	return cr.Ps, cr.Pe
+	return cr.Ps, cr.Pe, cr.Roic
 }
 
 // fetchHistorical fetches 1Y daily prices from FMP for sparklines and return calculations.

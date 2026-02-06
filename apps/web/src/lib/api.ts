@@ -392,6 +392,7 @@ export interface SectorStock {
   marketCap: number;
   ps: number | null;
   pe: number | null;
+  roic: number | null;
   ytdChange: number | null;
   oneMonthChange: number | null;
   oneYearChange: number | null;
