@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/cache"
 	"github.com/drewjst/crux/apps/api/internal/infrastructure/providers/fmp"
@@ -146,6 +147,9 @@ type Service struct {
 	fmp     *fmp.Client
 	massive *massive.Client
 	cache   cache.TieredCache
+	sfRatios     singleflight.Group
+	sfTechnicals singleflight.Group
+	sfPrices     singleflight.Group
 }
 
 // NewService creates a new sector service.
@@ -354,15 +358,19 @@ func (s *Service) fetchTechnicals(ctx context.Context, tickers []string, entries
 
 	for _, ticker := range tickers {
 		g.Go(func() error {
-			ti, err := s.getCachedTechnicals(gCtx, ticker, entries[tickerIndex[ticker]].Price)
+			price := entries[tickerIndex[ticker]].Price
+			v, err, _ := s.sfTechnicals.Do(ticker, func() (interface{}, error) {
+				return s.getCachedTechnicals(gCtx, ticker, price)
+			})
 			if err != nil {
 				slog.Debug("technicals failed", "ticker", ticker, "error", err)
 				return nil // non-fatal
 			}
-			if ti == nil {
+			if v == nil {
 				return nil
 			}
 
+			ti := v.(*massive.TechnicalIndicators)
 			mu.Lock()
 			idx := tickerIndex[ticker]
 			entries[idx].SMA20 = boolPtr(ti.Above20)
@@ -445,14 +453,22 @@ func (s *Service) fetchRatios(ctx context.Context, tickers []string, entries []S
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(maxConcurrent)
 
+	type ratiosResult struct {
+		ps, pe, roic *float64
+	}
+
 	for _, ticker := range tickers {
 		g.Go(func() error {
-			ps, pe, roic := s.getCachedRatios(gCtx, ticker)
+			v, _, _ := s.sfRatios.Do(ticker, func() (interface{}, error) {
+				ps, pe, roic := s.getCachedRatios(gCtx, ticker)
+				return ratiosResult{ps, pe, roic}, nil
+			})
+			r := v.(ratiosResult)
 			mu.Lock()
 			idx := tickerIndex[ticker]
-			entries[idx].Ps = ps
-			entries[idx].Pe = pe
-			entries[idx].Roic = roic
+			entries[idx].Ps = r.ps
+			entries[idx].Pe = r.pe
+			entries[idx].Roic = r.roic
 			mu.Unlock()
 			return nil
 		})
@@ -461,6 +477,7 @@ func (s *Service) fetchRatios(ctx context.Context, tickers []string, entries []S
 }
 
 // getCachedRatios retrieves P/S, P/E, and ROIC from cache or FMP.
+// On cache miss, fetches RatiosTTM and KeyMetricsTTM in parallel.
 func (s *Service) getCachedRatios(ctx context.Context, ticker string) (*float64, *float64, *float64) {
 	type cachedRatios struct {
 		Ps   *float64 `json:"ps"`
@@ -475,29 +492,47 @@ func (s *Service) getCachedRatios(ctx context.Context, ticker string) (*float64,
 
 	cr = cachedRatios{}
 
-	// Fetch ratios TTM (P/S, P/E)
-	ratios, err := s.fmp.GetRatiosTTM(ctx, ticker)
-	if err != nil {
-		slog.Debug("ratios TTM failed", "ticker", ticker, "error", err)
-	} else if len(ratios) > 0 {
-		r := ratios[0]
-		if r.PriceToSalesRatioTTM != 0 {
-			cr.Ps = float64Ptr(r.PriceToSalesRatioTTM)
-		}
-		if r.PriceToEarningsRatioTTM != 0 {
-			cr.Pe = float64Ptr(r.PriceToEarningsRatioTTM)
-		}
-	}
+	// Fetch ratios TTM and key metrics TTM in parallel
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 
-	// Fetch key metrics TTM (ROIC)
-	metrics, err := s.fmp.GetKeyMetricsTTM(ctx, ticker)
-	if err != nil {
-		slog.Debug("key metrics TTM failed", "ticker", ticker, "error", err)
-	} else if len(metrics) > 0 {
-		if metrics[0].ReturnOnInvestedCapitalTTM != 0 {
-			cr.Roic = float64Ptr(metrics[0].ReturnOnInvestedCapitalTTM * 100)
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		ratios, err := s.fmp.GetRatiosTTM(ctx, ticker)
+		if err != nil {
+			slog.Debug("ratios TTM failed", "ticker", ticker, "error", err)
+			return
 		}
-	}
+		if len(ratios) > 0 {
+			r := ratios[0]
+			mu.Lock()
+			if r.PriceToSalesRatioTTM != 0 {
+				cr.Ps = float64Ptr(r.PriceToSalesRatioTTM)
+			}
+			if r.PriceToEarningsRatioTTM != 0 {
+				cr.Pe = float64Ptr(r.PriceToEarningsRatioTTM)
+			}
+			mu.Unlock()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		metrics, err := s.fmp.GetKeyMetricsTTM(ctx, ticker)
+		if err != nil {
+			slog.Debug("key metrics TTM failed", "ticker", ticker, "error", err)
+			return
+		}
+		if len(metrics) > 0 && metrics[0].ReturnOnInvestedCapitalTTM != 0 {
+			mu.Lock()
+			cr.Roic = float64Ptr(metrics[0].ReturnOnInvestedCapitalTTM * 100)
+			mu.Unlock()
+		}
+	}()
+
+	wg.Wait()
 
 	if err := s.cache.Set(ctx, "ratios_ttm", ticker, &cr); err != nil {
 		slog.Debug("ratios cache set failed", "ticker", ticker, "error", err)
@@ -517,7 +552,10 @@ func (s *Service) fetchHistorical(ctx context.Context, tickers []string, entries
 
 	for _, ticker := range tickers {
 		g.Go(func() error {
-			prices := s.getCachedPrices(gCtx, ticker, fromDate)
+			v, _, _ := s.sfPrices.Do(ticker, func() (interface{}, error) {
+				return s.getCachedPrices(gCtx, ticker, fromDate), nil
+			})
+			prices := v.([]fmp.HistoricalPrice)
 			if len(prices) == 0 {
 				return nil
 			}
