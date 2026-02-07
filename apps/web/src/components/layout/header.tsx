@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { TickerSearch } from '@/components/search/ticker-search';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
@@ -30,31 +30,25 @@ function NavLink({ href, children, isActive }: NavLinkProps) {
   );
 }
 
+const NAV_LINKS = [
+  { href: '/', label: 'Screener', match: (p: string) => p === '/' || p.startsWith('/stock/') },
+  { href: '/compare', label: 'Compare', match: (p: string) => p.startsWith('/compare') },
+  { href: '/10k', label: '10-K', match: (p: string) => p.startsWith('/10k') },
+  { href: '/sectors', label: 'Sectors', match: (p: string) => p.startsWith('/sectors') },
+  { href: '/crypto', label: 'Crypto', match: (p: string) => p.startsWith('/crypto') },
+];
+
 function Navigation() {
   const pathname = usePathname();
 
-  const isScreenerActive = pathname === '/' || pathname.startsWith('/stock/');
-  const isCompareActive = pathname.startsWith('/compare');
-  const is10KActive = pathname.startsWith('/10k');
-  const isSectorsActive = pathname.startsWith('/sectors');
-  const isCryptoActive = pathname.startsWith('/crypto');
-
-  const links = [
-    { href: '/', label: 'Screener', isActive: isScreenerActive },
-    { href: '/compare', label: 'Compare', isActive: isCompareActive },
-    { href: '/10k', label: '10-K', isActive: is10KActive },
-    { href: '/sectors', label: 'Sectors', isActive: isSectorsActive },
-    { href: '/crypto', label: 'Crypto', isActive: isCryptoActive },
-  ];
-
   return (
     <nav className="flex items-center gap-1">
-      {links.map((link, i) => (
+      {NAV_LINKS.map((link, i) => (
         <span key={link.href} className="flex items-center">
           {i > 0 && (
             <span className="h-3.5 w-px bg-border/60 mx-1" />
           )}
-          <NavLink href={link.href} isActive={link.isActive}>
+          <NavLink href={link.href} isActive={link.match(pathname)}>
             {link.label}
           </NavLink>
         </span>
@@ -63,13 +57,15 @@ function Navigation() {
   );
 }
 
-function MobileSearchModal({
+function MobileMenu({
   isOpen,
   onClose
 }: {
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const pathname = usePathname();
+
   if (!isOpen) return null;
 
   return (
@@ -80,23 +76,47 @@ function MobileSearchModal({
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative mx-auto mt-20 max-w-lg px-4">
-        <div className="rounded-lg border bg-card p-4 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-medium text-muted-foreground">Search stocks</h2>
+      {/* Panel */}
+      <div className="relative mx-auto max-w-lg px-4 pt-4">
+        <div className="rounded-lg border bg-card shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <span className="text-sm font-medium text-muted-foreground">Menu</span>
             <button
               onClick={onClose}
               className="p-1 rounded-md hover:bg-muted transition-colors"
-              aria-label="Close search"
+              aria-label="Close menu"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <TickerSearch
-            autoFocus
-            onSelect={() => onClose()}
-          />
+
+          {/* Navigation Links */}
+          <nav className="px-2 py-2">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onClose}
+                className={cn(
+                  'block px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  link.match(pathname)
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Search */}
+          <div className="px-4 pb-4 pt-2 border-t">
+            <TickerSearch
+              autoFocus
+              onSelect={() => onClose()}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -104,7 +124,7 @@ function MobileSearchModal({
 }
 
 export function Header() {
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
@@ -135,13 +155,13 @@ export function Header() {
               </Suspense>
             </div>
 
-            {/* Mobile Search Button */}
+            {/* Mobile Menu Button */}
             <button
-              onClick={() => setMobileSearchOpen(true)}
+              onClick={() => setMobileMenuOpen(true)}
               className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-border/50 bg-muted/30 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-              aria-label="Open search"
+              aria-label="Open menu"
             >
-              <Search className="h-4 w-4" />
+              <Menu className="h-4 w-4" />
             </button>
 
             {/* Theme Toggle */}
@@ -150,11 +170,13 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile Search Modal */}
-      <MobileSearchModal
-        isOpen={mobileSearchOpen}
-        onClose={() => setMobileSearchOpen(false)}
-      />
+      {/* Mobile Menu */}
+      <Suspense fallback={null}>
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+      </Suspense>
     </>
   );
 }
