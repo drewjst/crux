@@ -19,13 +19,16 @@ function NavLink({ href, children, isActive }: NavLinkProps) {
     <Link
       href={href}
       className={cn(
-        'px-3 py-1.5 text-sm font-medium transition-colors',
+        'relative px-3 py-1.5 text-xs font-medium tracking-wide uppercase transition-all duration-200',
         isActive
-          ? 'text-foreground'
-          : 'text-muted-foreground hover:text-foreground/80'
+          ? 'text-primary'
+          : 'text-muted-foreground/70 hover:text-foreground'
       )}
     >
       {children}
+      {isActive && (
+        <span className="absolute inset-x-1 -bottom-[1.5px] h-[2px] rounded-full bg-primary" />
+      )}
     </Link>
   );
 }
@@ -42,16 +45,11 @@ function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1">
-      {NAV_LINKS.map((link, i) => (
-        <span key={link.href} className="flex items-center">
-          {i > 0 && (
-            <span className="h-3.5 w-px bg-border/60 mx-1" />
-          )}
-          <NavLink href={link.href} isActive={link.match(pathname)}>
-            {link.label}
-          </NavLink>
-        </span>
+    <nav className="flex items-center gap-0.5 rounded-lg border border-border/40 bg-muted/30 px-1 py-1">
+      {NAV_LINKS.map((link) => (
+        <NavLink key={link.href} href={link.href} isActive={link.match(pathname)}>
+          {link.label}
+        </NavLink>
       ))}
     </nav>
   );
@@ -147,9 +145,9 @@ export function Header() {
           </div>
 
           {/* Right - Search + Theme toggle */}
-          <div className="flex flex-1 items-center justify-end gap-3">
+          <div className="flex flex-1 items-center justify-end gap-2">
             {/* Desktop Search */}
-            <div className="hidden md:flex flex-1">
+            <div className="hidden md:flex w-64 lg:w-72">
               <Suspense fallback={null}>
                 <TickerSearch placeholder="Search stocks..." />
               </Suspense>

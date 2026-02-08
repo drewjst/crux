@@ -120,10 +120,19 @@ type SectorOverviewResponse struct {
 
 // OverviewSummary contains aggregate metrics for the sector.
 type OverviewSummary struct {
-	AvgPs     *float64 `json:"avgPs"`
-	AvgPe     *float64 `json:"avgPe"`
-	MedianYtd *float64 `json:"medianYtd"`
-	Median1y  *float64 `json:"median1y"`
+	AvgPs             *float64 `json:"avgPs"`
+	AvgPe             *float64 `json:"avgPe"`
+	MedianYtd         *float64 `json:"medianYtd"`
+	Median1y          *float64 `json:"median1y"`
+	TotalMarketCap    *float64 `json:"totalMarketCap"`
+	MedianPs          *float64 `json:"medianPs"`
+	MedianPe          *float64 `json:"medianPe"`
+	AvgRoic           *float64 `json:"avgRoic"`
+	Median1m          *float64 `json:"median1m"`
+	MedianFrom52wHigh *float64 `json:"medianFrom52wHigh"`
+	PctAboveSma20     *float64 `json:"pctAboveSma20"`
+	PctAboveSma50     *float64 `json:"pctAboveSma50"`
+	PctAboveSma200    *float64 `json:"pctAboveSma200"`
 }
 
 // StockEntry contains all data for one stock in the sector overview.
@@ -790,34 +799,90 @@ func calculateRSRank(entries []StockEntry) {
 // calculateSummary computes aggregate metrics for the sector.
 func calculateSummary(entries []StockEntry) OverviewSummary {
 	var psVals, peVals, ytdVals, oneYearVals []float64
+	var roicVals, oneMonthVals, from52wHighVals []float64
+	var totalMarketCap float64
+	var sma20Above, sma20Total, sma50Above, sma50Total, sma200Above, sma200Total int
 
 	for _, e := range entries {
+		totalMarketCap += e.MarketCap
 		if e.Ps != nil {
 			psVals = append(psVals, *e.Ps)
 		}
 		if e.Pe != nil && *e.Pe > 0 {
 			peVals = append(peVals, *e.Pe)
 		}
+		if e.Roic != nil {
+			roicVals = append(roicVals, *e.Roic)
+		}
 		if e.YtdChange != nil {
 			ytdVals = append(ytdVals, *e.YtdChange)
+		}
+		if e.OneMonthChange != nil {
+			oneMonthVals = append(oneMonthVals, *e.OneMonthChange)
 		}
 		if e.OneYearChange != nil {
 			oneYearVals = append(oneYearVals, *e.OneYearChange)
 		}
+		if e.From52wHigh != nil {
+			from52wHighVals = append(from52wHighVals, *e.From52wHigh)
+		}
+		if e.SMA20 != nil {
+			sma20Total++
+			if *e.SMA20 {
+				sma20Above++
+			}
+		}
+		if e.SMA50 != nil {
+			sma50Total++
+			if *e.SMA50 {
+				sma50Above++
+			}
+		}
+		if e.SMA200 != nil {
+			sma200Total++
+			if *e.SMA200 {
+				sma200Above++
+			}
+		}
 	}
 
+	round2 := func(v float64) float64 { return math.Round(v*100) / 100 }
+
 	summary := OverviewSummary{}
+	if totalMarketCap > 0 {
+		summary.TotalMarketCap = float64Ptr(totalMarketCap)
+	}
 	if len(psVals) > 0 {
-		summary.AvgPs = float64Ptr(math.Round(avg(psVals)*100) / 100)
+		summary.AvgPs = float64Ptr(round2(avg(psVals)))
+		summary.MedianPs = float64Ptr(round2(median(psVals)))
 	}
 	if len(peVals) > 0 {
-		summary.AvgPe = float64Ptr(math.Round(avg(peVals)*100) / 100)
+		summary.AvgPe = float64Ptr(round2(avg(peVals)))
+		summary.MedianPe = float64Ptr(round2(median(peVals)))
+	}
+	if len(roicVals) > 0 {
+		summary.AvgRoic = float64Ptr(round2(avg(roicVals)))
+	}
+	if len(oneMonthVals) > 0 {
+		summary.Median1m = float64Ptr(round2(median(oneMonthVals)))
 	}
 	if len(ytdVals) > 0 {
-		summary.MedianYtd = float64Ptr(math.Round(median(ytdVals)*100) / 100)
+		summary.MedianYtd = float64Ptr(round2(median(ytdVals)))
 	}
 	if len(oneYearVals) > 0 {
-		summary.Median1y = float64Ptr(math.Round(median(oneYearVals)*100) / 100)
+		summary.Median1y = float64Ptr(round2(median(oneYearVals)))
+	}
+	if len(from52wHighVals) > 0 {
+		summary.MedianFrom52wHigh = float64Ptr(round2(median(from52wHighVals)))
+	}
+	if sma20Total > 0 {
+		summary.PctAboveSma20 = float64Ptr(round2(float64(sma20Above) / float64(sma20Total) * 100))
+	}
+	if sma50Total > 0 {
+		summary.PctAboveSma50 = float64Ptr(round2(float64(sma50Above) / float64(sma50Total) * 100))
+	}
+	if sma200Total > 0 {
+		summary.PctAboveSma200 = float64Ptr(round2(float64(sma200Above) / float64(sma200Total) * 100))
 	}
 
 	return summary

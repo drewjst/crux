@@ -412,6 +412,15 @@ export interface SectorSummary {
   avgPe: number | null;
   medianYtd: number | null;
   median1y: number | null;
+  totalMarketCap: number | null;
+  medianPs: number | null;
+  medianPe: number | null;
+  avgRoic: number | null;
+  median1m: number | null;
+  medianFrom52wHigh: number | null;
+  pctAboveSma20: number | null;
+  pctAboveSma50: number | null;
+  pctAboveSma200: number | null;
 }
 
 export interface SectorOverviewResponse {

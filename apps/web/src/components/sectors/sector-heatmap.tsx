@@ -6,6 +6,7 @@ import { useSectors, useSectorOverview } from '@/hooks/use-sector-overview';
 import type { SectorSortField } from '@/lib/api';
 import { useColumnVisibility } from './use-column-visibility';
 import { ColumnToggle } from './column-toggle';
+import { ShareButton } from '@/components/ui/share-button';
 import { SummaryBar } from './summary-bar';
 import { HeatmapTable, HeatmapTableSkeleton } from './heatmap-table';
 
@@ -90,7 +91,12 @@ export function SectorHeatmap() {
           ))}
         </select>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          <ShareButton
+            ticker={sector}
+            text={`${sector} sector overview on Cruxit`}
+            url={`https://cruxit.finance/sectors?sector=${encodeURIComponent(sector)}`}
+          />
           <ColumnToggle
             visibleColumns={visibleColumns}
             onToggle={toggleColumn}
