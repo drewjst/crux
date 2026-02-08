@@ -12,52 +12,9 @@ env:
   SERVICE_ACCOUNT: github-actions@recon-484118.iam.gserviceaccount.com
 
 jobs:
-  deploy-api:
-    name: Deploy API to Dev
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Build and push API image
-        run: |
-          gcloud builds submit . \
-            --config=.github/cloudbuild-api.yaml \
-            --substitutions=_IMAGE_NAME=crux-dev-api,COMMIT_SHA=${{ github.sha }}
-
-      - name: Deploy API to Cloud Run
-        run: |
-          gcloud run deploy crux-dev-api \
-            --image gcr.io/${{ env.PROJECT_ID }}/crux-dev-api:${{ github.sha }} \
-            --region ${{ env.REGION }} \
-            --platform managed \
-            --allow-unauthenticated \
-            --port 8080 \
-            --add-cloudsql-instances=recon-484118:us-central1:cruxit-db \
-            --set-secrets=FMP_API_KEY=fmp-api-key:latest,POLYGON_API_KEY=polygon-api-key:latest,DATABASE_URL=database-url:latest \
-            --set-env-vars=ALLOWED_ORIGINS=https://crux-dev-web-273165967255.us-central1.run.app,FUNDAMENTALS_PROVIDER=fmp,CRUX_AI_ENABLED=true,GCP_PROJECT_ID=recon-484118,GCP_LOCATION=us-central1,CRUX_AI_MODEL=gemini-2.0-flash-001 \
-            --memory 512Mi \
-            --cpu 1 \
-            --min-instances 0 \
-            --max-instances 2
-
   deploy-web:
     name: Deploy Web to Dev
     runs-on: ubuntu-latest
-    needs: deploy-api
     permissions:
       contents: read
       id-token: write

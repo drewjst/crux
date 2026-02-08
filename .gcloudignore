@@ -29,17 +29,6 @@ out/
 dist/
 build/
 
-# Ignore Go binaries
-*.exe
-*.dll
-*.so
-*.dylib
-apps/api/api
-
-# Keep package-lock.json files (needed for npm ci)
-!apps/*/package-lock.json
-!packages/*/package-lock.json
-
 # Ignore local env files
 .env
 .env.local
