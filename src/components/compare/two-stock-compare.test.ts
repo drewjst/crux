@@ -1,6 +1,7 @@
 
 import { describe, it, bench } from 'vitest';
 import { calculateCategoryWins } from '../../lib/compare-logic';
+import { calculateRankings } from '../../lib/compare-utils';
 import type { StockDetailResponse } from '@recon/shared';
 
 // Mock data generator
@@ -82,7 +83,10 @@ const createMockStock = (ticker: string, seed: number): StockDetailResponse => {
       revenueEstimateCurrentYear: 100,
       revenueEstimateNextYear: 112,
     },
-    signals: [],
+    signals: [
+      { type: 'bullish', name: 'Bull', description: 'Up' },
+      { type: 'bearish', name: 'Bear', description: 'Down' },
+    ],
     insiderTrades: [],
     meta: {
         fundamentalsAsOf: '',
@@ -96,23 +100,32 @@ const createMockStock = (ticker: string, seed: number): StockDetailResponse => {
 describe('Comparison Calculation Performance', () => {
   const left = createMockStock('LFT', 1);
   const right = createMockStock('RGT', 2);
+  const stocks = [left, right];
 
-  it('calculates wins correctly', () => {
+  it('calculates category wins correctly', () => {
     const result = calculateCategoryWins(left, right);
-    // Basic correctness check to ensure loop runs
     if (result.left.length === 0 && result.right.length === 0) {
         throw new Error("No wins calculated, mock data might be insufficient");
     }
   });
 
-  // Simple loop to measure time
-  it('measures execution time', () => {
+  it('measures calculateCategoryWins execution time', () => {
     const start = performance.now();
     for (let i = 0; i < 10000; i++) {
       calculateCategoryWins(left, right);
     }
     const end = performance.now();
-    console.log(`10,000 iterations took ${(end - start).toFixed(2)}ms`);
+    console.log(`calculateCategoryWins: 10,000 iterations took ${(end - start).toFixed(2)}ms`);
+    console.log(`Average per iteration: ${((end - start) / 10000).toFixed(4)}ms`);
+  });
+
+  it('measures calculateRankings execution time', () => {
+    const start = performance.now();
+    for (let i = 0; i < 10000; i++) {
+      calculateRankings(stocks);
+    }
+    const end = performance.now();
+    console.log(`calculateRankings: 10,000 iterations took ${(end - start).toFixed(2)}ms`);
     console.log(`Average per iteration: ${((end - start) / 10000).toFixed(4)}ms`);
   });
 });

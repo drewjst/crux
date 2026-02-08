@@ -642,8 +642,8 @@ function SignalsSummary({ left, right }: { left: StockDetailResponse; right: Sto
     return { bullish, bearish, warning };
   };
 
-  const leftSignals = countSignals(left.signals);
-  const rightSignals = countSignals(right.signals);
+  const leftSignals = useMemo(() => countSignals(left.signals), [left.signals]);
+  const rightSignals = useMemo(() => countSignals(right.signals), [right.signals]);
 
   const leftWinsBullish = leftSignals.bullish > rightSignals.bullish;
   const rightWinsBullish = rightSignals.bullish > leftSignals.bullish;
