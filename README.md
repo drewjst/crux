@@ -1,8 +1,10 @@
-# Crux
+# Cruxit
 
 **Stock fundamental analysis, distilled.** Enter a ticker, get the crux in 30 seconds.
 
-Crux synthesizes financial data into conviction scores and actionable signals — cutting through noise to surface what matters for investment decisions.
+Cruxit synthesizes financial data into conviction scores and actionable signals — cutting through noise to surface what matters for investment decisions.
+
+Live at [cruxit.finance](https://cruxit.finance)
 
 ## Features
 
@@ -16,18 +18,19 @@ Crux synthesizes financial data into conviction scores and actionable signals �
 - **Smart Money** — Institutional ownership trends, insider activity, congressional trades, short interest
 - **Signals** — Automated bullish/bearish/warning flags based on score thresholds
 - **Stock Compare** — Side-by-side comparison of 2-4 stocks
-- **Sector Heatmap** — Sector-level overview with aggregate stats and SMA breadth
+- **Sector Heatmap** — Sector-level overview with aggregate stats, SMA breadth, and RS rankings
 - **ETF Support** — Fund overview, holdings, sector breakdown, and performance
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js (App Router), React 19, TanStack Query, Tailwind CSS, shadcn/ui |
-| Backend | Go (separate repo: [crux-api](https://github.com/drewjst/crux-api)) |
-| Database | PostgreSQL (Cloud SQL) |
-| AI | Google Vertex AI (Gemini 2.0 Flash) |
-| Data | FMP (fundamentals), Polygon.io (search), Massive (technicals) |
+| Framework | Next.js 16 (App Router), React 19 |
+| State | TanStack Query |
+| Styling | Tailwind CSS 4, shadcn/ui |
+| Charts | Recharts |
+| Types | `@recon/shared` (local package) |
+| Backend | Go API ([crux-api](https://github.com/drewjst/crux-api)) |
 | Deployment | Google Cloud Run, GitHub Actions |
 
 ## Local Development
@@ -35,7 +38,7 @@ Crux synthesizes financial data into conviction scores and actionable signals �
 ### Prerequisites
 
 - Node.js 22+
-- [API server](https://github.com/drewjst/crux-api) running locally (or use a deployed URL)
+- [crux-api](https://github.com/drewjst/crux-api) running locally (or use a deployed URL)
 
 ### Quick Start
 
@@ -48,52 +51,56 @@ npm install
 cp .env.example .env.local
 # Set NEXT_PUBLIC_API_URL in .env.local (default: http://localhost:8080)
 
-# Start frontend
 npm run dev
 ```
 
-Frontend: http://localhost:3000
+Open http://localhost:3000
+
+### Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run Vitest |
 
 ### Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_API_URL` | No | Backend API URL (default: http://localhost:8080) |
+| `NEXT_PUBLIC_API_URL` | No | Backend API URL (default: `http://localhost:8080`) |
+| `API_KEY` | No | API key for server-side requests to authenticated API (prod only) |
 
 ## Project Structure
 
 ```
-crux/
-├── src/
-│   ├── app/              # Pages (stock, compare, sectors, crypto)
-│   ├── components/       # React components
-│   ├── hooks/            # TanStack Query hooks
-│   └── lib/              # API client, utilities, types
-├── packages/
-│   └── shared/           # Shared TypeScript API contracts
-├── Dockerfile            # Production container build
-└── .github/
-    ├── workflows/        # GitHub Actions (deploy dev/prod)
-    └── cloudbuild-web.yaml
+src/
+  app/                  # Pages (stock, compare, sectors, 10k, crypto)
+  components/           # React components (layout, search, sectors, ui)
+  hooks/                # TanStack Query hooks
+  lib/                  # API client, utilities, types
+packages/
+  shared/               # Shared TypeScript API type contracts
+.github/
+  workflows/            # CI/CD (release, deploy-dev, deploy-prod)
+  cloudbuild-web.yaml   # Cloud Build config
 ```
 
 ## Deployment
 
-Hosted on **Google Cloud Run**.
+Hosted on **Google Cloud Run** with CI/CD via GitHub Actions.
 
-- Push to `main` deploys to dev environment
-- Release publish deploys to production
-- Secrets managed via Google Secret Manager
+| Trigger | Environment |
+|---------|-------------|
+| Push to `main` | Dev |
+| Release published or manual dispatch | Prod |
+
+Secrets are managed via Google Secret Manager and injected at deploy time.
 
 ## Contributing
 
-See [CLAUDE.md](./CLAUDE.md) for coding standards and conventions.
-
-**Key Principles:**
-- Readability over cleverness
-- Functions do one thing (max 20-30 lines)
-- Type safety (no `any` in TypeScript)
-- Server Components where possible, client only for interactivity
+See [CLAUDE.md](./CLAUDE.md) for coding standards and architecture decisions.
 
 ## License
 
