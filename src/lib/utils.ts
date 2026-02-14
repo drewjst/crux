@@ -71,7 +71,6 @@ export function formatDate(date: string | Date): string {
   return DATE_FORMATTER.format(new Date(date));
 }
 
-// eslint-disable-next-line
 export function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
