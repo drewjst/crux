@@ -303,17 +303,6 @@ export interface HistoricalValuationPoint {
 }
 
 /**
- * Historical P/E data point for charting.
- * @deprecated Use HistoricalValuationPoint instead
- */
-export interface HistoricalPE {
-  /** Date of the data point (ISO 8601) */
-  date: string;
-  /** P/E ratio value */
-  pe: number;
-}
-
-/**
  * Peer company with valuation metrics for comparison table.
  */
 export interface PeerValuation {
