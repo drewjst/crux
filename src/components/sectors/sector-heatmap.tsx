@@ -12,7 +12,7 @@ import { HeatmapTable, HeatmapTableSkeleton } from './heatmap-table';
 
 const DEFAULT_SECTOR = 'Technology';
 const DEFAULT_SORT: SectorSortField = 'marketcap';
-const DEFAULT_LIMIT = 30;
+const DEFAULT_LIMIT = 20;
 
 const SORT_OPTIONS: { value: SectorSortField; label: string }[] = [
   { value: '52whigh', label: 'Near 52W High' },
