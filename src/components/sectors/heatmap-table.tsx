@@ -152,7 +152,7 @@ const HeatmapRow = memo(function HeatmapRow({
                 className={`py-2 px-2 ${col.hiddenOnMobile ? 'hidden md:table-cell' : ''}`}
               >
                 <SparklineSvg
-                  data={stock.chartData1Y}
+                  data={stock.sparkline}
                   oneYearChange={stock.oneYearChange}
                 />
               </td>

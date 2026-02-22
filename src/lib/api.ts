@@ -419,7 +419,6 @@ export interface SectorStock {
   sma200: boolean | null;
   rsRank: number | null;
   sparkline: number[];
-  chartData1Y: number[];
 }
 
 export interface SectorSummary {
