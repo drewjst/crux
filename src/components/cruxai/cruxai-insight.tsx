@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Newspaper, AlertCircle, RefreshCw } from 'lucide-react';
 import { fetchInsight, type InsightSection, type NewsSentiment, type NewsLink } from '@/lib/api';
@@ -195,7 +196,7 @@ function NewsArticleRow({ article }: { article: NewsLink }) {
 
 // Dedicated component for news sentiment display
 function NewsSentimentContent({ insight }: { insight: string }) {
-  const parsed = parseNewsSentiment(insight);
+  const parsed = useMemo(() => parseNewsSentiment(insight), [insight]);
 
   if (!parsed) {
     // Fallback to raw text if parsing fails
