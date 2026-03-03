@@ -1,10 +1,12 @@
 'use client';
 
-import { Search, ChevronUp, ChevronDown } from 'lucide-react';
+import type { RefObject } from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import type { SectorStock, SectorSummary } from '@/lib/api';
 import { formatPercent } from '@/lib/utils';
 import { MiniSparkline } from './mini-sparkline';
+import { ConsoleSearch } from './console-search';
 import type { SortField, SortDir } from './console-view';
 
 interface LeftPanelProps {
@@ -20,10 +22,9 @@ interface LeftPanelProps {
   sortBy: SortField;
   sortDir: SortDir;
   onSort: (field: SortField) => void;
-  search: string;
-  onSearchChange: (search: string) => void;
   isLoading: boolean;
   isMobile?: boolean;
+  tableRef?: RefObject<HTMLDivElement | null>;
 }
 
 function SortHeader({
@@ -100,25 +101,15 @@ export function LeftPanel({
   sortBy,
   sortDir,
   onSort,
-  search,
-  onSearchChange,
   isLoading,
   isMobile = false,
+  tableRef,
 }: LeftPanelProps) {
   return (
     <div className="flex h-full flex-col bg-[#0a0a0f]">
       {/* Search + filters */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/80">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search ticker or name..."
-            className="w-full rounded bg-zinc-900 border border-zinc-800 py-1.5 pl-7 pr-2 text-xs text-zinc-200 placeholder:text-zinc-600 font-mono focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20"
-          />
-        </div>
+        <ConsoleSearch onSelect={onSelectTicker} />
         <select
           value={sector}
           onChange={(e) => onSectorChange(e.target.value)}
@@ -158,7 +149,7 @@ export function LeftPanel({
       </div>
 
       {/* Stock rows */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={tableRef} className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500/30 border-t-orange-500" />
@@ -204,6 +195,7 @@ function StockRow({
 
   const row = (
     <div
+      data-ticker={stock.ticker}
       onClick={() => onSelect(stock.ticker)}
       className={`grid grid-cols-[72px_68px_56px_56px_60px_64px_56px_60px] gap-0 px-3 py-1.5 cursor-pointer border-b border-zinc-800/30 transition-colors ${
         isSelected

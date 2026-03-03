@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useConsoleStocks } from '@/hooks/use-console-stocks';
 import type { SectorStock } from '@/lib/api';
@@ -24,16 +24,8 @@ function filterAndSort(
   capFilter: string,
   sortBy: SortField,
   sortDir: SortDir,
-  search: string
 ): SectorStock[] {
   let filtered = stocks;
-
-  if (search) {
-    const q = search.toUpperCase();
-    filtered = filtered.filter(
-      (s) => s.ticker.includes(q) || s.name.toUpperCase().includes(q)
-    );
-  }
 
   if (sector && sector !== 'all') {
     // Sector filtering would require sector info on stock - skip for now
@@ -74,22 +66,36 @@ export function ConsoleView() {
   const [capFilter, setCapFilter] = useState('all');
   const [sortBy, setSortBy] = useState<SortField>('rsRank');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [search, setSearch] = useState('');
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const stocks = useMemo(() => {
     if (!data?.stocks) return [];
-    return filterAndSort(data.stocks, sector, capFilter, sortBy, sortDir, search);
-  }, [data?.stocks, sector, capFilter, sortBy, sortDir, search]);
+    return filterAndSort(data.stocks, sector, capFilter, sortBy, sortDir);
+  }, [data?.stocks, sector, capFilter, sortBy, sortDir]);
 
-  const selectedStock = useMemo(() => {
+  // The selected stock from the table (may be null if ticker came from search)
+  const tableStock = useMemo(() => {
     if (!stocks.length) return null;
-    const found = stocks.find((s) => s.ticker === selectedTicker);
-    return found ?? stocks[0];
+    return stocks.find((s) => s.ticker === selectedTicker) ?? null;
   }, [stocks, selectedTicker]);
 
-  // Auto-select first stock when data loads
-  if (selectedStock && !selectedTicker) {
-    setSelectedTicker(selectedStock.ticker);
+  // Auto-select first stock when data loads and nothing is selected yet
+  const hasAutoSelected = useRef(false);
+  useEffect(() => {
+    if (stocks.length > 0 && !selectedTicker && !hasAutoSelected.current) {
+      hasAutoSelected.current = true;
+      setSelectedTicker(stocks[0].ticker);
+    }
+  }, [stocks, selectedTicker]);
+
+  function handleSelectTicker(ticker: string) {
+    setSelectedTicker(ticker);
+
+    // Scroll to the row if it exists in the table
+    if (tableRef.current) {
+      const row = tableRef.current.querySelector(`[data-ticker="${ticker}"]`);
+      row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 
   function handleSort(field: SortField) {
@@ -109,36 +115,38 @@ export function ConsoleView() {
     );
   }
 
+  const leftPanelProps = {
+    stocks,
+    summary: data?.summary ?? null,
+    sectors: data?.sectors ?? [],
+    selectedTicker,
+    onSelectTicker: handleSelectTicker,
+    sector,
+    onSectorChange: setSector,
+    capFilter,
+    onCapFilterChange: setCapFilter,
+    sortBy,
+    sortDir,
+    onSort: handleSort,
+    isLoading,
+    tableRef,
+  };
+
   return (
     <div className="h-[calc(100vh-3.5rem)] bg-[#0a0a0f] text-zinc-300">
       {/* Desktop: side-by-side resizable panels */}
       <div className="hidden lg:block h-full">
         <Group orientation="horizontal" style={{ height: '100%' }}>
           <Panel id="left" defaultSize={520} minSize={400} maxSize={650}>
-            <LeftPanel
-              stocks={stocks}
-              summary={data?.summary ?? null}
-              sectors={data?.sectors ?? []}
-              selectedTicker={selectedStock?.ticker ?? ''}
-              onSelectTicker={setSelectedTicker}
-              sector={sector}
-              onSectorChange={setSector}
-              capFilter={capFilter}
-              onCapFilterChange={setCapFilter}
-              sortBy={sortBy}
-              sortDir={sortDir}
-              onSort={handleSort}
-              search={search}
-              onSearchChange={setSearch}
-              isLoading={isLoading}
-            />
+            <LeftPanel {...leftPanelProps} />
           </Panel>
           <Separator
             className="w-1 bg-zinc-800 hover:bg-orange-500/40 transition-colors cursor-col-resize"
           />
           <Panel id="right">
             <RightPanel
-              stock={selectedStock}
+              stock={tableStock}
+              selectedTicker={selectedTicker}
               tab={rightTab}
               onTabChange={setRightTab}
               isLoading={isLoading}
@@ -150,27 +158,12 @@ export function ConsoleView() {
       {/* Tablet: stacked vertically */}
       <div className="hidden md:block lg:hidden h-full overflow-auto">
         <div className="h-[55vh]">
-          <LeftPanel
-            stocks={stocks}
-            summary={data?.summary ?? null}
-            sectors={data?.sectors ?? []}
-            selectedTicker={selectedStock?.ticker ?? ''}
-            onSelectTicker={setSelectedTicker}
-            sector={sector}
-            onSectorChange={setSector}
-            capFilter={capFilter}
-            onCapFilterChange={setCapFilter}
-            sortBy={sortBy}
-            sortDir={sortDir}
-            onSort={handleSort}
-            search={search}
-            onSearchChange={setSearch}
-            isLoading={isLoading}
-          />
+          <LeftPanel {...leftPanelProps} />
         </div>
         <div className="border-t border-zinc-800">
           <RightPanel
-            stock={selectedStock}
+            stock={tableStock}
+            selectedTicker={selectedTicker}
             tab={rightTab}
             onTabChange={setRightTab}
             isLoading={isLoading}
@@ -180,24 +173,7 @@ export function ConsoleView() {
 
       {/* Mobile: full-width list only */}
       <div className="block md:hidden h-full">
-        <LeftPanel
-          stocks={stocks}
-          summary={data?.summary ?? null}
-          sectors={data?.sectors ?? []}
-          selectedTicker={selectedStock?.ticker ?? ''}
-          onSelectTicker={setSelectedTicker}
-          sector={sector}
-          onSectorChange={setSector}
-          capFilter={capFilter}
-          onCapFilterChange={setCapFilter}
-          sortBy={sortBy}
-          sortDir={sortDir}
-          onSort={handleSort}
-          search={search}
-          onSearchChange={setSearch}
-          isLoading={isLoading}
-          isMobile
-        />
+        <LeftPanel {...leftPanelProps} isMobile />
       </div>
     </div>
   );
