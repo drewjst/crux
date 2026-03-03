@@ -6,6 +6,7 @@ import type { SectorStock } from '@/lib/api';
 import { useStock } from '@/hooks/use-stock';
 import { formatPercent, formatMarketCap } from '@/lib/utils';
 import type { RightTab } from './console-view';
+import { TradingViewChart } from './tradingview-chart';
 
 interface RightPanelProps {
   /** Stock from the sector table (null if ticker came from search and isn't in table) */
@@ -91,20 +92,30 @@ function TabBar({
   );
 }
 
-function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
+function PlaceholderTab({ label, ticker }: { label: string; ticker: string }) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <p className="font-mono text-sm text-zinc-500">
-          {tab.charAt(0).toUpperCase() + tab.slice(1)} view for{' '}
-          <span className="text-orange-400">{ticker}</span>
+          {label} view for <span className="text-orange-400">{ticker}</span>
         </p>
-        <p className="mt-1 font-mono text-xs text-zinc-600">
-          Coming soon
-        </p>
+        <p className="mt-1 font-mono text-xs text-zinc-600">Coming soon</p>
       </div>
     </div>
   );
+}
+
+function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
+  if (tab === 'chart') {
+    return (
+      <div className="flex-1 min-h-0">
+        <TradingViewChart symbol={ticker} />
+      </div>
+    );
+  }
+
+  const label = tab.charAt(0).toUpperCase() + tab.slice(1);
+  return <PlaceholderTab label={label} ticker={ticker} />;
 }
 
 function normalizeFromTable(stock: SectorStock): StockHeaderData {
