@@ -8,6 +8,7 @@ import { formatPercent, formatMarketCap } from '@/lib/utils';
 import type { RightTab } from './console-view';
 import { TradingViewChart } from './tradingview-chart';
 import { OverlayChart } from './overlay-chart';
+import { ValuationTab } from './valuation-tab';
 
 interface RightPanelProps {
   /** Stock from the sector table (null if ticker came from search and isn't in table) */
@@ -119,6 +120,14 @@ function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
     return (
       <div className="flex-1 min-h-0">
         <OverlayChart ticker={ticker} />
+      </div>
+    );
+  }
+
+  if (tab === 'valuation') {
+    return (
+      <div className="flex-1 min-h-0">
+        <ValuationTab ticker={ticker} />
       </div>
     );
   }

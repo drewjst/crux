@@ -384,3 +384,37 @@ body {
 .dark ::selection {
   background: hsl(var(--primary) / 0.25);
 }
+
+/* ============================================
+   CONSOLE THEME OVERRIDE
+   Forces dark theme variables inside the Console
+   so reused components render correctly in the
+   always-dark console panel.
+   ============================================ */
+.console-theme-override {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 6% 10%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 6% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 24 95% 53%; /* orange-500 for console accent */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 240 4% 16%;
+  --accent-foreground: 24 95% 53%;
+  --border: 240 4% 25%;
+  --input: 240 4% 25%;
+  --ring: 24 95% 53%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 69% 58%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --positive: 142 69% 58%;
+  --negative: 0 72% 51%;
+}
