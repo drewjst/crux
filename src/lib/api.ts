@@ -117,6 +117,33 @@ export async function fetchAISummary(ticker: string): Promise<AISummaryResponse>
   );
 }
 
+// Overlay chart data (fundamentals + price aligned by fiscal period)
+export interface OverlayDataPointResponse {
+  period: string;
+  date: string;
+  revenue: number;
+  netIncome: number;
+  freeCashFlow: number;
+  eps: number;
+  price: number;
+}
+
+export interface OverlayResponse {
+  ticker: string;
+  period: string;
+  data: OverlayDataPointResponse[];
+}
+
+export async function fetchOverlay(
+  ticker: string,
+  period: string = 'annual',
+  limit: number = 10
+): Promise<OverlayResponse> {
+  return fetchApi<OverlayResponse>(
+    `/api/stock/${ticker.toUpperCase()}/overlay?period=${period}&limit=${limit}`
+  );
+}
+
 // Institutional Detail types
 export interface OwnershipHistoryPoint {
   date: string; // "2024-Q4" format

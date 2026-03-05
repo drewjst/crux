@@ -1,13 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  fetchIncomeStatements,
-  fetchCashFlowStatements,
-  type IncomeStatementPeriod,
-  type CashFlowPeriod,
-} from '@/lib/api';
+import { fetchOverlay } from '@/lib/api';
 
 const OVERLAY_STALE_TIME = 5 * 60 * 1000;
-const ANNUAL_LIMIT = 10;
 
 export interface OverlayDataPoint {
   fiscalYear: number;
@@ -17,6 +11,7 @@ export interface OverlayDataPoint {
   netIncome: number;
   freeCashFlow: number;
   epsDiluted: number;
+  price: number;
 }
 
 export interface OverlayData {
@@ -24,40 +19,27 @@ export interface OverlayData {
   ticker: string;
 }
 
-function joinByFiscalYear(
-  income: IncomeStatementPeriod[],
-  cashFlow: CashFlowPeriod[]
-): OverlayDataPoint[] {
-  const cfByYear = new Map<number, CashFlowPeriod>();
-  for (const cf of cashFlow) {
-    cfByYear.set(cf.fiscalYear, cf);
-  }
-
-  return income
-    .map((inc) => {
-      const cf = cfByYear.get(inc.fiscalYear);
-      return {
-        fiscalYear: inc.fiscalYear,
-        periodEnd: inc.periodEnd,
-        label: `FY${inc.fiscalYear}`,
-        revenue: inc.revenue,
-        netIncome: inc.netIncome,
-        freeCashFlow: cf?.freeCashFlow ?? 0,
-        epsDiluted: inc.epsDiluted,
-      };
-    })
-    .sort((a, b) => a.fiscalYear - b.fiscalYear);
+function parseFiscalYear(period: string): number {
+  // "FY2024" → 2024, "Q3 2024" → 2024
+  const match = period.match(/(\d{4})/);
+  return match ? parseInt(match[1], 10) : 0;
 }
 
 async function fetchOverlayData(ticker: string): Promise<OverlayData> {
-  const [incomeRes, cashFlowRes] = await Promise.all([
-    fetchIncomeStatements(ticker, { period: 'annual', limit: ANNUAL_LIMIT }),
-    fetchCashFlowStatements(ticker, { period: 'annual', limit: ANNUAL_LIMIT }),
-  ]);
+  const response = await fetchOverlay(ticker);
 
-  const points = joinByFiscalYear(incomeRes.periods, cashFlowRes.periods);
+  const points: OverlayDataPoint[] = response.data.map((d) => ({
+    fiscalYear: parseFiscalYear(d.period),
+    periodEnd: d.date,
+    label: d.period,
+    revenue: d.revenue,
+    netIncome: d.netIncome,
+    freeCashFlow: d.freeCashFlow,
+    epsDiluted: d.eps,
+    price: d.price,
+  }));
 
-  return { points, ticker: ticker.toUpperCase() };
+  return { points, ticker: response.ticker };
 }
 
 export function useOverlayData(ticker: string) {
