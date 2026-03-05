@@ -9,6 +9,7 @@ import type { RightTab } from './console-view';
 import { TradingViewChart } from './tradingview-chart';
 import { OverlayChart } from './overlay-chart';
 import { ValuationTab } from './valuation-tab';
+import { AIInsights } from './ai-insights';
 
 interface RightPanelProps {
   /** Stock from the sector table (null if ticker came from search and isn't in table) */
@@ -94,46 +95,33 @@ function TabBar({
   );
 }
 
-function PlaceholderTab({ label, ticker }: { label: string; ticker: string }) {
-  return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="font-mono text-sm text-zinc-500">
-          {label} view for <span className="text-orange-400">{ticker}</span>
-        </p>
-        <p className="mt-1 font-mono text-xs text-zinc-600">Coming soon</p>
-      </div>
-    </div>
-  );
-}
-
 function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
-  if (tab === 'chart') {
-    return (
-      <div className="flex-1 min-h-0">
-        <TradingViewChart symbol={ticker} />
-      </div>
-    );
+  switch (tab) {
+    case 'chart':
+      return (
+        <div className="flex-1 min-h-0">
+          <TradingViewChart symbol={ticker} />
+        </div>
+      );
+    case 'overlay':
+      return (
+        <div className="flex-1 min-h-0">
+          <OverlayChart ticker={ticker} />
+        </div>
+      );
+    case 'valuation':
+      return (
+        <div className="flex-1 min-h-0">
+          <ValuationTab ticker={ticker} />
+        </div>
+      );
+    case 'ai':
+      return (
+        <div className="flex-1 min-h-0">
+          <AIInsights ticker={ticker} />
+        </div>
+      );
   }
-
-  if (tab === 'overlay') {
-    return (
-      <div className="flex-1 min-h-0">
-        <OverlayChart ticker={ticker} />
-      </div>
-    );
-  }
-
-  if (tab === 'valuation') {
-    return (
-      <div className="flex-1 min-h-0">
-        <ValuationTab ticker={ticker} />
-      </div>
-    );
-  }
-
-  const label = tab.charAt(0).toUpperCase() + tab.slice(1);
-  return <PlaceholderTab label={label} ticker={ticker} />;
 }
 
 function normalizeFromTable(stock: SectorStock): StockHeaderData {

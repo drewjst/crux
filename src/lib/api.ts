@@ -101,6 +101,22 @@ export async function fetchInsight(
   );
 }
 
+// AI Summary (structured bull/bear insight)
+export interface AISummaryResponse {
+  ticker: string;
+  summary: string;
+  bullish: string[];
+  bearish: string[];
+  generatedAt: string;
+  cached: boolean;
+}
+
+export async function fetchAISummary(ticker: string): Promise<AISummaryResponse> {
+  return fetchApi<AISummaryResponse>(
+    `/api/v1/insights/summary?ticker=${ticker.toUpperCase()}`
+  );
+}
+
 // Institutional Detail types
 export interface OwnershipHistoryPoint {
   date: string; // "2024-Q4" format
