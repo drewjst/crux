@@ -4,65 +4,20 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useConsoleStocks } from '@/hooks/use-console-stocks';
-import type { SectorStock } from '@/lib/api';
+import type { ScreenerStock } from '@/lib/api';
 import { LeftPanel } from './left-panel';
 import { RightPanel } from './right-panel';
 
-export type SortField = 'ticker' | 'price' | 'pe' | 'roic' | 'ytdChange' | 'from52wHigh' | 'rsRank';
+// Sort fields map to screener API column names
+export type SortField = 'ticker' | 'price' | 'pe' | 'roic' | 'revenueGrowth' | 'epsGrowth' | 'marketCap';
 export type SortDir = 'asc' | 'desc';
 export type RightTab = 'chart' | 'overlay' | 'valuation' | 'ai';
 
-const CAP_FILTERS: Record<string, [number, number]> = {
-  mega: [200e9, Infinity],
-  large: [10e9, 200e9],
-  mid: [2e9, 10e9],
-  small: [0, 2e9],
-};
-
-function filterAndSort(
-  stocks: SectorStock[],
-  sector: string,
-  capFilter: string,
-  sortBy: SortField,
-  sortDir: SortDir,
-): SectorStock[] {
-  let filtered = stocks;
-
-  if (sector && sector !== 'all') {
-    // Sector filtering would require sector info on stock - skip for now
-    // The API groups by sector but SectorStock doesn't carry its sector name
-  }
-
-  if (capFilter && capFilter !== 'all') {
-    const range = CAP_FILTERS[capFilter];
-    if (range) {
-      filtered = filtered.filter(
-        (s) => s.marketCap >= range[0] && s.marketCap < range[1]
-      );
-    }
-  }
-
-  const sorted = [...filtered].sort((a, b) => {
-    const valA = a[sortBy];
-    const valB = b[sortBy];
-    if (valA === null || valA === undefined) return 1;
-    if (valB === null || valB === undefined) return -1;
-    if (typeof valA === 'string' && typeof valB === 'string') {
-      return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    }
-    return sortDir === 'asc'
-      ? (valA as number) - (valB as number)
-      : (valB as number) - (valA as number);
-  });
-
-  return sorted;
-}
-
 const VALID_TABS: RightTab[] = ['chart', 'overlay', 'valuation', 'ai'];
 const VALID_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
+const VALID_SORTS: SortField[] = ['ticker', 'price', 'pe', 'roic', 'revenueGrowth', 'epsGrowth', 'marketCap'];
 
 export function ConsoleView() {
-  const { data, isLoading, error } = useConsoleStocks();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -82,16 +37,27 @@ export function ConsoleView() {
     const c = searchParams.get('cap') ?? 'all';
     return VALID_CAPS.includes(c) ? c : 'all';
   });
-  const [sortBy, setSortBy] = useState<SortField>('rsRank');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [sortBy, setSortBy] = useState<SortField>(() => {
+    const s = searchParams.get('sort') as SortField;
+    return VALID_SORTS.includes(s) ? s : 'marketCap';
+  });
+  const [sortDir, setSortDir] = useState<SortDir>(() => {
+    const d = searchParams.get('order') as SortDir;
+    return d === 'asc' || d === 'desc' ? d : 'desc';
+  });
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sorting and filtering are now server-side via the screener API
+  const { data, isLoading, error } = useConsoleStocks(sector, sortBy, sortDir, capFilter);
+
+  const stocks = data?.stocks ?? [];
 
   // Sync state → URL (replaceState to avoid history pollution)
   const updateUrl = useCallback(
     (params: Record<string, string>) => {
       const sp = new URLSearchParams(searchParams.toString());
       for (const [k, v] of Object.entries(params)) {
-        if (!v || v === 'all' || (k === 'tab' && v === 'chart')) {
+        if (!v || v === 'all' || (k === 'tab' && v === 'chart') || (k === 'sort' && v === 'marketCap') || (k === 'order' && v === 'desc')) {
           sp.delete(k);
         } else {
           sp.set(k, v);
@@ -102,11 +68,6 @@ export function ConsoleView() {
     },
     [searchParams, router, pathname],
   );
-
-  const stocks = useMemo(() => {
-    if (!data?.stocks) return [];
-    return filterAndSort(data.stocks, sector, capFilter, sortBy, sortDir);
-  }, [data?.stocks, sector, capFilter, sortBy, sortDir]);
 
   // The selected stock from the table (may be null if ticker came from search)
   const tableStock = useMemo(() => {
@@ -151,10 +112,13 @@ export function ConsoleView() {
 
   function handleSort(field: SortField) {
     if (sortBy === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      const newDir = sortDir === 'asc' ? 'desc' : 'asc';
+      setSortDir(newDir);
+      updateUrl({ sort: field, order: newDir });
     } else {
       setSortBy(field);
       setSortDir('desc');
+      updateUrl({ sort: field, order: 'desc' });
     }
   }
 
@@ -181,6 +145,7 @@ export function ConsoleView() {
     onSort: handleSort,
     isLoading,
     tableRef,
+    total: data?.total ?? 0,
   };
 
   return (

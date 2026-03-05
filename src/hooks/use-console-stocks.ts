@@ -1,51 +1,69 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchSectors, fetchSectorOverview } from '@/lib/api';
-import type { SectorStock, SectorSummary, SectorOverviewResponse } from '@/lib/api';
+import { fetchScreener, fetchScreenerFilterOptions } from '@/lib/api';
+import type { ScreenerStock } from '@/lib/api';
 
 const CONSOLE_STALE_TIME = 2 * 60 * 1000;
-const BATCH_SIZE = 3; // Stay under API rate limit (10 req/s)
+
+export interface ConsoleSummary {
+  avgPe: number | null;
+  avgPs: number | null;
+  avgRoic: number | null;
+  medianPe: number | null;
+  totalMarketCap: number | null;
+  stockCount: number;
+}
 
 export interface ConsoleData {
-  stocks: SectorStock[];
-  summary: SectorSummary;
+  stocks: ScreenerStock[];
+  summary: ConsoleSummary;
   sectors: string[];
+  total: number;
 }
 
-async function fetchConsoleStocks(): Promise<ConsoleData> {
-  const { sectors } = await fetchSectors();
+async function fetchConsoleStocks(
+  sector: string,
+  sort: string,
+  order: 'asc' | 'desc',
+  capFilter: string,
+): Promise<ConsoleData> {
+  // Fetch stocks and sector list in parallel (2 requests total)
+  const capRange = CAP_RANGES[capFilter];
 
-  // Fetch in batches to avoid 429 rate limiting
-  const overviews: SectorOverviewResponse[] = [];
-  for (let i = 0; i < sectors.length; i += BATCH_SIZE) {
-    const batch = sectors.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(
-      batch.map((sector) => fetchSectorOverview(sector, '52whigh', 50))
-    );
-    overviews.push(...results);
-  }
+  const [screenerResult, filterOptions] = await Promise.all([
+    fetchScreener({
+      sectors: sector !== 'all' ? [sector] : undefined,
+      marketCapMin: capRange?.[0],
+      marketCapMax: capRange?.[1],
+      sort,
+      order,
+      limit: 200,
+    }),
+    fetchScreenerFilterOptions(),
+  ]);
 
-  const allStocks: SectorStock[] = [];
-  const seen = new Set<string>();
+  const summary = aggregateSummary(screenerResult.stocks);
+  const sectors = filterOptions.sectors ?? [];
 
-  for (const overview of overviews) {
-    for (const stock of overview.stocks) {
-      if (!seen.has(stock.ticker)) {
-        seen.add(stock.ticker);
-        allStocks.push(stock);
-      }
-    }
-  }
-
-  const summary = aggregateSummary(allStocks);
-
-  return { stocks: allStocks, summary, sectors };
+  return {
+    stocks: screenerResult.stocks,
+    summary,
+    sectors,
+    total: screenerResult.total,
+  };
 }
 
-function aggregateSummary(stocks: SectorStock[]): SectorSummary {
+const CAP_RANGES: Record<string, [number, number] | undefined> = {
+  all: undefined,
+  mega: [200e9, 100e12],
+  large: [10e9, 200e9],
+  mid: [2e9, 10e9],
+  small: [0, 2e9],
+};
+
+function aggregateSummary(stocks: ScreenerStock[]): ConsoleSummary {
   const peValues = stocks.map((s) => s.pe).filter((v): v is number => v !== null);
   const psValues = stocks.map((s) => s.ps).filter((v): v is number => v !== null);
   const roicValues = stocks.map((s) => s.roic).filter((v): v is number => v !== null);
-  const ytdValues = stocks.map((s) => s.ytdChange).filter((v): v is number => v !== null);
 
   const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
   const median = (arr: number[]) => {
@@ -55,32 +73,25 @@ function aggregateSummary(stocks: SectorStock[]): SectorSummary {
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   };
 
-  const sma20Count = stocks.filter((s) => s.sma20 === true).length;
-  const sma50Count = stocks.filter((s) => s.sma50 === true).length;
-  const sma200Count = stocks.filter((s) => s.sma200 === true).length;
-  const total = stocks.length || 1;
-
   return {
     avgPe: avg(peValues),
     avgPs: avg(psValues),
     avgRoic: avg(roicValues),
     medianPe: median(peValues),
-    medianPs: median(psValues),
-    medianYtd: median(ytdValues),
-    median1y: null,
-    median1m: null,
-    totalMarketCap: stocks.reduce((sum, s) => sum + s.marketCap, 0),
-    medianFrom52wHigh: null,
-    pctAboveSma20: Math.round((sma20Count / total) * 100),
-    pctAboveSma50: Math.round((sma50Count / total) * 100),
-    pctAboveSma200: Math.round((sma200Count / total) * 100),
+    totalMarketCap: stocks.reduce((sum, s) => sum + (s.marketCap ?? 0), 0),
+    stockCount: stocks.length,
   };
 }
 
-export function useConsoleStocks() {
+export function useConsoleStocks(
+  sector: string,
+  sort: string,
+  order: 'asc' | 'desc',
+  capFilter: string,
+) {
   return useQuery<ConsoleData>({
-    queryKey: ['console-stocks'],
-    queryFn: fetchConsoleStocks,
+    queryKey: ['console-stocks', sector, sort, order, capFilter],
+    queryFn: () => fetchConsoleStocks(sector, sort, order, capFilter),
     staleTime: CONSOLE_STALE_TIME,
     retry: 2,
   });

@@ -3,15 +3,15 @@
 import type { RefObject } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import type { SectorStock, SectorSummary } from '@/lib/api';
-import { formatPercent } from '@/lib/utils';
-import { MiniSparkline } from './mini-sparkline';
+import type { ScreenerStock } from '@/lib/api';
+import type { ConsoleSummary } from '@/hooks/use-console-stocks';
+import { formatPercent, formatMarketCap } from '@/lib/utils';
 import { ConsoleSearch } from './console-search';
 import type { SortField, SortDir } from './console-view';
 
 interface LeftPanelProps {
-  stocks: SectorStock[];
-  summary: SectorSummary | null;
+  stocks: ScreenerStock[];
+  summary: ConsoleSummary | null;
   sectors: string[];
   selectedTicker: string;
   onSelectTicker: (ticker: string) => void;
@@ -25,6 +25,7 @@ interface LeftPanelProps {
   isLoading: boolean;
   isMobile?: boolean;
   tableRef?: RefObject<HTMLDivElement | null>;
+  total: number;
 }
 
 function SortHeader({
@@ -59,7 +60,7 @@ function SortHeader({
   );
 }
 
-function SummaryBar({ summary }: { summary: SectorSummary | null }) {
+function SummaryBar({ summary }: { summary: ConsoleSummary | null }) {
   if (!summary) return null;
 
   return (
@@ -69,50 +70,15 @@ function SummaryBar({ summary }: { summary: SectorSummary | null }) {
         <span>P/S <span className="text-zinc-200 font-mono">{summary.avgPs?.toFixed(1) ?? '—'}</span></span>
         <span>ROIC <span className="text-zinc-200 font-mono">{summary.avgRoic?.toFixed(1) ?? '—'}%</span></span>
       </div>
-      <div className="ml-auto flex items-center gap-2 text-zinc-500">
-        <BreadthDot label="20d" value={summary.pctAboveSma20} />
-        <BreadthDot label="50d" value={summary.pctAboveSma50} />
-        <BreadthDot label="200d" value={summary.pctAboveSma200} />
-      </div>
+      <span className="ml-auto text-zinc-500 font-mono">{summary.stockCount} stocks</span>
     </div>
   );
 }
 
-function BreadthDot({ label, value }: { label: string; value: number | null }) {
-  if (value === null) return null;
-  const color = value >= 60 ? 'bg-emerald-500' : value >= 40 ? 'bg-amber-500' : 'bg-red-500';
-  return (
-    <span className="flex items-center gap-1">
-      <span className={`h-1.5 w-1.5 rounded-full ${color}`} />
-      {label} <span className="text-zinc-300 font-mono">{value}%</span>
-    </span>
-  );
-}
-
-function SignalDots({ sma20, sma50, sma200 }: { sma20: boolean | null; sma50: boolean | null; sma200: boolean | null }) {
-  if (sma20 === null && sma50 === null && sma200 === null) return null;
-  return (
-    <span className="flex items-center gap-[2px] ml-0.5">
-      {[sma20, sma50, sma200].map((above, i) => (
-        <span
-          key={i}
-          className={`h-[5px] w-[5px] rounded-full ${
-            above === null ? 'bg-zinc-700' : above ? 'bg-emerald-500' : 'bg-red-500'
-          }`}
-        />
-      ))}
-    </span>
-  );
-}
-
-function RsRankBadge({ rank }: { rank: number | null }) {
-  if (rank === null) return <span className="text-xs font-mono text-zinc-400 text-right">—</span>;
-  let color = 'text-zinc-400';
-  if (rank >= 80) color = 'text-emerald-400';
-  else if (rank <= 20) color = 'text-red-400';
-  else if (rank >= 60) color = 'text-emerald-400/60';
-  else if (rank <= 40) color = 'text-red-400/60';
-  return <span className={`text-xs font-mono text-right ${color}`}>{rank}</span>;
+function GrowthBadge({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-xs font-mono text-zinc-600 text-right">—</span>;
+  const color = value >= 0 ? 'text-emerald-400' : 'text-red-400';
+  return <span className={`text-xs font-mono text-right ${color}`}>{formatPercent(value, 0)}</span>;
 }
 
 export function LeftPanel({
@@ -131,6 +97,7 @@ export function LeftPanel({
   isLoading,
   isMobile = false,
   tableRef,
+  total,
 }: LeftPanelProps) {
   return (
     <div className="flex h-full flex-col bg-[#0a0a0f]">
@@ -164,15 +131,14 @@ export function LeftPanel({
       <SummaryBar summary={summary} />
 
       {/* Table header */}
-      <div className="grid grid-cols-[72px_68px_56px_56px_60px_64px_56px_60px] gap-0 px-3 py-1.5 border-b border-zinc-800/60">
+      <div className="grid grid-cols-[72px_68px_56px_56px_60px_60px_72px] gap-0 px-3 py-1.5 border-b border-zinc-800/60">
         <SortHeader label="Ticker" field="ticker" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
         <SortHeader label="Price" field="price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
         <SortHeader label="P/E" field="pe" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
         <SortHeader label="ROIC" field="roic" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
-        <SortHeader label="YTD" field="ytdChange" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
-        <SortHeader label="% 52W Hi" field="from52wHigh" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
-        <SortHeader label="RS" field="rsRank" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500 text-right">1Y</span>
+        <SortHeader label="Rev Gr" field="revenueGrowth" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
+        <SortHeader label="EPS Gr" field="epsGrowth" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
+        <SortHeader label="Mkt Cap" field="marketCap" sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="justify-end" />
       </div>
 
       {/* Stock rows */}
@@ -200,7 +166,7 @@ export function LeftPanel({
 
       {/* Footer count */}
       <div className="border-t border-zinc-800/60 px-3 py-1 text-[10px] text-zinc-600 font-mono">
-        {stocks.length} stocks
+        {stocks.length} of {total} stocks
       </div>
     </div>
   );
@@ -212,41 +178,34 @@ function StockRow({
   onSelect,
   isMobile,
 }: {
-  stock: SectorStock;
+  stock: ScreenerStock;
   isSelected: boolean;
   onSelect: (ticker: string) => void;
   isMobile: boolean;
 }) {
-  const ytdColor = (stock.ytdChange ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400';
-  const from52Color = (stock.from52wHigh ?? 0) >= -10 ? 'text-emerald-400' : 'text-red-400';
-
   const row = (
     <div
       data-ticker={stock.ticker}
       onClick={() => onSelect(stock.ticker)}
-      className={`grid grid-cols-[72px_68px_56px_56px_60px_64px_56px_60px] gap-0 px-3 py-1.5 cursor-pointer border-b border-zinc-800/30 transition-colors ${
+      className={`grid grid-cols-[72px_68px_56px_56px_60px_60px_72px] gap-0 px-3 py-1.5 cursor-pointer border-b border-zinc-800/30 transition-colors ${
         isSelected
           ? 'bg-orange-500/10 border-l-2 border-l-orange-500'
           : 'hover:bg-zinc-800/40 border-l-2 border-l-transparent'
       }`}
     >
-      <span className="text-xs font-mono font-medium text-zinc-100 truncate flex items-center gap-1">
-        {stock.ticker}
-        <SignalDots sma20={stock.sma20} sma50={stock.sma50} sma200={stock.sma200} />
+      <span className="text-xs font-mono font-medium text-zinc-100 truncate">{stock.ticker}</span>
+      <span className="text-xs font-mono text-zinc-300 text-right">
+        {stock.price != null ? `$${stock.price.toFixed(2)}` : '—'}
       </span>
-      <span className="text-xs font-mono text-zinc-300 text-right">${stock.price.toFixed(2)}</span>
       <span className="text-xs font-mono text-zinc-400 text-right">{stock.pe?.toFixed(1) ?? '—'}</span>
-      <span className="text-xs font-mono text-zinc-400 text-right">{stock.roic != null ? `${stock.roic.toFixed(0)}%` : '—'}</span>
-      <span className={`text-xs font-mono text-right ${ytdColor}`}>
-        {stock.ytdChange != null ? formatPercent(stock.ytdChange, 1) : '—'}
+      <span className="text-xs font-mono text-zinc-400 text-right">
+        {stock.roic != null ? `${stock.roic.toFixed(0)}%` : '—'}
       </span>
-      <span className={`text-xs font-mono text-right ${from52Color}`}>
-        {stock.from52wHigh != null ? formatPercent(stock.from52wHigh, 1) : '—'}
+      <GrowthBadge value={stock.revenueGrowth} />
+      <GrowthBadge value={stock.epsGrowth} />
+      <span className="text-xs font-mono text-zinc-400 text-right">
+        {stock.marketCap != null ? formatMarketCap(stock.marketCap) : '—'}
       </span>
-      <RsRankBadge rank={stock.rsRank} />
-      <div className="flex items-center justify-end">
-        <MiniSparkline data={stock.sparkline} positive={(stock.ytdChange ?? 0) >= 0} />
-      </div>
     </div>
   );
 

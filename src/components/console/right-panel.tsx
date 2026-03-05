@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
-import type { SectorStock } from '@/lib/api';
+import type { ScreenerStock } from '@/lib/api';
 import { useStock } from '@/hooks/use-stock';
 import { formatPercent, formatMarketCap } from '@/lib/utils';
 import type { RightTab } from './console-view';
@@ -12,8 +12,8 @@ import { ValuationTab } from './valuation-tab';
 import { AIInsights } from './ai-insights';
 
 interface RightPanelProps {
-  /** Stock from the sector table (null if ticker came from search and isn't in table) */
-  stock: SectorStock | null;
+  /** Stock from the screener table (null if ticker came from search and isn't in table) */
+  stock: ScreenerStock | null;
   /** The currently selected ticker — always set when a stock is selected */
   selectedTicker: string;
   tab: RightTab;
@@ -126,13 +126,13 @@ function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
   }
 }
 
-function normalizeFromTable(stock: SectorStock): StockHeaderData {
+function normalizeFromTable(stock: ScreenerStock): StockHeaderData {
   return {
     ticker: stock.ticker,
-    name: stock.name,
-    price: stock.price,
-    ytdChange: stock.ytdChange,
-    marketCap: stock.marketCap,
+    name: stock.name ?? stock.ticker,
+    price: stock.price ?? 0,
+    ytdChange: null,
+    marketCap: stock.marketCap ?? 0,
   };
 }
 
