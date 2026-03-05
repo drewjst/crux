@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchSectors, fetchSectorOverview } from '@/lib/api';
-import type { SectorStock, SectorSummary } from '@/lib/api';
+import type { SectorStock, SectorSummary, SectorOverviewResponse } from '@/lib/api';
 
 const CONSOLE_STALE_TIME = 2 * 60 * 1000;
+const BATCH_SIZE = 3; // Stay under API rate limit (10 req/s)
 
 export interface ConsoleData {
   stocks: SectorStock[];
@@ -13,9 +14,15 @@ export interface ConsoleData {
 async function fetchConsoleStocks(): Promise<ConsoleData> {
   const { sectors } = await fetchSectors();
 
-  const overviews = await Promise.all(
-    sectors.map((sector) => fetchSectorOverview(sector, '52whigh', 50))
-  );
+  // Fetch in batches to avoid 429 rate limiting
+  const overviews: SectorOverviewResponse[] = [];
+  for (let i = 0; i < sectors.length; i += BATCH_SIZE) {
+    const batch = sectors.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map((sector) => fetchSectorOverview(sector, '52whigh', 50))
+    );
+    overviews.push(...results);
+  }
 
   const allStocks: SectorStock[] = [];
   const seen = new Set<string>();
