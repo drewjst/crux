@@ -14,7 +14,7 @@ async function fetchConsoleStocks(): Promise<ConsoleData> {
   const { sectors } = await fetchSectors();
 
   const overviews = await Promise.all(
-    sectors.map((sector) => fetchSectorOverview(sector, '52whigh', 100))
+    sectors.map((sector) => fetchSectorOverview(sector, '52whigh', 50))
   );
 
   const allStocks: SectorStock[] = [];
