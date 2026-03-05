@@ -74,10 +74,12 @@ function TabBar({
   onTabChange: (tab: RightTab) => void;
 }) {
   return (
-    <div className="flex items-center gap-0 border-b border-zinc-800/80 px-4">
+    <div role="tablist" className="flex items-center gap-0 border-b border-zinc-800/80 px-4">
       {TABS.map((tab) => (
         <button
           key={tab.id}
+          role="tab"
+          aria-selected={activeTab === tab.id}
           onClick={() => onTabChange(tab.id)}
           className={`px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors relative ${
             activeTab === tab.id

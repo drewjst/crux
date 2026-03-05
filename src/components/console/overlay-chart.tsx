@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -152,6 +153,8 @@ function InsightCard({ points, ticker }: { points: OverlayDataPoint[]; ticker: s
   );
 }
 
+const PRICE_COLOR = '#22c55e';
+
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
 
@@ -159,6 +162,13 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
     <div className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 shadow-lg">
       <p className="text-[10px] font-mono text-zinc-400 mb-1">{label}</p>
       {payload.map((entry) => {
+        if (entry.name === 'price') {
+          return (
+            <p key="price" className="text-xs font-mono" style={{ color: PRICE_COLOR }}>
+              Price: ${entry.value.toFixed(2)}
+            </p>
+          );
+        }
         const config = METRICS.find((m) => m.key === entry.name);
         return (
           <p key={entry.name} className="text-xs font-mono" style={{ color: entry.color }}>
@@ -195,6 +205,7 @@ export function OverlayChart({ ticker }: OverlayChartProps) {
 
   const showEpsAxis = activeMetrics.has('epsDiluted');
   const showDollarAxis = activeMetrics.has('revenue') || activeMetrics.has('netIncome') || activeMetrics.has('freeCashFlow');
+  const hasPriceData = data?.points.some((p) => p.price > 0) ?? false;
 
   if (isLoading) {
     return (
@@ -235,7 +246,7 @@ export function OverlayChart({ ticker }: OverlayChartProps) {
       {/* Chart */}
       <div className="flex-1 min-h-0 px-2 pt-2">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data.points} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <ComposedChart data={data.points} margin={{ top: 10, right: hasPriceData ? 50 : 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis
               dataKey="label"
@@ -264,6 +275,17 @@ export function OverlayChart({ ticker }: OverlayChartProps) {
                 width={45}
               />
             )}
+            {hasPriceData && (
+              <YAxis
+                yAxisId="price"
+                orientation="right"
+                tick={{ fontSize: 10, fill: PRICE_COLOR, fontFamily: 'var(--font-mono)' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                width={45}
+              />
+            )}
             <Tooltip content={<CustomTooltip />} />
             <Legend
               verticalAlign="top"
@@ -282,6 +304,18 @@ export function OverlayChart({ ticker }: OverlayChartProps) {
                 maxBarSize={40}
               />
             ))}
+            {hasPriceData && (
+              <Line
+                type="monotone"
+                dataKey="price"
+                name="price"
+                yAxisId="price"
+                stroke={PRICE_COLOR}
+                strokeWidth={2}
+                dot={{ r: 3, fill: PRICE_COLOR, strokeWidth: 0 }}
+                activeDot={{ r: 4, fill: PRICE_COLOR, strokeWidth: 0 }}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

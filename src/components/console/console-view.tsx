@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { useConsoleStocks } from '@/hooks/use-console-stocks';
 import type { SectorStock } from '@/lib/api';
@@ -57,16 +58,50 @@ function filterAndSort(
   return sorted;
 }
 
+const VALID_TABS: RightTab[] = ['chart', 'overlay', 'valuation', 'ai'];
+const VALID_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
+
 export function ConsoleView() {
   const { data, isLoading, error } = useConsoleStocks();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [selectedTicker, setSelectedTicker] = useState<string>('');
-  const [rightTab, setRightTab] = useState<RightTab>('chart');
-  const [sector, setSector] = useState('all');
-  const [capFilter, setCapFilter] = useState('all');
+  // Initialize state from URL params
+  const [selectedTicker, setSelectedTicker] = useState<string>(
+    () => searchParams.get('ticker')?.toUpperCase() ?? ''
+  );
+  const [rightTab, setRightTab] = useState<RightTab>(() => {
+    const t = searchParams.get('tab') as RightTab;
+    return VALID_TABS.includes(t) ? t : 'chart';
+  });
+  const [sector, setSector] = useState(
+    () => searchParams.get('sector') ?? 'all'
+  );
+  const [capFilter, setCapFilter] = useState(() => {
+    const c = searchParams.get('cap') ?? 'all';
+    return VALID_CAPS.includes(c) ? c : 'all';
+  });
   const [sortBy, setSortBy] = useState<SortField>('rsRank');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sync state → URL (replaceState to avoid history pollution)
+  const updateUrl = useCallback(
+    (params: Record<string, string>) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      for (const [k, v] of Object.entries(params)) {
+        if (!v || v === 'all' || (k === 'tab' && v === 'chart')) {
+          sp.delete(k);
+        } else {
+          sp.set(k, v);
+        }
+      }
+      const qs = sp.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
+  );
 
   const stocks = useMemo(() => {
     if (!data?.stocks) return [];
@@ -90,12 +125,28 @@ export function ConsoleView() {
 
   function handleSelectTicker(ticker: string) {
     setSelectedTicker(ticker);
+    updateUrl({ ticker });
 
     // Scroll to the row if it exists in the table
     if (tableRef.current) {
       const row = tableRef.current.querySelector(`[data-ticker="${ticker}"]`);
       row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
+  }
+
+  function handleTabChange(tab: RightTab) {
+    setRightTab(tab);
+    updateUrl({ tab });
+  }
+
+  function handleSectorChange(s: string) {
+    setSector(s);
+    updateUrl({ sector: s });
+  }
+
+  function handleCapFilterChange(c: string) {
+    setCapFilter(c);
+    updateUrl({ cap: c });
   }
 
   function handleSort(field: SortField) {
@@ -122,9 +173,9 @@ export function ConsoleView() {
     selectedTicker,
     onSelectTicker: handleSelectTicker,
     sector,
-    onSectorChange: setSector,
+    onSectorChange: handleSectorChange,
     capFilter,
-    onCapFilterChange: setCapFilter,
+    onCapFilterChange: handleCapFilterChange,
     sortBy,
     sortDir,
     onSort: handleSort,
@@ -148,7 +199,7 @@ export function ConsoleView() {
               stock={tableStock}
               selectedTicker={selectedTicker}
               tab={rightTab}
-              onTabChange={setRightTab}
+              onTabChange={handleTabChange}
               isLoading={isLoading}
             />
           </Panel>
@@ -165,7 +216,7 @@ export function ConsoleView() {
             stock={tableStock}
             selectedTicker={selectedTicker}
             tab={rightTab}
-            onTabChange={setRightTab}
+            onTabChange={handleTabChange}
             isLoading={isLoading}
           />
         </div>

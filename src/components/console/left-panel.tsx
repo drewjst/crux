@@ -46,6 +46,7 @@ function SortHeader({
   return (
     <button
       onClick={() => onSort(field)}
+      aria-sort={isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
       className={`flex items-center gap-0.5 text-[10px] uppercase tracking-wider transition-colors ${
         isActive ? 'text-orange-400' : 'text-zinc-500 hover:text-zinc-300'
       } ${className}`}
@@ -86,6 +87,32 @@ function BreadthDot({ label, value }: { label: string; value: number | null }) {
       {label} <span className="text-zinc-300 font-mono">{value}%</span>
     </span>
   );
+}
+
+function SignalDots({ sma20, sma50, sma200 }: { sma20: boolean | null; sma50: boolean | null; sma200: boolean | null }) {
+  if (sma20 === null && sma50 === null && sma200 === null) return null;
+  return (
+    <span className="flex items-center gap-[2px] ml-0.5">
+      {[sma20, sma50, sma200].map((above, i) => (
+        <span
+          key={i}
+          className={`h-[5px] w-[5px] rounded-full ${
+            above === null ? 'bg-zinc-700' : above ? 'bg-emerald-500' : 'bg-red-500'
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function RsRankBadge({ rank }: { rank: number | null }) {
+  if (rank === null) return <span className="text-xs font-mono text-zinc-400 text-right">—</span>;
+  let color = 'text-zinc-400';
+  if (rank >= 80) color = 'text-emerald-400';
+  else if (rank <= 20) color = 'text-red-400';
+  else if (rank >= 60) color = 'text-emerald-400/60';
+  else if (rank <= 40) color = 'text-red-400/60';
+  return <span className={`text-xs font-mono text-right ${color}`}>{rank}</span>;
 }
 
 export function LeftPanel({
@@ -203,7 +230,10 @@ function StockRow({
           : 'hover:bg-zinc-800/40 border-l-2 border-l-transparent'
       }`}
     >
-      <span className="text-xs font-mono font-medium text-zinc-100 truncate">{stock.ticker}</span>
+      <span className="text-xs font-mono font-medium text-zinc-100 truncate flex items-center gap-1">
+        {stock.ticker}
+        <SignalDots sma20={stock.sma20} sma50={stock.sma50} sma200={stock.sma200} />
+      </span>
       <span className="text-xs font-mono text-zinc-300 text-right">${stock.price.toFixed(2)}</span>
       <span className="text-xs font-mono text-zinc-400 text-right">{stock.pe?.toFixed(1) ?? '—'}</span>
       <span className="text-xs font-mono text-zinc-400 text-right">{stock.roic != null ? `${stock.roic.toFixed(0)}%` : '—'}</span>
@@ -213,7 +243,7 @@ function StockRow({
       <span className={`text-xs font-mono text-right ${from52Color}`}>
         {stock.from52wHigh != null ? formatPercent(stock.from52wHigh, 1) : '—'}
       </span>
-      <span className="text-xs font-mono text-zinc-400 text-right">{stock.rsRank ?? '—'}</span>
+      <RsRankBadge rank={stock.rsRank} />
       <div className="flex items-center justify-end">
         <MiniSparkline data={stock.sparkline} positive={(stock.ytdChange ?? 0) >= 0} />
       </div>
