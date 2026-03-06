@@ -124,7 +124,7 @@ export function ConsoleView() {
 
   if (error) {
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-[#0a0a0f]">
+      <div className="flex h-screen items-center justify-center bg-[#0a0a0f]">
         <p className="font-mono text-sm text-red-400">Failed to load console data.</p>
       </div>
     );
@@ -149,7 +149,7 @@ export function ConsoleView() {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] bg-[#0a0a0f] text-zinc-300">
+    <div className="h-screen bg-[#0a0a0f] text-zinc-300">
       {/* Desktop: side-by-side resizable panels */}
       <div className="hidden lg:block h-full">
         <Group orientation="horizontal" style={{ height: '100%' }}>

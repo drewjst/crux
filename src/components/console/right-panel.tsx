@@ -10,6 +10,7 @@ import { TradingViewChart } from './tradingview-chart';
 import { OverlayChart } from './overlay-chart';
 import { ValuationTab } from './valuation-tab';
 import { AIInsights } from './ai-insights';
+import { StockDetailsPanel } from './stock-details-panel';
 
 interface RightPanelProps {
   /** Stock from the screener table (null if ticker came from search and isn't in table) */
@@ -101,8 +102,13 @@ function TabContent({ tab, ticker }: { tab: RightTab; ticker: string }) {
   switch (tab) {
     case 'chart':
       return (
-        <div className="flex-1 min-h-0">
-          <TradingViewChart symbol={ticker} />
+        <div className="flex-1 min-h-0 flex">
+          <div className="flex-1 min-w-0">
+            <TradingViewChart symbol={ticker} />
+          </div>
+          <div className="hidden xl:block w-64 shrink-0">
+            <StockDetailsPanel ticker={ticker} />
+          </div>
         </div>
       );
     case 'overlay':

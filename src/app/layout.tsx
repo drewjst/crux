@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { LayoutShell } from '@/components/layout/layout-shell';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const inter = Inter({
@@ -107,15 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Providers>
           <TooltipProvider delayDuration={200}>
-            {/* Header spans full width */}
-            <Header />
-            {/* Content container with max-width and borders */}
-            <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col bg-card md:border-x border-border/60 md:shadow-2xl">
-              <main id="main-content" className="flex-1">
-                {children}
-              </main>
-              <Footer />
-            </div>
+            <LayoutShell>{children}</LayoutShell>
           </TooltipProvider>
         </Providers>
       </body>

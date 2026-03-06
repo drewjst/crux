@@ -36,7 +36,7 @@ async function fetchConsoleStocks(
       marketCapMax: capRange?.[1],
       sort,
       order,
-      limit: 200,
+      limit: 50,
     }),
     fetchScreenerFilterOptions(),
   ]);
