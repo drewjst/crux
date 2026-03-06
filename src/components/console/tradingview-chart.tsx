@@ -45,6 +45,8 @@ export function TradingViewChart({ symbol }: TradingViewChartProps) {
       enable_publishing: false,
       hide_side_toolbar: false,
       allow_symbol_change: false,
+      details: true,
+      calendar: true,
       backgroundColor: '#0a0a0f',
       gridColor: 'rgba(255,255,255,0.04)',
       studies: ['MASimple@tv-basicstudies'],
