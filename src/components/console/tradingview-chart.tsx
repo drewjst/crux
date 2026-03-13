@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TradingViewChartProps {
   symbol: string;
@@ -8,10 +8,14 @@ interface TradingViewChartProps {
 
 const WIDGET_SCRIPT_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
 
+const WIDGET_LOAD_TIMEOUT_MS = 3000;
+
 export function TradingViewChart({ symbol }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setIsLoading(true);
     const container = containerRef.current;
     if (!container) return;
 
@@ -51,24 +55,41 @@ export function TradingViewChart({ symbol }: TradingViewChartProps) {
       gridColor: 'rgba(255,255,255,0.04)',
       studies: ['MASimple@tv-basicstudies'],
     });
-    wrapper.appendChild(script);
 
+    // Hide loading once the widget iframe appears or after a timeout
+    const observer = new MutationObserver(() => {
+      if (wrapper.querySelector('iframe')) {
+        setIsLoading(false);
+        observer.disconnect();
+      }
+    });
+    observer.observe(wrapper, { childList: true, subtree: true });
+
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      observer.disconnect();
+    }, WIDGET_LOAD_TIMEOUT_MS);
+
+    wrapper.appendChild(script);
     container.appendChild(wrapper);
 
     return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
       container.innerHTML = '';
     };
   }, [symbol]);
 
   return (
     <div className="relative h-full w-full">
-      {/* Loading placeholder shown until widget renders */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500/30 border-t-orange-500" />
-          <span className="font-mono text-[10px] text-zinc-600">Loading chart...</span>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500/30 border-t-orange-500" />
+            <span className="font-mono text-[10px] text-zinc-600">Loading chart...</span>
+          </div>
         </div>
-      </div>
+      )}
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );
