@@ -10,6 +10,27 @@ interface ValuationSignalsSectionProps {
   data: ValuationDeepDive;
 }
 
+const sentimentConfig = {
+  bullish: {
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    bg: 'bg-success/10',
+    border: 'border-success/30',
+    text: 'text-success',
+  },
+  bearish: {
+    icon: <XCircle className="h-4 w-4" />,
+    bg: 'bg-destructive/10',
+    border: 'border-destructive/30',
+    text: 'text-destructive',
+  },
+  neutral: {
+    icon: <MinusCircle className="h-4 w-4" />,
+    bg: 'bg-muted/30',
+    border: 'border-border/30',
+    text: 'text-muted-foreground',
+  },
+};
+
 function ValuationSignalsSectionComponent({ data }: ValuationSignalsSectionProps) {
   const { signals } = data;
 
@@ -26,27 +47,6 @@ function ValuationSignalsSectionComponent({ data }: ValuationSignalsSectionProps
   const bullishSignals = signals.filter(s => s.sentiment === 'bullish');
   const bearishSignals = signals.filter(s => s.sentiment === 'bearish');
   const neutralSignals = signals.filter(s => s.sentiment === 'neutral');
-
-  const sentimentConfig = {
-    bullish: {
-      icon: <CheckCircle2 className="h-4 w-4" />,
-      bg: 'bg-success/10',
-      border: 'border-success/30',
-      text: 'text-success',
-    },
-    bearish: {
-      icon: <XCircle className="h-4 w-4" />,
-      bg: 'bg-destructive/10',
-      border: 'border-destructive/30',
-      text: 'text-destructive',
-    },
-    neutral: {
-      icon: <MinusCircle className="h-4 w-4" />,
-      bg: 'bg-muted/30',
-      border: 'border-border/30',
-      text: 'text-muted-foreground',
-    },
-  };
 
   // Overall sentiment summary
   const netSignal = bullishSignals.length - bearishSignals.length;
